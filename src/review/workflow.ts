@@ -82,7 +82,9 @@ export class ReviewWorkflow {
     return { ok: true };
   }
 
-  recoverInterruptedApplies(): number {
-    return this.repository.recoverInterruptedApplies();
+  recoverInterruptedApplies(onReindex: () => void): number {
+    const recovered = this.repository.recoverInterruptedApplies();
+    if (recovered > 0) onReindex();
+    return recovered;
   }
 }

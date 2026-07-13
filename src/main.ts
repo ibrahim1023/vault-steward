@@ -1,4 +1,6 @@
 import { ItemView, Plugin, PluginSettingTab, Setting, WorkspaceLeaf } from "obsidian";
+import { createElement } from "react";
+import { createRoot, type Root } from "react-dom/client";
 
 import { registerPluginCommands } from "./plugin/commands.js";
 import {
@@ -7,6 +9,8 @@ import {
   type PluginSettings
 } from "./plugin/settings.js";
 import { ObsidianVaultReader } from "./vault-adapter/obsidian-reader.js";
+import { PluginStatusView } from "./ui/PluginStatusView.js";
+import { ReviewQueueView } from "./ui/ReviewQueueView.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 
@@ -40,6 +44,7 @@ export default class VaultStewardPlugin extends Plugin {
 }
 
 class VaultStewardStatusItemView extends ItemView {
+  private root: Root | undefined;
   constructor(
     leaf: WorkspaceLeaf,
     private readonly plugin: VaultStewardPlugin
@@ -57,9 +62,23 @@ class VaultStewardStatusItemView extends ItemView {
 
   async onOpen(): Promise<void> {
     this.contentEl.empty();
-    this.contentEl.createEl("h2", { text: "Vault Steward" });
-    this.contentEl.createEl("p", { text: `Current vault: ${this.plugin.settings.vaultLabel}` });
-    this.contentEl.createEl("p", { text: "Ready to scan" });
+    this.root = createRoot(this.contentEl);
+    this.root.render(
+      createElement(
+        "div",
+        undefined,
+        createElement(PluginStatusView, {
+          vaultLabel: this.plugin.settings.vaultLabel,
+          status: "ready"
+        }),
+        createElement(ReviewQueueView, { status: "ready", findings: [] })
+      )
+    );
+  }
+
+  async onClose(): Promise<void> {
+    this.root?.unmount();
+    this.root = undefined;
   }
 }
 

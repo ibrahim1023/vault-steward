@@ -96,8 +96,15 @@ describe("review workflow", () => {
       ok: false,
       reason: "write-failed"
     });
-    expect(workflow.recoverInterruptedApplies()).toBe(1);
+    let reindexes = 0;
+    expect(
+      workflow.recoverInterruptedApplies(() => {
+        reindexes++;
+      })
+    ).toBe(1);
     expect(repo.getProposalStatus("p")).toBe("recovery-required");
+    expect(reindexes).toBe(1);
+    expect(repo.getRecordCounts().approvals).toBe(1);
   });
   it("records dismiss and defer actions without granting write permission", async () => {
     for (const action of ["dismissed", "deferred"] as const) {
