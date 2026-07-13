@@ -6,14 +6,18 @@ import {
   parsePluginSettings,
   type PluginSettings
 } from "./plugin/settings.js";
+import { ObsidianVaultReader } from "./vault-adapter/obsidian-reader.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 
 export default class VaultStewardPlugin extends Plugin {
   settings: PluginSettings = DEFAULT_PLUGIN_SETTINGS;
+  private vaultReader?: ObsidianVaultReader;
 
   async onload(): Promise<void> {
     this.settings = parsePluginSettings(await this.loadData());
+    this.vaultReader = new ObsidianVaultReader(this.app.vault);
+    this.register(this.vaultReader.watchInvalidations());
     this.addSettingTab(new VaultStewardSettingsTab(this.app, this));
     this.registerView(STATUS_VIEW_TYPE, (leaf) => new VaultStewardStatusItemView(leaf, this));
     registerPluginCommands(this, () => this.openStatusView());

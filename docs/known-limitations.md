@@ -4,4 +4,4 @@
 - Local model performance varies substantially by device and model; initial quality gates require calibration on representative synthetic and user-consented local fixtures.
 - Safe patch semantics for Markdown/frontmatter require a dedicated contract before any mutation feature is built.
 - Multi-vault operation, sync conflict resolution, encrypted-vault support, and future-extension agents are out of scope for the first vertical slice.
-- The first vertical slice is read-only and uses an in-memory session; it does not yet persist scans or read live vault files through Obsidian's runtime APIs.
+- The first vertical slice is read-only and uses an in-memory session; it does not yet persist scans or expose completed live-vault scans in the Obsidian UI.

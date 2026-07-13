@@ -11,10 +11,11 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Phase 1 TypeScript tooling, CI, commands, public contracts, and guidance checks implemented.
 - Phase 2 read-only vault scanner, reference-integrity checker, review UI, fixtures, deterministic evaluation, and end-to-end test implemented.
 - Phase 3.1 Obsidian manifest, lifecycle entry point, settings validation, status view, command registration, and bundle build implemented.
+- Phase 3.2 production Obsidian vault reader with normalized paths, SHA-256 revisions, cancellation, and event invalidation implemented.
 
 ## Current Work
 
-Next work is Phase 3.2: production Obsidian vault reader, revision hashes, cancellation, and vault-event invalidation.
+Next work is Phase 3.3: SQLite compatibility spike and storage-library ADR.
 
 ## Important Decisions
 

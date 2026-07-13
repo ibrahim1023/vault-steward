@@ -5,5 +5,5 @@ export type VaultFile = {
 };
 
 export type VaultReader = {
-  listFiles(): readonly VaultFile[];
+  listFiles(signal?: AbortSignal): Promise<readonly VaultFile[]>;
 };
