@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && node esbuild.config.mjs",
-    "test:unit": "vitest run tests/contracts tests/graph tests/plugin tests/reference tests/ui tests/docs tests/storage tests/vault-adapter",
+    "test:unit": "vitest run tests/contracts tests/graph tests/plugin tests/policy tests/reference tests/ui tests/docs tests/storage tests/vault-adapter",
     "test:integration": "vitest run tests/integration --passWithNoTests",
     "test:e2e": "vitest run tests/e2e",
     "eval:smoke": "tsx scripts/run-evals.ts --suite reference-integrity",
@@ -26,7 +26,8 @@
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "sql.js": "^1.14.1",
-    "unified": "^11.0.5"
+    "unified": "^11.0.5",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
