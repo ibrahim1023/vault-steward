@@ -1,26 +1,26 @@
 # Vault Steward
 
-Vault Steward is a local-first Obsidian plugin for auditing a vault for integrity and governance issues. It parses vault content deterministically, persists audit state locally, and never edits a note without explicit user approval.
+Vault Steward is a local-first Obsidian plugin for auditing note vaults for integrity and governance issues. It combines deterministic Markdown analysis, local persistence, policy checks, and evidence-backed findings while preserving the user's control over every change.
 
-## Status
+## Capabilities
 
-Phase 3 is complete. The plugin foundation currently provides:
+Vault Steward provides:
 
 - Obsidian plugin lifecycle, settings, command registration, and a status view.
 - A read-only Obsidian vault adapter with normalized paths, revision hashes, cancellation, and invalidation events.
-- Deterministic Markdown reference-integrity checks with evidence-backed findings.
+- Deterministic Markdown reference-integrity checks and safe proposed repairs for broken internal references.
 - Local SQLite-compatible persistence through `sql.js`, forward-only migrations, immutable scan snapshots, and a persisted review queue.
-- Deterministic graph projection, bounded YAML policy parsing/evaluation, schema validation, task integrity checks, and decision validation.
+- Deterministic graph projection, bounded YAML policy parsing/evaluation, schema validation, task integrity checks, decision validation, and a persisted review queue.
 
-Phase 4 will add the user-facing review queue, diff previews, approval workflow, safe apply service, and re-indexing.
+The repository README is kept current as product capabilities change. Architecture decisions, interfaces, operational constraints, and detailed engineering progress are maintained in `docs/`.
 
 ## Privacy And Safety
 
 - Local-only: no telemetry, cloud API, remote storage, or automatic note mutation.
 - SQLite is the canonical local store. `sql.js` runs SQLite through a bundled WebAssembly asset.
 - The deterministic core owns parsing, policy evaluation, evidence validation, finding normalization, and persistence.
-- Local models are not required for the implemented functionality and cannot authorize edits.
-- Every future mutation must be explicitly approved and revalidated against the current source revision.
+- Local models are optional for future bounded reasoning and cannot authorize edits.
+- Any note mutation must be explicitly approved and revalidated against the current source revision.
 
 ## Requirements
 
@@ -72,7 +72,3 @@ Read [AGENTS.md](AGENTS.md) before contributing. It defines module boundaries, t
 | `npm run eval:smoke`       | Run the deterministic reference-integrity evaluation.              |
 | `npm run eval:full`        | Run all registered evaluations.                                    |
 | `npm run security:check`   | Audit production dependencies.                                     |
-
-## License
-
-License selection is pending.
