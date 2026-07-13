@@ -38,6 +38,7 @@ npm run format:check
 npm run lint
 npm run typecheck
 npm run build
+npm run package:plugin
 npm run test:unit
 npm run test:integration
 npm run test:e2e
@@ -45,7 +46,7 @@ npm run eval:smoke
 npm run security:check
 ```
 
-`npm run build` writes `main.js` and `sql-wasm.wasm` at the project root. Install both generated assets with `manifest.json` in an Obsidian plugin directory to test the desktop plugin.
+`npm run build` writes `main.js` and `sql-wasm.wasm` at the project root. `npm run package:plugin` creates `dist/vault-steward/` with those assets, `manifest.json`, and a SHA-256 `release-manifest.json`. Install that directory as `vault-steward` under an Obsidian vault's `.obsidian/plugins/` directory.
 
 ## Repository Guide
 
@@ -60,17 +61,21 @@ npm run security:check
 
 Read [AGENTS.md](AGENTS.md) before contributing. It defines module boundaries, test expectations, privacy constraints, and the completion gate.
 
+See [upgrade notes](docs/upgrade-notes.md) for install, upgrade, and uninstall guidance.
+
 ## Commands
 
-| Command                    | Purpose                                                            |
-| -------------------------- | ------------------------------------------------------------------ |
-| `npm run format:check`     | Check Prettier formatting.                                         |
-| `npm run lint`             | Run ESLint.                                                        |
-| `npm run typecheck`        | Run strict TypeScript checking.                                    |
-| `npm run build`            | Build the Obsidian plugin bundle and SQLite WebAssembly asset.     |
-| `npm run test:unit`        | Run deterministic unit and component tests.                        |
-| `npm run test:integration` | Run SQLite migration, snapshot, and coordinator integration tests. |
-| `npm run test:e2e`         | Run the current end-to-end reference-finding test.                 |
-| `npm run eval:smoke`       | Run the deterministic reference-integrity evaluation.              |
-| `npm run eval:full`        | Run all registered evaluations.                                    |
-| `npm run security:check`   | Audit production dependencies.                                     |
+| Command                       | Purpose                                                            |
+| ----------------------------- | ------------------------------------------------------------------ |
+| `npm run format:check`        | Check Prettier formatting.                                         |
+| `npm run lint`                | Run ESLint.                                                        |
+| `npm run typecheck`           | Run strict TypeScript checking.                                    |
+| `npm run build`               | Build the Obsidian plugin bundle and SQLite WebAssembly asset.     |
+| `npm run package:plugin`      | Produce a versioned desktop-plugin release directory.              |
+| `npm run test:plugin-install` | Run the packaged install/uninstall smoke harness.                  |
+| `npm run test:unit`           | Run deterministic unit and component tests.                        |
+| `npm run test:integration`    | Run SQLite migration, snapshot, and coordinator integration tests. |
+| `npm run test:e2e`            | Run the current end-to-end reference-finding test.                 |
+| `npm run eval:smoke`          | Run the deterministic reference-integrity evaluation.              |
+| `npm run eval:full`           | Run all registered evaluations.                                    |
+| `npm run security:check`      | Audit production dependencies.                                     |

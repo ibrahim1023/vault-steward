@@ -30,10 +30,11 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Phase 5.3 bounded evidence-context assembly implemented with untrusted-data delimiters, limits, private-entry exclusion, and cache reuse.
 - Phase 5 model-assisted agents implemented for entity aliases/duplicates, contradiction candidates, staleness candidates, and ambiguous decision candidates. All outputs are citation-validated against active scan evidence and assigned conservative deterministic handling.
 - Deterministic coordinator routing, declared handoffs, per-agent termination, duplicate suppression, and versioned development/CI/held-out/adversarial/human-review datasets implemented.
+- Desktop release packaging now produces a validated manifest, SHA-256 release record, and SQL WebAssembly asset. A temporary Obsidian-style install/uninstall smoke harness verifies the complete release layout.
 
 ## Current Work
 
-Phase 5 completion verification and promotion to `development`.
+Phase 6.1 packaging and desktop install lifecycle are complete; next work is performance and hardening coverage.
 
 ## Important Decisions
 
