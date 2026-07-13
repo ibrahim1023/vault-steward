@@ -49,6 +49,10 @@ type ToolResult<T> =
   | { ok: false; error: VaultStewardError; correlationId: string };
 ```
 
+## Proposal Contracts
+
+`Proposal` is a versioned, review-only request bound to a finding and scan. The current patch operation is `replace-range`: it names a vault-relative Markdown path, source revision, byte offsets, expected current text, and replacement text. Unknown operation kinds, traversal paths, invalid ranges, and missing expected text are rejected before a proposal can reach approval or apply.
+
 ## Tool Permissions
 
 Agents receive only read-scoped tools: retrieve indexed evidence, resolve paths within the active vault, and inspect parsed policy/graph data. The apply tool is not agent-callable; it is invoked by the review workflow only after explicit approval and stale-revision validation.

@@ -22,10 +22,11 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Phase 3.10 deterministic task parsing and integrity checks implemented for malformed, orphaned, duplicate, overdue, and abandoned tasks.
 - Phase 3.11 decision indexing now preserves source evidence and detects unresolved rationale and supersession cycles.
 - Phase 3.12 deterministic coordinator normalizes evidence-valid findings and persists the review queue without model calls.
+- Phase 4.1 versioned, revision-bound proposal contracts implemented with fail-closed patch validation.
 
 ## Current Work
 
-Next work is Phase 4: review, approval, safe apply, and re-indexing.
+Next work is Phase 4.2: deterministic proposal generation.
 
 ## Important Decisions
 
