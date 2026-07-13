@@ -26,10 +26,12 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Phase 4.2 deterministic, read-only broken-reference proposals implemented; unsupported findings remain non-applicable.
 - Phase 4 review queue, diff preview, explicit approval actions, revision-safe apply, recovery-required state, and end-to-end safety tests implemented.
 - Phase 5.1 local-only Ollama and llama.cpp provider abstraction implemented with loopback endpoint validation, timeout/cancellation, response limits, and capability selection.
+- Phase 5.2 typed structured-output parsing, bounded repair/fallback, and redacted trace metadata implemented.
+- Phase 5.3 bounded evidence-context assembly implemented with untrusted-data delimiters, limits, private-entry exclusion, and cache reuse.
 
 ## Current Work
 
-Next work is Phase 5.2: typed structured-output parsing and bounded repair.
+Next work is Phase 5.4: entity candidate validation and evaluation fixtures.
 
 ## Important Decisions
 

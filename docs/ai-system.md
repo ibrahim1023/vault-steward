@@ -28,6 +28,8 @@ The scanner, graph builder, reference integrity checks, task parsing, schema val
 - No agent calls another agent directly. Coordinator owns handoffs and stores only declared shared context.
 - Terminate on a complete typed response, exhausted budget, missing evidence, policy failure, or timeout. Mark incomplete work visibly.
 - Local provider fallback is ordered by configured model capability; failure degrades to deterministic findings and an explicit limitation.
+- Structured model output is parsed as JSON, validated against the receiving contract, and may receive one repair attempt. Traces retain provider/model, latency, retry count, and outcome only; they never retain prompts or note excerpts.
+- Evidence context has a fixed untrusted-data prefix, vault-relative locators, entry and token limits, and excludes private entries before a provider call.
 
 ## Security and Evidence
 
