@@ -6,7 +6,7 @@ This document owns module boundaries, data ownership, trust boundaries, and work
 
 ## Deployment Model
 
-Vault Steward is a TypeScript/React Obsidian plugin. It runs locally in the Obsidian desktop process and accesses the selected vault only through a narrow vault adapter. SQLite persists canonical indexed state. A local model provider (Ollama or llama.cpp) is optional for model-assisted agents.
+Vault Steward is a TypeScript/React Obsidian plugin. It runs locally in the Obsidian desktop process and accesses the selected vault only through a narrow vault adapter. SQLite persists canonical indexed state. A configured local model provider (Ollama or llama.cpp) is required for a completed governed scan.
 
 ```mermaid
 flowchart LR

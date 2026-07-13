@@ -24,6 +24,9 @@ export type CoordinatorInput = {
   }[];
 };
 export type CoordinatorResult = {
+  modelRequired: true;
+  modelAvailable: boolean;
+  completed: boolean;
   routes: Array<"entity" | "contradiction" | "staleness" | "decision">;
   handoffs: Array<{
     agent: "entity" | "contradiction" | "staleness" | "decision";
@@ -39,6 +42,19 @@ export class LocalAgentCoordinator {
   constructor(private readonly providers: readonly LocalProvider[]) {}
 
   async run(input: CoordinatorInput): Promise<CoordinatorResult> {
+    if (this.providers.length === 0) {
+      return {
+        modelRequired: true,
+        modelAvailable: false,
+        completed: false,
+        routes: [],
+        handoffs: [],
+        candidates: [],
+        limitations: ["local-model-provider-required"],
+        toolCalls: 0,
+        terminated: true
+      };
+    }
     const routes = selectRoutes(input);
     const handoffs: CoordinatorResult["handoffs"] = [];
     const candidates: unknown[] = [];
@@ -81,6 +97,9 @@ export class LocalAgentCoordinator {
       }
     }
     return {
+      modelRequired: true,
+      modelAvailable: true,
+      completed: !limitations.includes("local-model-output-unavailable"),
       routes,
       handoffs,
       candidates: dedupeCandidates(candidates),
@@ -93,7 +112,7 @@ export class LocalAgentCoordinator {
 
 function selectRoutes(input: CoordinatorInput): CoordinatorResult["routes"] {
   const routes: CoordinatorResult["routes"] = [];
-  if (input.evidence.length >= 2) routes.push("entity");
+  if (input.evidence.length > 0) routes.push("entity");
   if (prepareContradictionPropositions(input.propositions).length >= 2)
     routes.push("contradiction");
   if (input.stalenessRecords.length > 0) routes.push("staleness");

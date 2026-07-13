@@ -21,6 +21,23 @@ const provider: LocalProvider = {
 };
 
 describe("local-agent coordinator", () => {
+  it("fails a governed scan closed when no local model provider is configured", async () => {
+    const result = await new LocalAgentCoordinator([]).run({
+      scanId: "scan",
+      now: "2026-07-13T00:00:00Z",
+      evidence: [],
+      propositions: [],
+      stalenessRecords: [],
+      decisions: []
+    });
+    expect(result).toMatchObject({
+      modelRequired: true,
+      modelAvailable: false,
+      completed: false,
+      limitations: ["local-model-provider-required"]
+    });
+  });
+
   it("routes only eligible agents once, declares handoffs, and terminates after partial failure", async () => {
     const coordinator = new LocalAgentCoordinator([provider]);
     const result = await coordinator.run({
@@ -37,6 +54,8 @@ describe("local-agent coordinator", () => {
     expect(result.routes).toEqual(["entity"]);
     expect(result.handoffs).toEqual([{ agent: "entity", evidenceCount: 2 }]);
     expect(result.terminated).toBe(true);
+    expect(result.completed).toBe(true);
+    expect(result.modelAvailable).toBe(true);
     expect(result.toolCalls).toBe(1);
   });
 });

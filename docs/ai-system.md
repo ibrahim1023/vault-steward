@@ -6,18 +6,18 @@ This document owns agent roles, model boundaries, budgets, and guardrails. Evalu
 
 ## Operating Model
 
-The scanner, graph builder, reference integrity checks, task parsing, schema validation, policy evaluation, diff generation, and apply workflow are deterministic. Local models may identify candidate entities, propositions, staleness signals, or ranked evidence where deterministic logic is insufficient. Every model result is schema-validated and evidence-checked before it becomes a finding.
+The scanner, graph builder, reference integrity checks, task parsing, schema validation, policy evaluation, diff generation, and apply workflow are deterministic. A local model performs the required semantic-analysis stage for governed scans, identifying candidate entities, propositions, staleness signals, or ranked evidence. Every model result is schema-validated and evidence-checked before it becomes a finding.
 
 | Agent         | Input                              | Output                           | Model use                        |
 | ------------- | ---------------------------------- | -------------------------------- | -------------------------------- |
 | Scanner       | vault files                        | normalized records               | none                             |
-| Entity        | canonical graph and labels         | duplicate/alias candidates       | optional                         |
+| Entity        | canonical graph and labels         | duplicate/alias candidates       | required                         |
 | Contradiction | bounded propositions and citations | conflict candidates              | expected                         |
-| Staleness     | timestamps, status, linked context | stale candidates                 | optional                         |
+| Staleness     | timestamps, status, linked context | stale candidates                 | required                         |
 | Reference     | parsed links and vault index       | broken-reference findings        | none                             |
-| Task          | parsed tasks and graph             | task findings                    | optional for ambiguous ownership |
+| Task          | parsed tasks and graph             | task findings                    | required for ambiguous ownership |
 | Schema        | frontmatter and schema             | violations                       | none                             |
-| Decision      | decision records and links         | unresolved/superseded candidates | optional                         |
+| Decision      | decision records and links         | unresolved/superseded candidates | required                         |
 | Policy        | typed facts and YAML rules         | violations                       | none                             |
 | Coordinator   | validated candidates               | deduped review queue             | none                             |
 
@@ -27,7 +27,7 @@ The scanner, graph builder, reference integrity checks, task parsing, schema val
 - Coordinator routes only after deterministic eligibility checks and caps each agent to one attempt plus one repair attempt for malformed structured output.
 - No agent calls another agent directly. Coordinator owns handoffs and stores only declared shared context.
 - Terminate on a complete typed response, exhausted budget, missing evidence, policy failure, or timeout. Mark incomplete work visibly.
-- Local provider fallback is ordered by configured model capability; failure degrades to deterministic findings and an explicit limitation.
+- A completed governed scan requires an available local provider and successful bounded semantic-analysis stage. Provider absence or structured-output exhaustion leaves the scan incomplete; it never degrades to a deterministic-only completion.
 - Structured model output is parsed as JSON, validated against the receiving contract, and may receive one repair attempt. Traces retain provider/model, latency, retry count, and outcome only; they never retain prompts or note excerpts.
 - Evidence context has a fixed untrusted-data prefix, vault-relative locators, entry and token limits, and excludes private entries before a provider call.
 

@@ -31,6 +31,7 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Phase 5 model-assisted agents implemented for entity aliases/duplicates, contradiction candidates, staleness candidates, and ambiguous decision candidates. All outputs are citation-validated against active scan evidence and assigned conservative deterministic handling.
 - Deterministic coordinator routing, declared handoffs, per-agent termination, duplicate suppression, and versioned development/CI/held-out/adversarial/human-review datasets implemented.
 - Desktop release packaging now produces a validated manifest, SHA-256 release record, and SQL WebAssembly asset. A temporary Obsidian-style install/uninstall smoke harness verifies the complete release layout.
+- Governed scans now require a configured loopback-only local model provider and a completed semantic-analysis stage; provider absence and model-output exhaustion fail closed as incomplete scans.
 
 ## Current Work
 

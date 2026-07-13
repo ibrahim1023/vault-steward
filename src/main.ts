@@ -113,5 +113,29 @@ class VaultStewardSettingsTab extends PluginSettingTab {
           await this.plugin.saveSettings({ ...this.plugin.settings, autoScanOnLoad: value });
         })
       );
+
+    new Setting(this.containerEl)
+      .setName("Local model endpoint")
+      .setDesc("A loopback Ollama or llama.cpp-compatible endpoint required for governed scans.")
+      .addText((text) =>
+        text.setValue(this.plugin.settings.modelProvider.endpoint).onChange(async (endpoint) => {
+          await this.plugin.saveSettings({
+            ...this.plugin.settings,
+            modelProvider: { ...this.plugin.settings.modelProvider, endpoint }
+          });
+        })
+      );
+
+    new Setting(this.containerEl)
+      .setName("Local model")
+      .setDesc("The installed local model used for required semantic analysis.")
+      .addText((text) =>
+        text.setValue(this.plugin.settings.modelProvider.model).onChange(async (model) => {
+          await this.plugin.saveSettings({
+            ...this.plugin.settings,
+            modelProvider: { ...this.plugin.settings.modelProvider, model }
+          });
+        })
+      );
   }
 }

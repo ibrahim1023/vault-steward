@@ -8,6 +8,7 @@ This document owns stable contract shapes. Internal implementation details may c
 
 - Contracts are TypeScript-first and serialized with explicit `schemaVersion`.
 - Model output is a candidate only. Deterministic validators attach authoritative evidence and reject invalid claims.
+- A governed scan requires the local model-analysis stage to complete. `modelAvailable: false` or `completed: false` is a terminal incomplete state, not permission to omit semantic analysis.
 - Errors have a machine-readable code, user-safe message, correlation ID, retryability, and optional causal detail for local diagnostics.
 
 ## Core Shapes

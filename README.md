@@ -11,7 +11,7 @@ Vault Steward provides:
 - Deterministic Markdown reference-integrity checks and safe proposed repairs for broken internal references.
 - Local SQLite-compatible persistence through `sql.js`, forward-only migrations, immutable scan snapshots, and a persisted review queue.
 - Deterministic graph projection, bounded YAML policy parsing/evaluation, schema validation, task integrity checks, decision validation, and a persisted review queue.
-- Optional local Ollama or llama.cpp-compatible model providers for bounded entity, contradiction, staleness, and ambiguous-decision candidates. Every candidate is JSON-validated, citation-checked against the active scan, and cannot mutate vault state.
+- Required local Ollama or llama.cpp-compatible model provider for bounded entity, contradiction, staleness, and ambiguous-decision analysis. Every candidate is JSON-validated, citation-checked against the active scan, and cannot mutate vault state.
 
 The repository README is kept current as product capabilities change. Architecture decisions, interfaces, operational constraints, and detailed engineering progress are maintained in `docs/`.
 
@@ -20,13 +20,14 @@ The repository README is kept current as product capabilities change. Architectu
 - Local-only: no telemetry, cloud API, remote storage, or automatic note mutation.
 - SQLite is the canonical local store. `sql.js` runs SQLite through a bundled WebAssembly asset.
 - The deterministic core owns parsing, policy evaluation, evidence validation, finding normalization, and persistence.
-- Local models are optional, loopback-only, and cannot authorize edits.
+- A loopback-only local model is required for a completed governed scan. Provider absence or model-output exhaustion leaves the scan incomplete; it cannot silently fall back to a deterministic-only completion.
 - Any note mutation must be explicitly approved and revalidated against the current source revision.
 
 ## Requirements
 
 - Node.js 20 or newer
 - Obsidian desktop 1.5.0 or newer
+- A running local Ollama service with a configured model, or a compatible local llama.cpp endpoint
 
 ## Development
 

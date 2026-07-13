@@ -14,8 +14,32 @@ describe("plugin settings", () => {
     expect(parsePluginSettings({ vaultLabel: "  Personal notes  ", autoScanOnLoad: true })).toEqual(
       {
         vaultLabel: "Personal notes",
-        autoScanOnLoad: true
+        autoScanOnLoad: true,
+        modelProvider: DEFAULT_PLUGIN_SETTINGS.modelProvider
       }
     );
+  });
+
+  it("requires a bounded loopback model provider configuration", () => {
+    expect(
+      parsePluginSettings({
+        vaultLabel: "Notes",
+        autoScanOnLoad: true,
+        modelProvider: {
+          kind: "ollama",
+          endpoint: "http://127.0.0.1:11434",
+          model: "llama3.1:8b",
+          timeoutMs: 30_000,
+          maxResponseBytes: 1_000_000
+        }
+      }).modelProvider
+    ).toMatchObject({ kind: "ollama", model: "llama3.1:8b" });
+    expect(
+      parsePluginSettings({
+        vaultLabel: "Notes",
+        autoScanOnLoad: true,
+        modelProvider: { kind: "ollama", endpoint: "https://example.com" }
+      })
+    ).toEqual(DEFAULT_PLUGIN_SETTINGS);
   });
 });
