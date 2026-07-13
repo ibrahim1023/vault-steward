@@ -44,6 +44,7 @@ npm run test:unit
 npm run test:integration
 npm run test:e2e
 npm run eval:smoke
+npm run perf:smoke
 npm run security:check
 ```
 
@@ -79,4 +80,5 @@ See [upgrade notes](docs/upgrade-notes.md) for install, upgrade, and uninstall g
 | `npm run test:e2e`            | Run the current end-to-end reference-finding test.                 |
 | `npm run eval:smoke`          | Run the deterministic reference-integrity evaluation.              |
 | `npm run eval:full`           | Run all registered evaluations.                                    |
+| `npm run perf:smoke`          | Run the fixed large-vault and incremental-scan performance gate.   |
 | `npm run security:check`      | Audit production dependencies.                                     |
