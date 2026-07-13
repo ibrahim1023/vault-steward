@@ -1,0 +1,48 @@
+{
+  "name": "vault-steward",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "test:unit": "vitest run tests/contracts tests/reference tests/ui tests/docs",
+    "test:integration": "vitest run tests/integration --passWithNoTests",
+    "test:e2e": "vitest run tests/e2e",
+    "eval:smoke": "tsx scripts/run-evals.ts --suite reference-integrity",
+    "eval:full": "tsx scripts/run-evals.ts --all",
+    "security:check": "npm audit --omit=dev --audit-level=moderate"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.34.0",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^9.34.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.3.0",
+    "jsdom": "^26.1.0",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.4",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.41.0",
+    "vitest": "^3.2.4"
+  }
+}

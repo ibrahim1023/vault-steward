@@ -1,0 +1,2 @@
+{"id":"missing-note","files":[{"path":"Home.md","content":"[[Missing]]"}],"expected":[{"type":"broken-reference","notePath":"Home.md","locator":"line:1"}]}
+{"id":"valid-reference","files":[{"path":"Home.md","content":"[[Target]]"},{"path":"Target.md","content":"# Target"}],"expected":[]}

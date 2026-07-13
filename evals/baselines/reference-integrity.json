@@ -1,0 +1,7 @@
+{
+  "suite": "reference-integrity",
+  "schemaVersion": 1,
+  "evidenceValidity": 1,
+  "precision": 1,
+  "recall": 1
+}
