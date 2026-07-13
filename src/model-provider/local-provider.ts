@@ -103,6 +103,7 @@ function bodyFor(config: LocalProviderConfig, request: LocalGenerationRequest): 
         model: config.model,
         prompt: request.prompt,
         stream: false,
+        format: "json",
         options: { num_predict: request.maxOutputTokens }
       }
     : { prompt: request.prompt, n_predict: request.maxOutputTokens };

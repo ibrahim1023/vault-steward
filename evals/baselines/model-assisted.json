@@ -1,0 +1,10 @@
+{
+  "suite": "model-assisted",
+  "schemaVersion": 1,
+  "promptVersion": "v1",
+  "graderVersion": "v1",
+  "model": "llama3.1:8b",
+  "evidenceValidity": 1,
+  "coverage": 1,
+  "regressionRationale": "Safety gates require complete evidence validation and all five dataset splits."
+}

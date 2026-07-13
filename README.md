@@ -11,6 +11,7 @@ Vault Steward provides:
 - Deterministic Markdown reference-integrity checks and safe proposed repairs for broken internal references.
 - Local SQLite-compatible persistence through `sql.js`, forward-only migrations, immutable scan snapshots, and a persisted review queue.
 - Deterministic graph projection, bounded YAML policy parsing/evaluation, schema validation, task integrity checks, decision validation, and a persisted review queue.
+- Optional local Ollama or llama.cpp-compatible model providers for bounded entity, contradiction, staleness, and ambiguous-decision candidates. Every candidate is JSON-validated, citation-checked against the active scan, and cannot mutate vault state.
 
 The repository README is kept current as product capabilities change. Architecture decisions, interfaces, operational constraints, and detailed engineering progress are maintained in `docs/`.
 
@@ -19,7 +20,7 @@ The repository README is kept current as product capabilities change. Architectu
 - Local-only: no telemetry, cloud API, remote storage, or automatic note mutation.
 - SQLite is the canonical local store. `sql.js` runs SQLite through a bundled WebAssembly asset.
 - The deterministic core owns parsing, policy evaluation, evidence validation, finding normalization, and persistence.
-- Local models are optional for future bounded reasoning and cannot authorize edits.
+- Local models are optional, loopback-only, and cannot authorize edits.
 - Any note mutation must be explicitly approved and revalidated against the current source revision.
 
 ## Requirements
@@ -53,6 +54,7 @@ npm run security:check
 - `src/scanner/` and `src/reference/`: deterministic Markdown parsing and reference checks.
 - `src/storage/`: SQLite runtime, migrations, repositories, and scan snapshots.
 - `src/graph/`, `src/policy/`, `src/schema/`, `src/tasks/`, `src/decisions/`, `src/coordinator/`: deterministic governance and finding pipeline.
+- `src/model-provider/` and `src/agents/`: loopback-only model adapters, bounded context assembly, typed output validation, and deterministic agent coordination.
 - `tests/`: unit, integration, UI, and end-to-end coverage.
 - `docs/`: architecture, interfaces, security, reliability, and ADRs.
 

@@ -28,10 +28,12 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Phase 5.1 local-only Ollama and llama.cpp provider abstraction implemented with loopback endpoint validation, timeout/cancellation, response limits, and capability selection.
 - Phase 5.2 typed structured-output parsing, bounded repair/fallback, and redacted trace metadata implemented.
 - Phase 5.3 bounded evidence-context assembly implemented with untrusted-data delimiters, limits, private-entry exclusion, and cache reuse.
+- Phase 5 model-assisted agents implemented for entity aliases/duplicates, contradiction candidates, staleness candidates, and ambiguous decision candidates. All outputs are citation-validated against active scan evidence and assigned conservative deterministic handling.
+- Deterministic coordinator routing, declared handoffs, per-agent termination, duplicate suppression, and versioned development/CI/held-out/adversarial/human-review datasets implemented.
 
 ## Current Work
 
-Next work is Phase 5.4: entity candidate validation and evaluation fixtures.
+Phase 5 completion verification and promotion to `development`.
 
 ## Important Decisions
 
@@ -51,4 +53,4 @@ Formatting, linting, type checking, build, unit, end-to-end, deterministic evalu
 
 ## Next Recommended Task
 
-Begin Phase 3 from `task.md` after reviewing storage and policy contracts.
+Begin MVP hardening, packaging, and release-readiness work after the completed local-agent branch is promoted.

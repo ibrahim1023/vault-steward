@@ -68,4 +68,19 @@ describe("local model providers", () => {
       "timed out"
     );
   });
+  it("asks Ollama for native JSON output", async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ response: "{}" })));
+    const provider = createLocalProvider(
+      {
+        kind: "ollama",
+        endpoint: "http://localhost:11434",
+        model: "local",
+        timeoutMs: 20,
+        maxResponseBytes: 1000
+      },
+      fetcher
+    );
+    await provider.generate({ prompt: "x", maxOutputTokens: 5 });
+    expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({ format: "json" });
+  });
 });
