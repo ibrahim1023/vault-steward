@@ -2,7 +2,7 @@
 
 ## Authority
 
-This document owns persisted domain concepts and lifecycle. Exact TypeScript/SQLite schemas will be introduced by the storage plan.
+This document owns persisted domain concepts and lifecycle. The forward-only SQLite schema is implemented in `src/storage/migrations.ts`; repository record shapes are implemented in `src/storage/repositories.ts`.
 
 ## Core Records
 
