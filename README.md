@@ -1,0 +1,78 @@
+# Vault Steward
+
+Vault Steward is a local-first Obsidian plugin for auditing a vault for integrity and governance issues. It parses vault content deterministically, persists audit state locally, and never edits a note without explicit user approval.
+
+## Status
+
+Phase 3 is complete. The plugin foundation currently provides:
+
+- Obsidian plugin lifecycle, settings, command registration, and a status view.
+- A read-only Obsidian vault adapter with normalized paths, revision hashes, cancellation, and invalidation events.
+- Deterministic Markdown reference-integrity checks with evidence-backed findings.
+- Local SQLite-compatible persistence through `sql.js`, forward-only migrations, immutable scan snapshots, and a persisted review queue.
+- Deterministic graph projection, bounded YAML policy parsing/evaluation, schema validation, task integrity checks, and decision validation.
+
+Phase 4 will add the user-facing review queue, diff previews, approval workflow, safe apply service, and re-indexing.
+
+## Privacy And Safety
+
+- Local-only: no telemetry, cloud API, remote storage, or automatic note mutation.
+- SQLite is the canonical local store. `sql.js` runs SQLite through a bundled WebAssembly asset.
+- The deterministic core owns parsing, policy evaluation, evidence validation, finding normalization, and persistence.
+- Local models are not required for the implemented functionality and cannot authorize edits.
+- Every future mutation must be explicitly approved and revalidated against the current source revision.
+
+## Requirements
+
+- Node.js 20 or newer
+- Obsidian desktop 1.5.0 or newer
+
+## Development
+
+Install dependencies and run the verification suite:
+
+```bash
+npm install
+npm run format:check
+npm run lint
+npm run typecheck
+npm run build
+npm run test:unit
+npm run test:integration
+npm run test:e2e
+npm run eval:smoke
+npm run security:check
+```
+
+`npm run build` writes `main.js` and `sql-wasm.wasm` at the project root. Install both generated assets with `manifest.json` in an Obsidian plugin directory to test the desktop plugin.
+
+## Repository Guide
+
+- `src/main.ts`: Obsidian plugin entry point and settings/status UI wiring.
+- `src/vault-adapter/`: narrow live-vault boundary.
+- `src/scanner/` and `src/reference/`: deterministic Markdown parsing and reference checks.
+- `src/storage/`: SQLite runtime, migrations, repositories, and scan snapshots.
+- `src/graph/`, `src/policy/`, `src/schema/`, `src/tasks/`, `src/decisions/`, `src/coordinator/`: deterministic governance and finding pipeline.
+- `tests/`: unit, integration, UI, and end-to-end coverage.
+- `docs/`: architecture, interfaces, security, reliability, and ADRs.
+
+Read [AGENTS.md](AGENTS.md) before contributing. It defines module boundaries, test expectations, privacy constraints, and the completion gate.
+
+## Commands
+
+| Command                    | Purpose                                                            |
+| -------------------------- | ------------------------------------------------------------------ |
+| `npm run format:check`     | Check Prettier formatting.                                         |
+| `npm run lint`             | Run ESLint.                                                        |
+| `npm run typecheck`        | Run strict TypeScript checking.                                    |
+| `npm run build`            | Build the Obsidian plugin bundle and SQLite WebAssembly asset.     |
+| `npm run test:unit`        | Run deterministic unit and component tests.                        |
+| `npm run test:integration` | Run SQLite migration, snapshot, and coordinator integration tests. |
+| `npm run test:e2e`         | Run the current end-to-end reference-finding test.                 |
+| `npm run eval:smoke`       | Run the deterministic reference-integrity evaluation.              |
+| `npm run eval:full`        | Run all registered evaluations.                                    |
+| `npm run security:check`   | Audit production dependencies.                                     |
+
+## License
+
+License selection is pending.
