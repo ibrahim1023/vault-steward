@@ -1,6 +1,14 @@
 export type DiagnosticInput = {
   correlationId: string;
-  code: "provider-unavailable" | "scan-failed" | "apply-failed" | "migration-failed";
+  code:
+    | "provider-unavailable"
+    | "structured-output-failed"
+    | "scan-failed"
+    | "apply-failed"
+    | "migration-failed"
+    | "index-rebuild-required"
+    | "apply-reindex-mismatch"
+    | "oversized-vault";
   cause?: string;
 };
 
@@ -12,9 +20,13 @@ export type RedactedDiagnostic = {
 
 const MESSAGES: Record<DiagnosticInput["code"], string> = {
   "provider-unavailable": "The required local model provider is unavailable.",
+  "structured-output-failed": "Local model output could not be validated.",
   "scan-failed": "The scan could not complete.",
   "apply-failed": "The approved change could not be applied.",
-  "migration-failed": "The local database migration could not complete."
+  "migration-failed": "The local database migration could not complete.",
+  "index-rebuild-required": "The local index requires a rebuild.",
+  "apply-reindex-mismatch": "The approved change completed but re-indexing needs recovery.",
+  "oversized-vault": "The vault exceeds the configured processing limit."
 };
 
 export function createRedactedDiagnostic(input: DiagnosticInput): RedactedDiagnostic {

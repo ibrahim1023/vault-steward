@@ -65,6 +65,8 @@ Read [AGENTS.md](AGENTS.md) before contributing. It defines module boundaries, t
 
 See [upgrade notes](docs/upgrade-notes.md) for install, upgrade, and uninstall guidance.
 
+See [local runbooks](docs/runbooks.md) for recovery procedures and diagnostic handling.
+
 ## Commands
 
 | Command                       | Purpose                                                            |

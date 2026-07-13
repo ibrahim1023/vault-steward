@@ -34,6 +34,7 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Governed scans now require a configured loopback-only local model provider and a completed semantic-analysis stage; provider absence and model-output exhaustion fail closed as incomplete scans.
 - A fixed 300-file performance fixture now measures full-scan duration, incremental reparse duration, heap growth, and SQLite export size against versioned release thresholds.
 - Failure injection now covers corrupt database bytes, migration rollback, vault I/O failure, provider timeout, malformed output, duplicate events, cancellation, and restart recovery.
+- Bounded local diagnostics now retain only correlation IDs, generic codes, and safe messages; recovery runbooks cover migration, rebuild, provider, structured output, apply/re-index, and oversized-vault conditions.
 
 ## Current Work
 
