@@ -22,6 +22,7 @@ Product behavior is authoritative in `spec.md`. Architecture, contracts, and ope
 ## Working Rules
 
 - Keep changes scoped to the assigned plan task; do not expand product scope silently.
+- Start each implementation phase on a dedicated `feat/phase-*` branch from `development`. Once the phase completion gate passes, commit its final documentation/tests, promote that branch into `development`, and push `development` to `origin` before starting the next phase.
 - Prefer existing local patterns and explicit TypeScript types. Keep public contracts in `src/contracts/` when introduced.
 - Validate all untrusted input and model output before use. A model result cannot directly mutate vault state, alter policy, or authorize a tool.
 - Use structured logging without note content, secrets, prompts, or absolute vault paths unless an approved diagnostic mode explicitly permits it.
