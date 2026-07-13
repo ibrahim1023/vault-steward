@@ -23,10 +23,11 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Phase 3.11 decision indexing now preserves source evidence and detects unresolved rationale and supersession cycles.
 - Phase 3.12 deterministic coordinator normalizes evidence-valid findings and persists the review queue without model calls.
 - Phase 4.1 versioned, revision-bound proposal contracts implemented with fail-closed patch validation.
+- Phase 4.2 deterministic, read-only broken-reference proposals implemented; unsupported findings remain non-applicable.
 
 ## Current Work
 
-Next work is Phase 4.2: deterministic proposal generation.
+Next work is Phase 4.3: review queue UI.
 
 ## Important Decisions
 
