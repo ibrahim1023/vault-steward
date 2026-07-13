@@ -33,6 +33,7 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Desktop release packaging now produces a validated manifest, SHA-256 release record, and SQL WebAssembly asset. A temporary Obsidian-style install/uninstall smoke harness verifies the complete release layout.
 - Governed scans now require a configured loopback-only local model provider and a completed semantic-analysis stage; provider absence and model-output exhaustion fail closed as incomplete scans.
 - A fixed 300-file performance fixture now measures full-scan duration, incremental reparse duration, heap growth, and SQLite export size against versioned release thresholds.
+- Failure injection now covers corrupt database bytes, migration rollback, vault I/O failure, provider timeout, malformed output, duplicate events, cancellation, and restart recovery.
 
 ## Current Work
 

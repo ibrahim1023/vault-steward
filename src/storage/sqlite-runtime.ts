@@ -20,6 +20,13 @@ export function getPluginDatabasePath(configDir: string, pluginId: string): stri
 
 export async function createSqliteRuntime(options: SqliteRuntimeOptions): Promise<SqliteRuntime> {
   const sql = await initSqlJs({ locateFile: options.locateFile });
+  if (
+    options.databaseBytes &&
+    options.databaseBytes.byteLength > 0 &&
+    !isSqliteDatabase(options.databaseBytes)
+  ) {
+    throw new Error("local database bytes are corrupt");
+  }
   const database = new sql.Database(options.databaseBytes);
   let closed = false;
 
@@ -36,6 +43,13 @@ export async function createSqliteRuntime(options: SqliteRuntimeOptions): Promis
       }
     }
   };
+}
+
+function isSqliteDatabase(bytes: Uint8Array): boolean {
+  const header = new TextEncoder().encode("SQLite format 3\0");
+  return (
+    bytes.byteLength >= header.byteLength && header.every((value, index) => bytes[index] === value)
+  );
 }
 
 function normalizePathPart(value: string, fieldName: string): string {

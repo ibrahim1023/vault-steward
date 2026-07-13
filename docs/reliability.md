@@ -11,6 +11,7 @@ Local correctness takes precedence over scan throughput. All externally visible 
 - Retry only transient local-model or vault-read failures, with capped exponential backoff and cancellation awareness.
 - Deduplicate work by scan and input hashes; cap parser/model queue depth; process model calls serially at first.
 - Recover after restart by marking interrupted scans failed/canceled, retaining their diagnostics, and resuming only from a safe checkpoint.
+- Reject non-SQLite persisted bytes as corruption; rebuild derived local state through the recovery runbook rather than silently replacing the database.
 - Recheck source revisions before apply; a mismatch transitions the proposal to `stale`.
 
 ## Health and Diagnostics
