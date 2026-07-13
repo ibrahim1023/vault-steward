@@ -14,10 +14,11 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Phase 3.2 production Obsidian vault reader with normalized paths, SHA-256 revisions, cancellation, and event invalidation implemented.
 - Phase 3.3 SQLite compatibility spike completed with the `sql.js` WebAssembly runtime, plugin-local database path, bundled WebAssembly asset, and ADR 0004.
 - Phase 3.4 forward-only SQLite migrations and typed canonical repositories implemented, including fresh-install, upgrade, and failed-migration recovery tests.
+- Phase 3.5 immutable scan snapshots, per-file revision inputs, lifecycle transitions, restart recovery, and completed-snapshot reuse implemented.
 
 ## Current Work
 
-Next work is Phase 3.5: immutable scan snapshots and scan lifecycle persistence.
+Next work is Phase 3.6: canonical graph projection and graph persistence.
 
 ## Important Decisions
 

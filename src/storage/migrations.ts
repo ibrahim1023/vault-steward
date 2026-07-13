@@ -90,6 +90,19 @@ export const MIGRATIONS: readonly Migration[] = [
         outcome TEXT NOT NULL
       );
     `
+  },
+  {
+    version: 3,
+    sql: `
+      CREATE TABLE scan_inputs (
+        scan_id TEXT NOT NULL REFERENCES scans(id),
+        path TEXT NOT NULL,
+        revision_hash TEXT NOT NULL,
+        PRIMARY KEY (scan_id, path)
+      );
+      CREATE INDEX scans_reusable_snapshot_idx
+        ON scans (vault_fingerprint, input_hash, parser_version, status);
+    `
   }
 ];
 
