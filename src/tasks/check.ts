@@ -1,29 +1,57 @@
-export type TaskIssue = {
+export type TaskIssueKind = "malformed" | "orphaned" | "duplicated" | "overdue" | "abandoned";
+export type TaskIssue = { id: string; kind: TaskIssueKind; line: number };
+export type ParsedTask = {
   id: string;
-  kind: "malformed" | "orphaned" | "duplicated" | "overdue" | "abandoned";
+  completed: boolean;
+  owner: string | null;
+  project: string | null;
+  due: string | null;
+  abandoned: boolean;
   line: number;
 };
 
-export function checkTasks(content: string, today: string): TaskIssue[] {
+const TASK_PATTERN = /^\s*- \[([ xX])\]\s+(.+?)(?:\s+\^([\w-]+))?\s*$/;
+const METADATA_PATTERN = /\b(owner|project|due|abandoned):([^\s]+)/g;
+
+export function checkTasks(content: string, now: string): TaskIssue[] {
   const seen = new Set<string>();
-  const issues: TaskIssue[] = [];
-  for (const [index, line] of content.split("\n").entries()) {
-    if (!line.includes("- [")) continue;
-    const match = /^\s*- \[([ xX])\]\s+(.+?)(?:\s+\^([\w-]+))?$/.exec(line);
-    if (!match) {
-      issues.push({ id: `line-${index + 1}`, kind: "malformed", line: index + 1 });
-      continue;
-    }
-    const id = match[3] ?? `line-${index + 1}`;
-    if (seen.has(id)) issues.push({ id, kind: "duplicated", line: index + 1 });
-    seen.add(id);
-    const due = /due:(\d{4}-\d{2}-\d{2})/.exec(match[2] ?? "")?.[1];
-    if (due && due < today && match[1] === " ")
-      issues.push({ id, kind: "overdue", line: index + 1 });
-    if (!/project:\S+/.test(match[2] ?? "") || !/owner:\S+/.test(match[2] ?? ""))
-      issues.push({ id, kind: "orphaned", line: index + 1 });
-    if (/abandoned:true/.test(match[2] ?? ""))
-      issues.push({ id, kind: "abandoned", line: index + 1 });
-  }
-  return issues;
+  return content.split("\n").flatMap((line, index) => {
+    if (!line.includes("- [")) return [];
+    const parsed = parseTask(line, index + 1);
+    if (!parsed) return [{ id: `line-${index + 1}`, kind: "malformed" as const, line: index + 1 }];
+    const issues: TaskIssue[] = [];
+    if (seen.has(parsed.id)) issues.push({ id: parsed.id, kind: "duplicated", line: parsed.line });
+    seen.add(parsed.id);
+    if (!parsed.owner || !parsed.project)
+      issues.push({ id: parsed.id, kind: "orphaned", line: parsed.line });
+    if (!parsed.completed && parsed.due && isPast(parsed.due, now))
+      issues.push({ id: parsed.id, kind: "overdue", line: parsed.line });
+    if (!parsed.completed && parsed.abandoned)
+      issues.push({ id: parsed.id, kind: "abandoned", line: parsed.line });
+    return issues;
+  });
+}
+
+export function parseTask(line: string, lineNumber: number): ParsedTask | null {
+  const match = TASK_PATTERN.exec(line);
+  if (!match) return null;
+  const body = match[2] ?? "";
+  const metadata = Object.fromEntries(
+    [...body.matchAll(METADATA_PATTERN)].map((item) => [item[1]!, item[2]!])
+  ) as Record<string, string | undefined>;
+  if (metadata.due && Number.isNaN(Date.parse(metadata.due))) return null;
+  return {
+    id: match[3] ?? `line-${lineNumber}`,
+    completed: match[1] !== " ",
+    owner: metadata.owner ?? null,
+    project: metadata.project ?? null,
+    due: metadata.due ?? null,
+    abandoned: metadata.abandoned === "true",
+    line: lineNumber
+  };
+}
+
+function isPast(due: string, now: string): boolean {
+  const normalizedDue = /^\d{4}-\d{2}-\d{2}$/.test(due) ? `${due}T23:59:59.999Z` : due;
+  return Date.parse(normalizedDue) < Date.parse(now);
 }
