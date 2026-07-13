@@ -1,4 +1,5 @@
 import type { Finding } from "../contracts/index.js";
+import type { VaultStewardRepository } from "../storage/repositories.js";
 
 export function normalizeFindings(findings: readonly Finding[]): Finding[] {
   const unique = new Map<string, Finding>();
@@ -10,6 +11,29 @@ export function normalizeFindings(findings: readonly Finding[]): Finding[] {
   return [...unique.values()].sort(
     (a, b) => severityRank(b.severity) - severityRank(a.severity) || a.id.localeCompare(b.id)
   );
+}
+
+export function persistReviewQueue(
+  repository: VaultStewardRepository,
+  findings: readonly Finding[]
+): Finding[] {
+  const normalized = normalizeFindings(findings);
+  for (const finding of normalized) {
+    repository.saveFinding({
+      id: finding.id,
+      scanId: finding.scanId,
+      type: finding.type,
+      severity: finding.severity,
+      status: finding.status,
+      evidenceJson: JSON.stringify(finding.evidence),
+      payloadJson: JSON.stringify({
+        confidence: finding.confidence,
+        explanation: finding.explanation,
+        violatedPolicyId: finding.violatedPolicyId
+      })
+    });
+  }
+  return normalized;
 }
 
 function severityRank(value: Finding["severity"]): number {

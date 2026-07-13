@@ -20,10 +20,12 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Phase 3.8 deterministic policy facts and evaluation implemented for project ownership, task due dates, decision rationale, archived-project tasks, and approved status values.
 - Phase 3.9 deterministic frontmatter schema validation implemented with template selection and evidence locators.
 - Phase 3.10 deterministic task parsing and integrity checks implemented for malformed, orphaned, duplicate, overdue, and abandoned tasks.
+- Phase 3.11 decision indexing now preserves source evidence and detects unresolved rationale and supersession cycles.
+- Phase 3.12 deterministic coordinator normalizes evidence-valid findings and persists the review queue without model calls.
 
 ## Current Work
 
-Next work is Phase 3.11: decision indexing and supersession validation.
+Next work is Phase 4: review, approval, safe apply, and re-indexing.
 
 ## Important Decisions
 
