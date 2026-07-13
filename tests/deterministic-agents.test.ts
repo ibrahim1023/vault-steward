@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizeFindings } from "../src/coordinator/normalize.js";
-import { indexDecision } from "../src/decisions/index.js";
+import { checkDecisions, indexDecision } from "../src/decisions/index.js";
 import { checkFrontmatter } from "../src/schema/check.js";
 import { checkTasks } from "../src/tasks/check.js";
 
@@ -11,15 +11,21 @@ describe("deterministic agents", () => {
     ).toHaveLength(2);
     expect(
       checkTasks(
-        "- [ ] Launch due:2026-01-01 ^launch\n- [ ] Again project:p ^launch",
+        "- [ ] Launch due:2026-01-01 abandoned:true ^launch\n- [ ] Again project:p owner:a ^launch",
         "2026-07-13"
       ).map((issue) => issue.kind)
-    ).toEqual(expect.arrayContaining(["orphaned", "overdue", "duplicated"]));
+    ).toEqual(expect.arrayContaining(["orphaned", "overdue", "abandoned", "duplicated"]));
     expect(indexDecision("Decisions/A.md", { kind: "decision" })).toEqual({
       id: "Decisions/A.md",
       rationale: null,
       supersedes: null
     });
+    expect(
+      checkDecisions([
+        { id: "a", rationale: null, supersedes: "b" },
+        { id: "b", rationale: "ok", supersedes: "a" }
+      ]).map((issue) => issue.kind)
+    ).toEqual(expect.arrayContaining(["missing-rationale", "supersedes-cycle"]));
     const finding = {
       schemaVersion: 1 as const,
       id: "a",

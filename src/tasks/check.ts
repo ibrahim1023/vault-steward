@@ -1,6 +1,6 @@
 export type TaskIssue = {
   id: string;
-  kind: "malformed" | "orphaned" | "duplicated" | "overdue";
+  kind: "malformed" | "orphaned" | "duplicated" | "overdue" | "abandoned";
   line: number;
 };
 
@@ -20,7 +20,10 @@ export function checkTasks(content: string, today: string): TaskIssue[] {
     const due = /due:(\d{4}-\d{2}-\d{2})/.exec(match[2] ?? "")?.[1];
     if (due && due < today && match[1] === " ")
       issues.push({ id, kind: "overdue", line: index + 1 });
-    if (!/project:\S+/.test(match[2] ?? "")) issues.push({ id, kind: "orphaned", line: index + 1 });
+    if (!/project:\S+/.test(match[2] ?? "") || !/owner:\S+/.test(match[2] ?? ""))
+      issues.push({ id, kind: "orphaned", line: index + 1 });
+    if (/abandoned:true/.test(match[2] ?? ""))
+      issues.push({ id, kind: "abandoned", line: index + 1 });
   }
   return issues;
 }
