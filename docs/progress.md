@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 2 complete: read-only reference-integrity slice.
+Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 
 ## Completed Work
 
@@ -10,10 +10,11 @@ Phase 2 complete: read-only reference-integrity slice.
 - Repository instructions, project skills, ADRs, phased implementation plan, evaluation workspace, and foundation review created.
 - Phase 1 TypeScript tooling, CI, commands, public contracts, and guidance checks implemented.
 - Phase 2 read-only vault scanner, reference-integrity checker, review UI, fixtures, deterministic evaluation, and end-to-end test implemented.
+- Phase 3.1 Obsidian manifest, lifecycle entry point, settings validation, status view, command registration, and bundle build implemented.
 
 ## Current Work
 
-Next work is Phase 3 local persistence and deterministic governance.
+Next work is Phase 3.2: production Obsidian vault reader, revision hashes, cancellation, and vault-event invalidation.
 
 ## Important Decisions
 
