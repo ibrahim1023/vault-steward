@@ -25,10 +25,11 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Phase 4.1 versioned, revision-bound proposal contracts implemented with fail-closed patch validation.
 - Phase 4.2 deterministic, read-only broken-reference proposals implemented; unsupported findings remain non-applicable.
 - Phase 4 review queue, diff preview, explicit approval actions, revision-safe apply, recovery-required state, and end-to-end safety tests implemented.
+- Phase 5.1 local-only Ollama and llama.cpp provider abstraction implemented with loopback endpoint validation, timeout/cancellation, response limits, and capability selection.
 
 ## Current Work
 
-Next work is Phase 5: local model-assisted agents and coordinator.
+Next work is Phase 5.2: typed structured-output parsing and bounded repair.
 
 ## Important Decisions
 
