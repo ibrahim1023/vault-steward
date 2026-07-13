@@ -17,10 +17,11 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Phase 3.5 immutable scan snapshots, per-file revision inputs, lifecycle transitions, restart recovery, and completed-snapshot reuse implemented.
 - Phase 3.6 canonical graph projection implemented for note, entity, project, task, decision, and attachment nodes with deterministic relationship edges.
 - Phase 3.7 bounded YAML policy parser and versioned policy validation implemented with user-safe diagnostics.
+- Phase 3.8 deterministic policy facts and evaluation implemented for project ownership, task due dates, decision rationale, archived-project tasks, and approved status values.
 
 ## Current Work
 
-Next work is Phase 3.8: deterministic project, task, and status facts for policy rules.
+Next work is Phase 3.9: schema validation and evidence-backed findings.
 
 ## Important Decisions
 

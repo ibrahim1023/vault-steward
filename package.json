@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && node esbuild.config.mjs",
-    "test:unit": "vitest run tests/contracts tests/graph tests/plugin tests/policy tests/reference tests/ui tests/docs tests/storage tests/vault-adapter",
+    "test:unit": "vitest run tests/deterministic-agents.test.ts tests/contracts tests/graph tests/plugin tests/policy tests/reference tests/ui tests/docs tests/storage tests/vault-adapter",
     "test:integration": "vitest run tests/integration --passWithNoTests",
     "test:e2e": "vitest run tests/e2e",
     "eval:smoke": "tsx scripts/run-evals.ts --suite reference-integrity",
