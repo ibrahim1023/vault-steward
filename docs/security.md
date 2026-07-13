@@ -8,16 +8,16 @@ This document owns security controls and trust boundaries. It complements, rathe
 
 Sensitive assets are vault content, attachment paths, policy files, local model prompts/results, SQLite data, and approval audit records. Trust boundaries exist at vault input, YAML parsing, model prompts/outputs, plugin configuration, optional local model HTTP endpoint, and the approval-to-apply transition.
 
-| Threat                               | Required control                                                                                                            |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| Prompt injection in notes            | Treat notes as data; fixed prompt delimiters; no write/shell/network tools; validate output and evidence deterministically. |
-| Path traversal or malicious links    | Canonicalize paths and require them to remain within the active vault; reject traversal and URI schemes outside policy.     |
-| Unauthorized mutation                | Apply only user-approved, revision-checked structured patches through the vault adapter; append audit record.               |
-| Malformed YAML/Markdown/model output | Size/depth limits; schema validation; safe parser configuration; fail closed with diagnostics.                              |
-| Local provider exposure              | Provider endpoint is explicit local configuration; no secret-bearing prompts; timeouts and response-size caps.              |
-| Sensitive logging                    | Default metadata-only logs; redact content, paths, credentials, and prompts.                                                |
-| Dependency compromise                | Lock dependencies, review plugin/model/parser updates, run planned audit checks, minimize packages.                         |
-| Resource exhaustion                  | File, attachment, parser, queue, model-token, and timeout limits; cancellation and backpressure.                            |
+| Threat                               | Required control                                                                                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Prompt injection in notes            | Treat notes as data; fixed prompt delimiters; no write/shell/network tools; validate output and evidence deterministically.                            |
+| Path traversal or malicious links    | Canonicalize paths and require them to remain within the active vault; reject traversal, file embeds, and URI schemes outside the HTTP(S) link policy. |
+| Unauthorized mutation                | Apply only user-approved, revision-checked structured patches through the vault adapter; append audit record.                                          |
+| Malformed YAML/Markdown/model output | Size/depth limits; schema validation; safe parser configuration; fail closed with diagnostics.                                                         |
+| Local provider exposure              | Provider endpoint is explicit local configuration; no secret-bearing prompts; timeouts and response-size caps.                                         |
+| Sensitive logging                    | Default metadata-only logs; redact content, paths, credentials, and prompts.                                                                           |
+| Dependency compromise                | Lock dependencies, review plugin/model/parser updates, run planned audit checks, minimize packages.                                                    |
+| Resource exhaustion                  | File, attachment, parser, queue, model-token, and timeout limits; cancellation and backpressure.                                                       |
 
 ## Authentication and Authorization
 

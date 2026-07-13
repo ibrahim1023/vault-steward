@@ -9,7 +9,7 @@ export function checkReferenceIntegrity(scan: ScanSnapshot): Finding[] {
 
   for (const note of scan.notes) {
     for (const reference of note.references) {
-      if (reference.kind === "markdown" && isExternalUri(reference.rawTarget)) {
+      if (reference.kind === "markdown" && isAllowedExternalUri(reference.rawTarget)) {
         continue;
       }
 
@@ -44,8 +44,8 @@ export function checkReferenceIntegrity(scan: ScanSnapshot): Finding[] {
   return findings;
 }
 
-function isExternalUri(target: string): boolean {
-  return /^[a-z][a-z0-9+.-]*:/i.test(target);
+function isAllowedExternalUri(target: string): boolean {
+  return /^https?:/i.test(target);
 }
 
 function resolveTarget(rawTarget: string): ResolvedTarget | null {
