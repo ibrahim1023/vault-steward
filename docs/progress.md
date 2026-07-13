@@ -12,15 +12,17 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Phase 2 read-only vault scanner, reference-integrity checker, review UI, fixtures, deterministic evaluation, and end-to-end test implemented.
 - Phase 3.1 Obsidian manifest, lifecycle entry point, settings validation, status view, command registration, and bundle build implemented.
 - Phase 3.2 production Obsidian vault reader with normalized paths, SHA-256 revisions, cancellation, and event invalidation implemented.
+- Phase 3.3 SQLite compatibility spike completed with the `sql.js` WebAssembly runtime, plugin-local database path, bundled WebAssembly asset, and ADR 0004.
 
 ## Current Work
 
-Next work is Phase 3.3: SQLite compatibility spike and storage-library ADR.
+Next work is Phase 3.4: forward-only migrations and canonical SQLite repositories.
 
 ## Important Decisions
 
 - Obsidian plugin with local TypeScript core.
 - SQLite is canonical; LanceDB is optional and derived.
+- `sql.js` is the initial desktop-compatible SQLite runtime; its WebAssembly asset ships with the plugin bundle.
 - Deterministic controls own parsing, policy, validation, approval, and apply.
 
 ## Risks

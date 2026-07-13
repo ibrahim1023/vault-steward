@@ -1,4 +1,6 @@
 import esbuild from "esbuild";
+import { copyFile } from "node:fs/promises";
+import { resolve } from "node:path";
 
 await esbuild.build({
   entryPoints: ["src/main.ts"],
@@ -11,3 +13,5 @@ await esbuild.build({
   sourcemap: process.argv.includes("--watch") ? "inline" : false,
   minify: false
 });
+
+await copyFile(resolve("node_modules/sql.js/dist/sql-wasm.wasm"), resolve("sql-wasm.wasm"));
