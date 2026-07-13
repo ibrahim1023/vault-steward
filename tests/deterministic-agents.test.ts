@@ -18,12 +18,13 @@ describe("deterministic agents", () => {
     expect(indexDecision("Decisions/A.md", { kind: "decision" })).toEqual({
       id: "Decisions/A.md",
       rationale: null,
-      supersedes: null
+      supersedes: null,
+      evidenceLocator: "frontmatter:kind"
     });
     expect(
       checkDecisions([
-        { id: "a", rationale: null, supersedes: "b" },
-        { id: "b", rationale: "ok", supersedes: "a" }
+        { id: "a", rationale: null, supersedes: "b", evidenceLocator: "frontmatter:kind" },
+        { id: "b", rationale: "ok", supersedes: "a", evidenceLocator: "frontmatter:kind" }
       ]).map((issue) => issue.kind)
     ).toEqual(expect.arrayContaining(["missing-rationale", "supersedes-cycle"]));
     const finding = {
