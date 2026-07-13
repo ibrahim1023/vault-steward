@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import type { WritableVault } from "../review/workflow.js";
 import type { VaultFile, VaultReader } from "./types.js";
 
 export type VaultFileHandle = {
@@ -14,6 +15,10 @@ export type VaultEventSource = {
   read(file: VaultFileHandle): Promise<string>;
   on(event: string, callback: (...args: unknown[]) => void): VaultEventRef;
   offref(ref: VaultEventRef): void;
+};
+
+export type WritableVaultEventSource = VaultEventSource & {
+  modify(file: VaultFileHandle, content: string): Promise<void>;
 };
 
 export class ObsidianVaultReader implements VaultReader {
@@ -69,6 +74,29 @@ export class ObsidianVaultReader implements VaultReader {
     } catch {
       // Vault events with unsafe paths cannot affect the active vault index.
     }
+  }
+}
+
+export class ObsidianVaultWriter implements WritableVault {
+  constructor(private readonly vault: WritableVaultEventSource) {}
+
+  async read(path: string): Promise<{ content: string; revision: string }> {
+    const file = this.findMarkdownFile(path);
+    const content = await this.vault.read(file);
+    return { content, revision: revisionFor(path, content) };
+  }
+
+  async write(path: string, content: string): Promise<void> {
+    await this.vault.modify(this.findMarkdownFile(path), content);
+  }
+
+  private findMarkdownFile(path: string): VaultFileHandle {
+    const normalizedPath = normalizeAndValidatePath(path);
+    const file = this.vault
+      .getFiles()
+      .find((candidate) => normalizeAndValidatePath(candidate.path) === normalizedPath);
+    if (!file || file.extension !== "md") throw new Error("Vault file is unavailable for apply.");
+    return file;
   }
 }
 

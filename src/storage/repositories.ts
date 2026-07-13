@@ -164,6 +164,24 @@ export class VaultStewardRepository {
     );
   }
 
+  updateProposalStatus(id: string, status: string): void {
+    this.database.run("UPDATE proposals SET status = ? WHERE id = ?", [status, id]);
+    if (this.database.getRowsModified() !== 1) throw new Error(`Unknown proposal ${id}`);
+  }
+
+  getProposalStatus(id: string): string | null {
+    const value = this.database.exec("SELECT status FROM proposals WHERE id = ?", [id])[0]
+      ?.values[0]?.[0];
+    return typeof value === "string" ? value : null;
+  }
+
+  recoverInterruptedApplies(): number {
+    this.database.run(
+      "UPDATE proposals SET status = 'recovery-required' WHERE status IN ('applying', 'apply-failed')"
+    );
+    return this.database.getRowsModified();
+  }
+
   recordApproval(record: ApprovalRecord): void {
     this.database.run(
       "INSERT INTO approvals (id, proposal_id, action, acted_at, applied_revision) VALUES (?, ?, ?, ?, ?)",

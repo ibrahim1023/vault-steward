@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ObsidianVaultReader,
+  ObsidianVaultWriter,
   type VaultEventSource,
   type VaultFileHandle
 } from "../../src/vault-adapter/obsidian-reader.js";
@@ -43,6 +44,12 @@ class FakeVault implements VaultEventSource {
 
   emit(event: string, ...args: unknown[]): void {
     for (const callback of this.listeners.get(event) ?? []) callback(...args);
+  }
+}
+
+class WritableFakeVault extends FakeVault {
+  async modify(file: VaultFileHandle, content: string): Promise<void> {
+    this.setContent(file.path, content);
   }
 }
 
@@ -116,5 +123,17 @@ describe("ObsidianVaultReader", () => {
     const secondRevision = (await reader.listFiles())[0]?.revision;
 
     expect(secondRevision).not.toBe(firstRevision);
+  });
+});
+
+describe("ObsidianVaultWriter", () => {
+  it("writes only a current Markdown file through the narrow adapter", async () => {
+    const vault = new WritableFakeVault(
+      [{ path: "Home.md", extension: "md" }],
+      new Map([["Home.md", "old"]])
+    );
+    const writer = new ObsidianVaultWriter(vault);
+    await writer.write("Home.md", "new");
+    await expect(writer.read("Home.md")).resolves.toMatchObject({ content: "new" });
   });
 });
