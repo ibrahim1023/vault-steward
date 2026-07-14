@@ -61,9 +61,17 @@ export async function runLiveModelEvaluation(input: {
 
 function isCandidateList(text: string): boolean {
   try {
-    const value = JSON.parse(text) as Record<string, unknown>;
+    const value = JSON.parse(extractJson(text)) as Record<string, unknown>;
     return Array.isArray(value.candidates);
   } catch {
     return false;
   }
+}
+
+function extractJson(text: string): string {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
+  const candidate = (fenced ?? text).trim();
+  const start = candidate.indexOf("{");
+  const end = candidate.lastIndexOf("}");
+  return start >= 0 && end > start ? candidate.slice(start, end + 1) : candidate;
 }

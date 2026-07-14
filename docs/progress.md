@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 7 unified findings and safe review workspace is in progress. The initial correctness and persistence remediation is implemented; unified finding normalization and the persisted workspace remain pending.
+Phase 7 unified findings and safe review workspace is complete.
 
 ## Completed Work
 
@@ -44,6 +44,7 @@ Phase 7 unified findings and safe review workspace is in progress. The initial c
 - The live plugin now opens and migrates its local SQLite database, recovers interrupted scans at startup, persists completed governed scan snapshots and findings, and runs the configured one-shot scan-on-load action.
 - Phase 7.1 unified finding contract implemented: supported deterministic and semantic finding families now share an evidence-validated, scan-scoped normalization boundary; ADR 0005 records the model-output trust boundary.
 - Phase 7.2 governed scan pipeline implemented: frontmatter, deterministic task/schema/decision/policy checks, and bounded local-model candidates are derived from one immutable snapshot; a failed required model stage returns an incomplete result without completed findings.
+- Phase 7 review workspace implemented: governed scans persist normalized findings and metadata-only model traces, the workspace reloads SQLite-backed findings, and deterministic reference repairs require an explicit review action and confirmation before revision-safe apply.
 
 ## Current Work
 
@@ -63,8 +64,8 @@ Phase 6 is complete. Phase 7 implementation is underway on `feat/phase-7-unified
 
 ## Verification Status
 
-The Phase 6 completion gate passed on 2026-07-14: formatting, linting, type checking, build, packaged install smoke, 71 unit/component tests, 13 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic evaluations, performance and operational baselines, privacy checks, and dependency audit. The Phase 7 remediation gate passed on 2026-07-14: formatting, linting, type checking, build, packaged install smoke, 75 unit/component tests, 16 integration tests, 3 end-to-end tests, 3 acceptance tests, full deterministic evaluations, performance and operational baselines, and a production dependency audit. Git is initialized; completed work is committed in coherent increments.
+The Phase 6 completion gate passed on 2026-07-14: formatting, linting, type checking, build, packaged install smoke, 71 unit/component tests, 13 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic evaluations, performance and operational baselines, privacy checks, and dependency audit. The Phase 7 completion gate passed on 2026-07-14: formatting, linting, type checking, build, packaged install smoke, 81 unit/component tests, 17 integration tests, 3 end-to-end tests, 3 acceptance tests, full deterministic evaluations, performance and operational baselines, production dependency audit, and a synthetic-only Ollama evaluation with schema/citation validity of 1.0. Git is initialized; completed work is committed in coherent increments.
 
 ## Next Recommended Task
 
-Complete the unified finding contract task and connect the persisted review queue to the workspace.
+Begin Phase 8 incremental indexing from a new branch created from `development`.

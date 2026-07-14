@@ -256,6 +256,22 @@ export class VaultStewardRepository {
     );
   }
 
+  findProposal(id: string): ProposalRecord | null {
+    const row = this.database.exec(
+      "SELECT id, finding_id, patch_json, source_revisions_json, status FROM proposals WHERE id = ?",
+      [id]
+    )[0]?.values[0];
+    return row && row.every((value) => typeof value === "string")
+      ? {
+          id: row[0] as string,
+          findingId: row[1] as string,
+          patchJson: row[2] as string,
+          sourceRevisionsJson: row[3] as string,
+          status: row[4] as string
+        }
+      : null;
+  }
+
   updateProposalStatus(id: string, status: string): void {
     this.database.run("UPDATE proposals SET status = ? WHERE id = ?", [status, id]);
     if (this.database.getRowsModified() !== 1) throw new Error(`Unknown proposal ${id}`);
