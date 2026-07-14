@@ -2,7 +2,8 @@ import type { Finding } from "../contracts/index.js";
 import { persistReviewQueue } from "../coordinator/normalize.js";
 import { ScanSnapshotRepository } from "../storage/scan-snapshots.js";
 import { applyMigrations } from "../storage/migrations.js";
-import { VaultStewardRepository } from "../storage/repositories.js";
+import { hydrateFinding, VaultStewardRepository } from "../storage/repositories.js";
+import type { ModelTrace } from "../model-provider/structured.js";
 import { createSqliteRuntime, type SqliteRuntime } from "../storage/sqlite-runtime.js";
 import type { VaultFile } from "../vault-adapter/types.js";
 
@@ -24,7 +25,9 @@ export type PluginDatabase = {
     finishedAt: string;
     files: readonly VaultFile[];
     findings: readonly Finding[];
+    modelTraces: readonly ModelTrace[];
   }): void;
+  loadFindings(): Finding[];
   flush(): Promise<void>;
   close(): void;
 };
@@ -60,8 +63,29 @@ export async function openPluginDatabase(input: {
         files: scan.files.map((file) => ({ path: file.path, revisionHash: file.revision ?? "" }))
       });
       persistReviewQueue(repository, scan.findings);
+      for (const [index, trace] of scan.modelTraces.entries()) {
+        repository.saveModelTrace({
+          id: `${scan.id}:trace:${index}`,
+          scanId: scan.id,
+          requestMetadataJson: JSON.stringify({
+            provider: trace.provider,
+            model: trace.model,
+            retries: trace.retries
+          }),
+          schemaVersion: 1,
+          durationMs: trace.latencyMs,
+          inputTokens: 0,
+          outputTokens: 0,
+          outcome: trace.outcome
+        });
+      }
       snapshots.transition(scan.id, "completed", scan.finishedAt);
     },
+    loadFindings: () =>
+      repository.listFindings({}).flatMap((record) => {
+        const finding = hydrateFinding(record);
+        return finding ? [finding] : [];
+      }),
     flush: () => writeRuntime(input.adapter, input.databasePath, runtime),
     close: () => runtime.close()
   };

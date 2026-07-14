@@ -74,10 +74,15 @@ export default class VaultStewardPlugin extends Plugin {
       startedAt,
       finishedAt: new Date().toISOString(),
       files,
-      findings: result.findings
+      findings: result.findings,
+      modelTraces: result.modelTraces
     });
     await this.database.flush();
     return result;
+  }
+
+  loadFindings() {
+    return this.database?.loadFindings() ?? [];
   }
 
   private pluginDirectory(): string {
@@ -117,7 +122,8 @@ class VaultStewardStatusItemView extends ItemView {
         undefined,
         createElement(VaultStewardWorkspace, {
           vaultLabel: this.plugin.settings.vaultLabel,
-          scan: () => this.plugin.scanVault()
+          scan: () => this.plugin.scanVault(),
+          loadFindings: () => this.plugin.loadFindings()
         })
       )
     );

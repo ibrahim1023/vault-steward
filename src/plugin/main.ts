@@ -1,5 +1,5 @@
 import type { CoordinatorResult } from "../agents/coordinator.js";
-import { runGovernedScan } from "../core/governed-scan.js";
+import { runGovernedScan, type GovernedScanResult } from "../core/governed-scan.js";
 import type { LocalProvider } from "../model-provider/local-provider.js";
 import { checkReferenceIntegrity } from "../reference/check.js";
 import { scanVaultFiles } from "../scanner/scan.js";
@@ -10,9 +10,7 @@ export type ReferenceIntegrityResult = {
   findings: Awaited<ReturnType<typeof runGovernedScan>>["findings"];
 };
 
-export type GovernedIntegrityResult = ReferenceIntegrityResult & {
-  semanticAnalysis: CoordinatorResult;
-};
+export type GovernedIntegrityResult = GovernedScanResult & { semanticAnalysis: CoordinatorResult };
 
 export function createReferenceIntegritySession(): {
   scan(files: readonly VaultFile[]): ReferenceIntegrityResult;

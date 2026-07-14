@@ -1,5 +1,11 @@
 import type { Database } from "sql.js";
-import type { FindingSeverity, FindingStatus, FindingType } from "../contracts/index.js";
+import type {
+  EvidenceRef,
+  Finding,
+  FindingSeverity,
+  FindingStatus,
+  FindingType
+} from "../contracts/index.js";
 
 export type ScanRecord = {
   id: string;
@@ -63,6 +69,38 @@ export type FindingQuery = {
   policyId?: string;
   minimumConfidence?: number;
 };
+
+export function hydrateFinding(record: FindingRecord): Finding | null {
+  try {
+    const evidence = JSON.parse(record.evidenceJson) as unknown;
+    const payload = JSON.parse(record.payloadJson) as Record<string, unknown>;
+    if (
+      !Array.isArray(evidence) ||
+      !evidence.every(isEvidence) ||
+      typeof payload.confidence !== "number" ||
+      typeof payload.explanation !== "string"
+    )
+      return null;
+    return {
+      schemaVersion: 1,
+      id: record.id,
+      scanId: record.scanId,
+      type: record.type as FindingType,
+      severity: record.severity as FindingSeverity,
+      evidence,
+      affectedNoteIds: [...new Set(evidence.map((item) => item.notePath))],
+      ...(typeof payload.violatedPolicyId === "string"
+        ? { violatedPolicyId: payload.violatedPolicyId }
+        : {}),
+      explanation: payload.explanation,
+      suggestedFixes: [],
+      confidence: payload.confidence,
+      status: record.status as FindingStatus
+    };
+  } catch {
+    return null;
+  }
+}
 
 export type ProposalRecord = {
   id: string;
@@ -303,4 +341,14 @@ function parsePayload(payloadJson: string): { confidence: number; violatedPolicy
   } catch {
     return { confidence: 0 };
   }
+}
+
+function isEvidence(value: unknown): value is EvidenceRef {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as EvidenceRef).notePath === "string" &&
+    typeof (value as EvidenceRef).locator === "string" &&
+    typeof (value as EvidenceRef).excerpt === "string"
+  );
 }
