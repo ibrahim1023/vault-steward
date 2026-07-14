@@ -43,6 +43,7 @@ Phase 7 unified findings and safe review workspace is in progress. The initial c
 - Correctness remediation: scan IDs are immutable, Markdown links resolve relative to their source note, proposal application groups same-file ranges from one preflight snapshot, read failures leave proposals `apply-failed`, and later write failures trigger compensating rollback of earlier writes.
 - The live plugin now opens and migrates its local SQLite database, recovers interrupted scans at startup, persists completed governed scan snapshots and findings, and runs the configured one-shot scan-on-load action.
 - Phase 7.1 unified finding contract implemented: supported deterministic and semantic finding families now share an evidence-validated, scan-scoped normalization boundary; ADR 0005 records the model-output trust boundary.
+- Phase 7.2 governed scan pipeline implemented: frontmatter, deterministic task/schema/decision/policy checks, and bounded local-model candidates are derived from one immutable snapshot; a failed required model stage returns an incomplete result without completed findings.
 
 ## Current Work
 

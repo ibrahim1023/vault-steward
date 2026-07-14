@@ -1,4 +1,5 @@
 import type { LocalProvider } from "../model-provider/local-provider.js";
+import type { ModelTrace } from "../model-provider/structured.js";
 import {
   prepareContradictionPropositions,
   runContradictionAgent,
@@ -34,6 +35,7 @@ export type CoordinatorResult = {
   }>;
   candidates: unknown[];
   limitations: string[];
+  traces: ModelTrace[];
   toolCalls: number;
   terminated: true;
 };
@@ -51,6 +53,7 @@ export class LocalAgentCoordinator {
         handoffs: [],
         candidates: [],
         limitations: ["local-model-provider-required"],
+        traces: [],
         toolCalls: 0,
         terminated: true
       };
@@ -59,6 +62,7 @@ export class LocalAgentCoordinator {
     const handoffs: CoordinatorResult["handoffs"] = [];
     const candidates: unknown[] = [];
     const limitations: string[] = [];
+    const traces: ModelTrace[] = [];
 
     for (const route of routes) {
       if (route === "entity") {
@@ -69,6 +73,7 @@ export class LocalAgentCoordinator {
         );
         candidates.push(...result.candidates);
         limitations.push(...result.limitations);
+        traces.push(...result.traces);
       } else if (route === "contradiction") {
         const propositions = prepareContradictionPropositions(input.propositions);
         handoffs.push({ agent: route, evidenceCount: propositions.length });
@@ -78,6 +83,7 @@ export class LocalAgentCoordinator {
         );
         candidates.push(...result.candidates);
         limitations.push(...result.limitations);
+        traces.push(...result.traces);
       } else if (route === "staleness") {
         handoffs.push({ agent: route, evidenceCount: input.stalenessRecords.length });
         const result = await runStalenessAgent(
@@ -86,6 +92,7 @@ export class LocalAgentCoordinator {
         );
         candidates.push(...result.candidates);
         limitations.push(...result.limitations);
+        traces.push(...result.traces);
       } else {
         handoffs.push({ agent: route, evidenceCount: input.decisions.length });
         const result = await runDecisionAgent(
@@ -94,6 +101,7 @@ export class LocalAgentCoordinator {
         );
         candidates.push(...result.candidates);
         limitations.push(...result.limitations);
+        traces.push(...result.traces);
       }
     }
     return {
@@ -104,6 +112,7 @@ export class LocalAgentCoordinator {
       handoffs,
       candidates: dedupeCandidates(candidates),
       limitations: [...new Set(limitations)],
+      traces,
       toolCalls: routes.length,
       terminated: true
     };

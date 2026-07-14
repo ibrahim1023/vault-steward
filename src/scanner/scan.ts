@@ -18,6 +18,7 @@ export type ParsedReference = {
 export type ScannedNote = {
   path: string;
   content: string;
+  frontmatter: Record<string, unknown>;
   revision: string;
   headings: string[];
   references: ParsedReference[];
@@ -47,6 +48,7 @@ function scanFile(file: VaultFile, index: number): ScannedNote {
   return {
     path: normalizeVaultPath(file.path),
     content: parsed.content,
+    frontmatter: parsed.data as Record<string, unknown>,
     revision: file.revision ?? `memory-${index}`,
     headings,
     references: extractReferences(parsed.content)

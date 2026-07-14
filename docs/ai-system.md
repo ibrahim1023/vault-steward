@@ -38,3 +38,7 @@ Treat note content as untrusted data. Prompts must label it as data, never instr
 ## Runtime Budgets
 
 Initial defaults are configuration, not promises: one concurrent model request; 30-second request timeout; 2 model calls per agent per scan; 8K input and 1K output token maxima; 24K aggregate model-input tokens per scan. Record actual token estimates, latency, retries, retrieved-context utilization, and tool calls for later tuning.
+
+## Governed Scan Input Boundary
+
+`src/core/governed-scan.ts` constructs each local-model request from the immutable scanner snapshot. It supplies bounded note evidence, deterministic contradiction propositions, staleness records, and decision records to the coordinator. The core result includes metadata-only model traces and limitations; a required model-stage failure returns an incomplete scan with no completed finding set.

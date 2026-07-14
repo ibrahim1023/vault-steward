@@ -115,7 +115,7 @@ git commit -m "feat: add unified finding contract"
 - `GovernedScanResult` contains `scanId`, normalized `findings`, bounded `modelTraces`, `limitations`, and `completed`.
 - Consumes the scanner snapshot once; all agent evidence, task/schema/decision/policy checks, and reference checks originate from that snapshot.
 
-- [ ] **Step 1: Write a failing cross-family scan test**
+- [x] **Step 1: Write a failing cross-family scan test**
 
 ```ts
 const result = await runGovernedScan(
@@ -128,13 +128,13 @@ expect(result.findings.map((finding) => finding.type)).toContain("task");
 expect(result.completed).toBe(true);
 ```
 
-- [ ] **Step 2: Run the focused test to confirm the current reference-only result fails**
+- [x] **Step 2: Run the focused test to confirm the current reference-only result fails**
 
 Run: `npx vitest run tests/core/governed-scan.test.ts`
 
 Expected: FAIL because `runGovernedScan` and snapshot-derived non-reference inputs do not exist.
 
-- [ ] **Step 3: Retain parsed frontmatter and derive bounded inputs**
+- [x] **Step 3: Retain parsed frontmatter and derive bounded inputs**
 
 ```ts
 export type ScannedNote = {
@@ -155,11 +155,11 @@ const agentEvidence = snapshot.notes.map((note) => ({
 
 Derive tasks, schemas, decisions, policy facts, contradiction propositions, and staleness records deterministically. Pass only validated, capped evidence to the existing coordinator.
 
-- [ ] **Step 4: Normalize all deterministic and validated semantic outputs**
+- [x] **Step 4: Normalize all deterministic and validated semantic outputs**
 
 Use `normalizeFinding` for every issue family. Return a visible incomplete result on model failure and do not persist partial semantic findings as a completed governed scan.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run: `npm run test:unit && npm run test:e2e && npm run eval:smoke && npm run typecheck`
 

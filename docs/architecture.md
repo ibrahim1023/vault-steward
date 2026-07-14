@@ -30,6 +30,7 @@ flowchart LR
 | ---------------- | ---------------------------------------------------- | ------------------------------------- |
 | `vault-adapter`  | Narrow read/write access through Obsidian APIs       | live vault interaction                |
 | `scanner`        | Parse files and generate normalized scan records     | scan snapshot inputs                  |
+| `core`           | Derive checks and bounded model inputs from one scan | governed scan result                  |
 | `graph`          | Build deterministic note/entity/task/reference graph | graph projection                      |
 | `policy`         | Parse and evaluate YAML policies                     | policy results                        |
 | `agents`         | Produce typed candidate findings from bounded inputs | candidate outputs only                |
@@ -52,7 +53,7 @@ sequenceDiagram
   participant Review
   User->>Coordinator: start scan
   Coordinator->>Scanner: read vault snapshot
-  Scanner->>Core: normalized records
+  Scanner->>Core: one immutable normalized snapshot
   Core-->>Coordinator: deterministic findings + bounded agent inputs
   Coordinator->>Model: typed request when needed
   Model-->>Coordinator: candidate structured output
