@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "maxScanDurationMs": 1000,
+  "maxParseErrors": 0,
+  "maxModelLatencyMs": 1000,
+  "maxTokenUsage": 2000,
+  "maxToolCalls": 4,
+  "maxRetryRate": 0.5,
+  "maxIncompleteRate": 0,
+  "maxFindingVolume": 100,
+  "maxStaleProposals": 0,
+  "maxApplyFailureRate": 0
+}

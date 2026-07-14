@@ -45,6 +45,7 @@ npm run test:integration
 npm run test:e2e
 npm run eval:smoke
 npm run perf:smoke
+npm run ops:smoke
 npm run security:check
 ```
 
@@ -83,4 +84,5 @@ See [local runbooks](docs/runbooks.md) for recovery procedures and diagnostic ha
 | `npm run eval:smoke`          | Run the deterministic reference-integrity evaluation.              |
 | `npm run eval:full`           | Run all registered evaluations.                                    |
 | `npm run perf:smoke`          | Run the fixed large-vault and incremental-scan performance gate.   |
+| `npm run ops:smoke`           | Run metadata-only MVP operational baseline checks.                 |
 | `npm run security:check`      | Audit production dependencies.                                     |

@@ -16,7 +16,7 @@ Local correctness takes precedence over scan throughput. All externally visible 
 
 ## Health and Diagnostics
 
-The UI exposes vault access, database migration state, last completed scan, local-provider availability, and bounded error summaries. Planned metrics: scan duration, files parsed, parse errors, model latency, structured-output failures, finding counts, stale proposals, apply failures, retries, tokens, and queue depth. No metric includes note content.
+The UI exposes vault access, database migration state, last completed scan, local-provider availability, and bounded error summaries. Operational metrics gate scan duration, parse errors, model latency, token usage, tool calls, retry rate, incomplete rate, finding volume, stale proposals, and apply failure rate. No metric includes note content.
 
 ## Runbook Triggers
 
