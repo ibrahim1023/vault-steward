@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Post-MVP planning: Phase 7 unified findings and safe review workspace is designed; implementation has not started.
+Phase 7 unified findings and safe review workspace is in progress. The initial correctness and persistence remediation is implemented; unified finding normalization and the persisted workspace remain pending.
 
 ## Completed Work
 
@@ -40,10 +40,12 @@ Post-MVP planning: Phase 7 unified findings and safe review workspace is designe
 - The Obsidian status workspace now exposes a Run scan command that reads the vault, requires the local semantic-analysis stage, and populates the review queue with deterministic reference findings.
 - Accessibility and interaction review completed with keyboard-native scan and filter controls, live scan/error announcements, readable `pre` diff content, narrow-pane-safe layout, and a safe absence of live destructive controls.
 - The synthetic MVP acceptance vault now covers reference, task, schema, decision, policy, local-model coordinator, proposal, approval, apply, and post-write re-index paths.
+- Correctness remediation: scan IDs are immutable, Markdown links resolve relative to their source note, proposal application groups same-file ranges from one preflight snapshot, read failures leave proposals `apply-failed`, and later write failures trigger compensating rollback of earlier writes.
+- The live plugin now opens and migrates its local SQLite database, recovers interrupted scans at startup, persists completed governed scan snapshots and findings, and runs the configured one-shot scan-on-load action.
 
 ## Current Work
 
-Phase 6 is complete. Phase 7 planning is complete; implementation will begin on a dedicated branch from `development`.
+Phase 6 is complete. Phase 7 implementation is underway on `feat/phase-7-unified-findings-review`.
 
 ## Important Decisions
 
@@ -54,13 +56,13 @@ Phase 6 is complete. Phase 7 planning is complete; implementation will begin on 
 
 ## Risks
 
-- Semantic candidates and persisted proposal actions are not yet exposed by the live Obsidian workspace; it currently displays deterministic reference findings after the required local semantic-analysis stage.
+- Semantic candidates and persisted proposal actions are not yet exposed by the live Obsidian workspace; it currently displays deterministic reference findings after the required local semantic-analysis stage. Persisted scan/finding records are not yet reloaded into that workspace.
 - Agent quality thresholds are initial calibration targets and need representative local-vault review before a broader release.
 
 ## Verification Status
 
-The Phase 6 completion gate passed on 2026-07-14: formatting, linting, type checking, build, packaged install smoke, 71 unit/component tests, 13 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic evaluations, performance and operational baselines, privacy checks, and dependency audit. Git is initialized; completed work is committed in coherent increments.
+The Phase 6 completion gate passed on 2026-07-14: formatting, linting, type checking, build, packaged install smoke, 71 unit/component tests, 13 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic evaluations, performance and operational baselines, privacy checks, and dependency audit. The Phase 7 remediation gate passed on 2026-07-14: formatting, linting, type checking, build, packaged install smoke, 75 unit/component tests, 16 integration tests, 3 end-to-end tests, 3 acceptance tests, full deterministic evaluations, performance and operational baselines, and a production dependency audit. Git is initialized; completed work is committed in coherent increments.
 
 ## Next Recommended Task
 
-Create `feat/phase-7-unified-findings-review` from `development` and begin the unified finding contract task.
+Complete the unified finding contract task and connect the persisted review queue to the workspace.

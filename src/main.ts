@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
 import { registerPluginCommands } from "./plugin/commands.js";
+import { openPluginDatabase, type PluginDatabase } from "./plugin/database.js";
 import { createGovernedIntegritySession, type GovernedIntegrityResult } from "./plugin/main.js";
 import {
   DEFAULT_PLUGIN_SETTINGS,
@@ -11,6 +12,7 @@ import {
 } from "./plugin/settings.js";
 import { ObsidianVaultReader } from "./vault-adapter/obsidian-reader.js";
 import { createLocalProvider } from "./model-provider/local-provider.js";
+import { getPluginDatabasePath } from "./storage/sqlite-runtime.js";
 import { VaultStewardWorkspace } from "./ui/VaultStewardWorkspace.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
@@ -18,18 +20,37 @@ const STATUS_VIEW_TYPE = "vault-steward-status";
 export default class VaultStewardPlugin extends Plugin {
   settings: PluginSettings = DEFAULT_PLUGIN_SETTINGS;
   private vaultReader?: ObsidianVaultReader;
+  private database: PluginDatabase | undefined;
 
   async onload(): Promise<void> {
     this.settings = parsePluginSettings(await this.loadData());
     this.vaultReader = new ObsidianVaultReader(this.app.vault);
+    this.database = await openPluginDatabase({
+      adapter: this.app.vault.adapter,
+      databasePath: getPluginDatabasePath(this.app.vault.configDir, this.manifest.id),
+      locateFile: (file) =>
+        this.app.vault.adapter.getResourcePath(`${this.pluginDirectory()}/${file}`)
+    });
     this.register(this.vaultReader.watchInvalidations());
     this.addSettingTab(new VaultStewardSettingsTab(this.app, this));
     this.registerView(STATUS_VIEW_TYPE, (leaf) => new VaultStewardStatusItemView(leaf, this));
     registerPluginCommands(this, () => this.openStatusView());
+    if (this.settings.autoScanOnLoad) {
+      this.registerInterval(
+        window.setTimeout(() => {
+          void this.scanVault().catch(() => undefined);
+        }, 0)
+      );
+    }
   }
 
   async onunload(): Promise<void> {
     this.app.workspace.detachLeavesOfType(STATUS_VIEW_TYPE);
+    if (this.database) {
+      await this.database.flush();
+      this.database.close();
+      this.database = undefined;
+    }
   }
 
   async saveSettings(nextSettings: PluginSettings): Promise<void> {
@@ -39,9 +60,28 @@ export default class VaultStewardPlugin extends Plugin {
 
   async scanVault(): Promise<GovernedIntegrityResult> {
     if (!this.vaultReader) throw new Error("Vault reader is unavailable.");
+    if (!this.database) throw new Error("Vault Steward database is unavailable.");
     const provider = createLocalProvider(this.settings.modelProvider);
     const files = await this.vaultReader.listFiles();
-    return createGovernedIntegritySession([provider]).scan(files);
+    const startedAt = new Date().toISOString();
+    const result = await createGovernedIntegritySession([provider]).scan(files);
+    this.database.saveCompletedScan({
+      id: result.scanId,
+      vaultFingerprint: this.app.vault.getName(),
+      configHash: this.settings.modelProvider.model,
+      inputHash: files.map((file) => `${file.path}:${file.revision}`).join("|"),
+      parserVersion: "scanner-v1",
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      files,
+      findings: result.findings
+    });
+    await this.database.flush();
+    return result;
+  }
+
+  private pluginDirectory(): string {
+    return this.manifest.dir ?? `${this.app.vault.configDir}/plugins/${this.manifest.id}`;
   }
 
   private async openStatusView(): Promise<void> {
@@ -112,9 +152,7 @@ class VaultStewardSettingsTab extends PluginSettingTab {
 
     new Setting(this.containerEl)
       .setName("Scan on load")
-      .setDesc(
-        "Prepare Vault Steward to scan when the plugin loads. The scanner is added in a later task."
-      )
+      .setDesc("Run one governed local scan when the plugin loads.")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.autoScanOnLoad).onChange(async (value) => {
           await this.plugin.saveSettings({ ...this.plugin.settings, autoScanOnLoad: value });
