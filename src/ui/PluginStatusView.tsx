@@ -11,7 +11,9 @@ export function PluginStatusView({
     <section aria-label="Vault Steward status">
       <h2>Vault Steward</h2>
       <p>Current vault: {vaultLabel}</p>
-      <p>{statusMessage(status)}</p>
+      <p role="status" aria-live="polite">
+        {statusMessage(status)}
+      </p>
     </section>
   );
 }

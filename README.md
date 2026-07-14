@@ -7,6 +7,7 @@ Vault Steward is a local-first Obsidian plugin for auditing note vaults for inte
 Vault Steward provides:
 
 - Obsidian plugin lifecycle, settings, command registration, and a status view.
+- A status workspace that runs a governed local scan, shows progress and safe failures, and populates evidence-backed reference findings.
 - A read-only Obsidian vault adapter with normalized paths, revision hashes, cancellation, and invalidation events.
 - Deterministic Markdown reference-integrity checks and safe proposed repairs for broken internal references.
 - Local SQLite-compatible persistence through `sql.js`, forward-only migrations, immutable scan snapshots, and a persisted review queue.

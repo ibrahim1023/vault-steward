@@ -3,14 +3,15 @@ import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
 import { registerPluginCommands } from "./plugin/commands.js";
+import { createGovernedIntegritySession, type GovernedIntegrityResult } from "./plugin/main.js";
 import {
   DEFAULT_PLUGIN_SETTINGS,
   parsePluginSettings,
   type PluginSettings
 } from "./plugin/settings.js";
 import { ObsidianVaultReader } from "./vault-adapter/obsidian-reader.js";
-import { PluginStatusView } from "./ui/PluginStatusView.js";
-import { ReviewQueueView } from "./ui/ReviewQueueView.js";
+import { createLocalProvider } from "./model-provider/local-provider.js";
+import { VaultStewardWorkspace } from "./ui/VaultStewardWorkspace.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 
@@ -34,6 +35,13 @@ export default class VaultStewardPlugin extends Plugin {
   async saveSettings(nextSettings: PluginSettings): Promise<void> {
     this.settings = parsePluginSettings(nextSettings);
     await this.saveData(this.settings);
+  }
+
+  async scanVault(): Promise<GovernedIntegrityResult> {
+    if (!this.vaultReader) throw new Error("Vault reader is unavailable.");
+    const provider = createLocalProvider(this.settings.modelProvider);
+    const files = await this.vaultReader.listFiles();
+    return createGovernedIntegritySession([provider]).scan(files);
   }
 
   private async openStatusView(): Promise<void> {
@@ -67,11 +75,10 @@ class VaultStewardStatusItemView extends ItemView {
       createElement(
         "div",
         undefined,
-        createElement(PluginStatusView, {
+        createElement(VaultStewardWorkspace, {
           vaultLabel: this.plugin.settings.vaultLabel,
-          status: "ready"
-        }),
-        createElement(ReviewQueueView, { status: "ready", findings: [] })
+          scan: () => this.plugin.scanVault()
+        })
       )
     );
   }
