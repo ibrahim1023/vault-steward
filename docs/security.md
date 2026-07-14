@@ -26,3 +26,5 @@ The initial product inherits the local Obsidian user session and has no remote a
 ## Enforcement Requirements
 
 No cloud API, telemetry, remote storage, shell execution, or broad filesystem scanning may be introduced without a material ADR and explicit product-scope change. Security-relevant failures must be surfaced to the user without leaking note content in logs.
+
+The offline/privacy acceptance suite statically rejects runtime shell, telemetry, and cloud-storage capabilities, and proves local providers reject non-loopback endpoints before any request is made.

@@ -14,7 +14,7 @@
     "build": "tsc --noEmit && node esbuild.config.mjs",
     "package:plugin": "npm run build && tsx scripts/package-plugin.ts",
     "test:plugin-install": "npm run package:plugin && tsx scripts/plugin-install-smoke.ts",
-    "test:unit": "vitest run tests/agents tests/deterministic-agents.test.ts tests/contracts tests/decisions tests/diagnostics tests/graph tests/model-provider tests/observability tests/packaging tests/performance tests/plugin tests/policy tests/reference tests/resilience tests/review tests/schema tests/security tests/tasks tests/ui tests/docs tests/storage tests/vault-adapter",
+    "test:unit": "vitest run tests/agents tests/deterministic-agents.test.ts tests/contracts tests/decisions tests/diagnostics tests/graph tests/model-provider tests/observability tests/packaging tests/performance tests/plugin tests/policy tests/privacy tests/reference tests/resilience tests/review tests/schema tests/security tests/tasks tests/ui tests/docs tests/storage tests/vault-adapter",
     "test:integration": "vitest run tests/integration --passWithNoTests",
     "test:e2e": "vitest run tests/e2e",
     "eval:smoke": "tsx scripts/run-evals.ts --suite reference-integrity",

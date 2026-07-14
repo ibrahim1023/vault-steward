@@ -36,6 +36,7 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Failure injection now covers corrupt database bytes, migration rollback, vault I/O failure, provider timeout, malformed output, duplicate events, cancellation, and restart recovery.
 - Bounded local diagnostics now retain only correlation IDs, generic codes, and safe messages; recovery runbooks cover migration, rebuild, provider, structured output, apply/re-index, and oversized-vault conditions.
 - Versioned operational baselines and a metadata-only smoke report now gate scan duration, parse errors, local-model usage, incomplete work, findings, proposals, and apply outcomes.
+- Offline/privacy acceptance checks now reject runtime shell, telemetry, cloud-storage, and non-loopback provider capabilities.
 
 ## Current Work
 
