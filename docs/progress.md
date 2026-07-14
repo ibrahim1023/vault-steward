@@ -42,6 +42,7 @@ Phase 7 unified findings and safe review workspace is in progress. The initial c
 - The synthetic MVP acceptance vault now covers reference, task, schema, decision, policy, local-model coordinator, proposal, approval, apply, and post-write re-index paths.
 - Correctness remediation: scan IDs are immutable, Markdown links resolve relative to their source note, proposal application groups same-file ranges from one preflight snapshot, read failures leave proposals `apply-failed`, and later write failures trigger compensating rollback of earlier writes.
 - The live plugin now opens and migrates its local SQLite database, recovers interrupted scans at startup, persists completed governed scan snapshots and findings, and runs the configured one-shot scan-on-load action.
+- Phase 7.1 unified finding contract implemented: supported deterministic and semantic finding families now share an evidence-validated, scan-scoped normalization boundary; ADR 0005 records the model-output trust boundary.
 
 ## Current Work
 

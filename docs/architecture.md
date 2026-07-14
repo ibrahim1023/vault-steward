@@ -34,6 +34,7 @@ flowchart LR
 | `policy`         | Parse and evaluate YAML policies                     | policy results                        |
 | `agents`         | Produce typed candidate findings from bounded inputs | candidate outputs only                |
 | `coordinator`    | Deduplicate, prioritize, persist findings            | review queue ordering                 |
+| `findings`       | Normalize bounded deterministic/model candidates     | authoritative typed finding boundary  |
 | `review`         | Render evidence and preview edits                    | approval state                        |
 | `apply`          | Validate and atomically apply approved patches       | audit trail and re-index trigger      |
 | `storage`        | SQLite repositories and migrations                   | persisted product state               |
@@ -56,6 +57,7 @@ sequenceDiagram
   Coordinator->>Model: typed request when needed
   Model-->>Coordinator: candidate structured output
   Coordinator->>Core: validate evidence, policy, schema
+  Core->>Core: normalize supported evidence-backed candidates
   Core-->>Review: persisted, deduplicated findings
   User->>Review: approve one proposed edit
   Review->>Core: validate diff against current revision

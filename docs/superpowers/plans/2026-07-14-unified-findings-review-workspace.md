@@ -44,7 +44,7 @@
 - Produces `FindingType` values for `broken-reference`, `invalid-reference`, `entity-alias`, `contradiction`, `staleness`, `task`, `schema`, `decision`, and `policy`.
 - Produces `normalizeFinding(input: NormalizedFindingInput): Finding | null`, returning `null` for invalid confidence, missing evidence, unsupported type, or evidence not present in the scan.
 
-- [ ] **Step 1: Write failing normalization tests**
+- [x] **Step 1: Write failing normalization tests**
 
 ```ts
 expect(
@@ -53,13 +53,13 @@ expect(
 expect(normalizeFinding({ type: "contradiction", evidence: [], confidence: 0.8 })).toBeNull();
 ```
 
-- [ ] **Step 2: Run the focused test to confirm the contract is absent**
+- [x] **Step 2: Run the focused test to confirm the contract is absent**
 
 Run: `npx vitest run tests/findings/normalize.test.ts`
 
 Expected: FAIL because the expanded finding types and `normalizeFinding` do not yet exist.
 
-- [ ] **Step 3: Define the minimal versioned input and normalization implementation**
+- [x] **Step 3: Define the minimal versioned input and normalization implementation**
 
 ```ts
 export type NormalizedFindingInput = {
@@ -85,11 +85,11 @@ export function normalizeFinding(input: NormalizedFindingInput): Finding | null 
 }
 ```
 
-- [ ] **Step 4: Update the ADR and interface authority**
+- [x] **Step 4: Update the ADR and interface authority**
 
 Document that model candidate labels are mapped to typed findings only by `src/findings/normalize.ts`, and that unknown candidate shapes are discarded.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run: `npm run test:unit && npm run typecheck`
 

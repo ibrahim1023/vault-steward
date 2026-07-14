@@ -39,11 +39,17 @@ async function runReferenceIntegrity(): Promise<void> {
     const findings = checkReferenceIntegrity(scanVaultFiles(testCase.files));
     return {
       id: testCase.id,
-      actual: findings.map((finding) => ({
-        type: finding.type,
-        notePath: finding.evidence[0]?.notePath ?? "",
-        locator: finding.evidence[0]?.locator ?? ""
-      }))
+      actual: findings.flatMap((finding) =>
+        finding.type === "broken-reference" || finding.type === "invalid-reference"
+          ? [
+              {
+                type: finding.type,
+                notePath: finding.evidence[0]?.notePath ?? "",
+                locator: finding.evidence[0]?.locator ?? ""
+              }
+            ]
+          : []
+      )
     };
   });
   const report = gradeReferenceIntegrity(cases, results);
