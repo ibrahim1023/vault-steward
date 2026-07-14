@@ -29,6 +29,25 @@ type Finding = {
   status: "open" | "dismissed" | "approved" | "applied" | "stale";
 };
 
+type NormalizedFindingInput = {
+  scanId: string;
+  type:
+    | "broken-reference"
+    | "invalid-reference"
+    | "entity-alias"
+    | "contradiction"
+    | "staleness"
+    | "task"
+    | "schema"
+    | "decision"
+    | "policy";
+  evidence: EvidenceRef[];
+  availableEvidence: EvidenceRef[]; // immutable active scan evidence
+  confidence: number; // 0..1
+  severity: FindingSeverity;
+  explanation: string;
+};
+
 type AgentRequest = {
   schemaVersion: 1;
   scanId: string;
@@ -59,6 +78,10 @@ Approval actions are append-only records. Only a pending proposal can be approve
 ## Tool Permissions
 
 Agents receive only read-scoped tools: retrieve indexed evidence, resolve paths within the active vault, and inspect parsed policy/graph data. The apply tool is not agent-callable; it is invoked by the review workflow only after explicit approval and stale-revision validation.
+
+## Unified Finding Normalization
+
+`src/findings/normalize.ts` is the only boundary that promotes deterministic issues or local-model candidates into a unified `Finding`. It accepts only a supported type, finite confidence in the inclusive `0..1` range, a non-empty explanation, and evidence that exactly matches an item in the immutable active scan. Unknown model fields, uncited candidates, and unsupported issue types are discarded. Model output never directly becomes a finding or proposal.
 
 ## Versioning and Compatibility
 

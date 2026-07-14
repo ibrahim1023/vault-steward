@@ -1,4 +1,5 @@
 import matter from "gray-matter";
+import { randomUUID } from "node:crypto";
 import { unified } from "unified";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
@@ -17,6 +18,7 @@ export type ParsedReference = {
 export type ScannedNote = {
   path: string;
   content: string;
+  frontmatter: Record<string, unknown>;
   revision: string;
   headings: string[];
   references: ParsedReference[];
@@ -32,7 +34,7 @@ const wikiReference = /(!)?\[\[([^\]]+)\]\]/g;
 
 export function scanVaultFiles(files: readonly VaultFile[]): ScanSnapshot {
   const notes = files.map((file, index) => scanFile(file, index));
-  return { id: `scan-${notes.length}`, notes };
+  return { id: `scan-${randomUUID()}`, notes };
 }
 
 function scanFile(file: VaultFile, index: number): ScannedNote {
@@ -46,6 +48,7 @@ function scanFile(file: VaultFile, index: number): ScannedNote {
   return {
     path: normalizeVaultPath(file.path),
     content: parsed.content,
+    frontmatter: parsed.data as Record<string, unknown>,
     revision: file.revision ?? `memory-${index}`,
     headings,
     references: extractReferences(parsed.content)

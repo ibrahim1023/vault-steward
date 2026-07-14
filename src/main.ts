@@ -3,14 +3,18 @@ import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
 import { registerPluginCommands } from "./plugin/commands.js";
+import { openPluginDatabase, type PluginDatabase } from "./plugin/database.js";
 import { createGovernedIntegritySession, type GovernedIntegrityResult } from "./plugin/main.js";
 import {
   DEFAULT_PLUGIN_SETTINGS,
   parsePluginSettings,
   type PluginSettings
 } from "./plugin/settings.js";
-import { ObsidianVaultReader } from "./vault-adapter/obsidian-reader.js";
+import { ObsidianVaultReader, ObsidianVaultWriter } from "./vault-adapter/obsidian-reader.js";
 import { createLocalProvider } from "./model-provider/local-provider.js";
+import { proposeFix } from "./review/propose.js";
+import { ReviewWorkflow, type ReviewAction } from "./review/workflow.js";
+import { getPluginDatabasePath } from "./storage/sqlite-runtime.js";
 import { VaultStewardWorkspace } from "./ui/VaultStewardWorkspace.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
@@ -18,18 +22,37 @@ const STATUS_VIEW_TYPE = "vault-steward-status";
 export default class VaultStewardPlugin extends Plugin {
   settings: PluginSettings = DEFAULT_PLUGIN_SETTINGS;
   private vaultReader?: ObsidianVaultReader;
+  private database: PluginDatabase | undefined;
 
   async onload(): Promise<void> {
     this.settings = parsePluginSettings(await this.loadData());
     this.vaultReader = new ObsidianVaultReader(this.app.vault);
+    this.database = await openPluginDatabase({
+      adapter: this.app.vault.adapter,
+      databasePath: getPluginDatabasePath(this.app.vault.configDir, this.manifest.id),
+      locateFile: (file) =>
+        this.app.vault.adapter.getResourcePath(`${this.pluginDirectory()}/${file}`)
+    });
     this.register(this.vaultReader.watchInvalidations());
     this.addSettingTab(new VaultStewardSettingsTab(this.app, this));
     this.registerView(STATUS_VIEW_TYPE, (leaf) => new VaultStewardStatusItemView(leaf, this));
     registerPluginCommands(this, () => this.openStatusView());
+    if (this.settings.autoScanOnLoad) {
+      this.registerInterval(
+        window.setTimeout(() => {
+          void this.scanVault().catch(() => undefined);
+        }, 0)
+      );
+    }
   }
 
   async onunload(): Promise<void> {
     this.app.workspace.detachLeavesOfType(STATUS_VIEW_TYPE);
+    if (this.database) {
+      await this.database.flush();
+      this.database.close();
+      this.database = undefined;
+    }
   }
 
   async saveSettings(nextSettings: PluginSettings): Promise<void> {
@@ -39,9 +62,86 @@ export default class VaultStewardPlugin extends Plugin {
 
   async scanVault(): Promise<GovernedIntegrityResult> {
     if (!this.vaultReader) throw new Error("Vault reader is unavailable.");
+    if (!this.database) throw new Error("Vault Steward database is unavailable.");
     const provider = createLocalProvider(this.settings.modelProvider);
     const files = await this.vaultReader.listFiles();
-    return createGovernedIntegritySession([provider]).scan(files);
+    const startedAt = new Date().toISOString();
+    const result = await createGovernedIntegritySession([provider]).scan(files);
+    this.database.saveCompletedScan({
+      id: result.scanId,
+      vaultFingerprint: this.app.vault.getName(),
+      configHash: this.settings.modelProvider.model,
+      inputHash: files.map((file) => `${file.path}:${file.revision}`).join("|"),
+      parserVersion: "scanner-v1",
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      files,
+      findings: result.findings,
+      modelTraces: result.modelTraces
+    });
+    await this.database.flush();
+    return result;
+  }
+
+  loadFindings() {
+    return this.database?.loadFindings() ?? [];
+  }
+
+  async createReferenceProposal(findingId: string, target: string) {
+    const finding = this.loadFindings().find((item) => item.id === findingId);
+    if (!finding || !this.database) throw new Error("Finding is unavailable.");
+    const writer = new ObsidianVaultWriter(this.app.vault);
+    const source = await writer.read(finding.evidence[0]?.notePath ?? "");
+    const result = proposeFix(
+      finding,
+      { path: finding.evidence[0]?.notePath ?? "", ...source },
+      target
+    );
+    if (!result.applicable) throw new Error(result.reason);
+    this.database.repository.saveProposal({
+      id: result.proposal.id,
+      findingId: result.proposal.findingId,
+      patchJson: JSON.stringify(result.proposal),
+      sourceRevisionsJson: "{}",
+      status: "pending"
+    });
+    await this.database.flush();
+    return {
+      proposal: result.proposal,
+      sources: { [sourcePath(result.proposal)]: source.content }
+    };
+  }
+
+  async reviewProposal(proposalId: string, action: ReviewAction) {
+    const record = this.database?.repository.findProposal(proposalId);
+    if (!record || !this.database) throw new Error("Proposal is unavailable.");
+    const proposal = JSON.parse(record.patchJson);
+    new ReviewWorkflow(this.database.repository, new ObsidianVaultWriter(this.app.vault)).act(
+      proposal,
+      action,
+      new Date().toISOString()
+    );
+    await this.database.flush();
+  }
+
+  async applyProposal(proposalId: string) {
+    const record = this.database?.repository.findProposal(proposalId);
+    if (!record || !this.database) throw new Error("Proposal is unavailable.");
+    const proposal = JSON.parse(record.patchJson);
+    const result = await new ReviewWorkflow(
+      this.database.repository,
+      new ObsidianVaultWriter(this.app.vault)
+    ).apply(proposal, new Date().toISOString(), {
+      onReindex: () => {
+        void this.scanVault();
+      }
+    });
+    await this.database.flush();
+    return result;
+  }
+
+  private pluginDirectory(): string {
+    return this.manifest.dir ?? `${this.app.vault.configDir}/plugins/${this.manifest.id}`;
   }
 
   private async openStatusView(): Promise<void> {
@@ -49,6 +149,10 @@ export default class VaultStewardPlugin extends Plugin {
     await leaf.setViewState({ type: STATUS_VIEW_TYPE, active: true });
     this.app.workspace.revealLeaf(leaf);
   }
+}
+
+function sourcePath(proposal: { operations: Array<{ path: string }> }): string {
+  return proposal.operations[0]?.path ?? "";
 }
 
 class VaultStewardStatusItemView extends ItemView {
@@ -77,7 +181,12 @@ class VaultStewardStatusItemView extends ItemView {
         undefined,
         createElement(VaultStewardWorkspace, {
           vaultLabel: this.plugin.settings.vaultLabel,
-          scan: () => this.plugin.scanVault()
+          scan: () => this.plugin.scanVault(),
+          loadFindings: () => this.plugin.loadFindings(),
+          createProposal: (findingId, target) =>
+            this.plugin.createReferenceProposal(findingId, target),
+          reviewProposal: (proposalId, action) => this.plugin.reviewProposal(proposalId, action),
+          applyProposal: (proposalId) => this.plugin.applyProposal(proposalId)
         })
       )
     );
@@ -112,9 +221,7 @@ class VaultStewardSettingsTab extends PluginSettingTab {
 
     new Setting(this.containerEl)
       .setName("Scan on load")
-      .setDesc(
-        "Prepare Vault Steward to scan when the plugin loads. The scanner is added in a later task."
-      )
+      .setDesc("Run one governed local scan when the plugin loads.")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.autoScanOnLoad).onChange(async (value) => {
           await this.plugin.saveSettings({ ...this.plugin.settings, autoScanOnLoad: value });

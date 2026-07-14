@@ -44,7 +44,7 @@
 - Produces `FindingType` values for `broken-reference`, `invalid-reference`, `entity-alias`, `contradiction`, `staleness`, `task`, `schema`, `decision`, and `policy`.
 - Produces `normalizeFinding(input: NormalizedFindingInput): Finding | null`, returning `null` for invalid confidence, missing evidence, unsupported type, or evidence not present in the scan.
 
-- [ ] **Step 1: Write failing normalization tests**
+- [x] **Step 1: Write failing normalization tests**
 
 ```ts
 expect(
@@ -53,13 +53,13 @@ expect(
 expect(normalizeFinding({ type: "contradiction", evidence: [], confidence: 0.8 })).toBeNull();
 ```
 
-- [ ] **Step 2: Run the focused test to confirm the contract is absent**
+- [x] **Step 2: Run the focused test to confirm the contract is absent**
 
 Run: `npx vitest run tests/findings/normalize.test.ts`
 
 Expected: FAIL because the expanded finding types and `normalizeFinding` do not yet exist.
 
-- [ ] **Step 3: Define the minimal versioned input and normalization implementation**
+- [x] **Step 3: Define the minimal versioned input and normalization implementation**
 
 ```ts
 export type NormalizedFindingInput = {
@@ -85,11 +85,11 @@ export function normalizeFinding(input: NormalizedFindingInput): Finding | null 
 }
 ```
 
-- [ ] **Step 4: Update the ADR and interface authority**
+- [x] **Step 4: Update the ADR and interface authority**
 
 Document that model candidate labels are mapped to typed findings only by `src/findings/normalize.ts`, and that unknown candidate shapes are discarded.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run: `npm run test:unit && npm run typecheck`
 
@@ -115,7 +115,7 @@ git commit -m "feat: add unified finding contract"
 - `GovernedScanResult` contains `scanId`, normalized `findings`, bounded `modelTraces`, `limitations`, and `completed`.
 - Consumes the scanner snapshot once; all agent evidence, task/schema/decision/policy checks, and reference checks originate from that snapshot.
 
-- [ ] **Step 1: Write a failing cross-family scan test**
+- [x] **Step 1: Write a failing cross-family scan test**
 
 ```ts
 const result = await runGovernedScan(
@@ -128,13 +128,13 @@ expect(result.findings.map((finding) => finding.type)).toContain("task");
 expect(result.completed).toBe(true);
 ```
 
-- [ ] **Step 2: Run the focused test to confirm the current reference-only result fails**
+- [x] **Step 2: Run the focused test to confirm the current reference-only result fails**
 
 Run: `npx vitest run tests/core/governed-scan.test.ts`
 
 Expected: FAIL because `runGovernedScan` and snapshot-derived non-reference inputs do not exist.
 
-- [ ] **Step 3: Retain parsed frontmatter and derive bounded inputs**
+- [x] **Step 3: Retain parsed frontmatter and derive bounded inputs**
 
 ```ts
 export type ScannedNote = {
@@ -155,11 +155,11 @@ const agentEvidence = snapshot.notes.map((note) => ({
 
 Derive tasks, schemas, decisions, policy facts, contradiction propositions, and staleness records deterministically. Pass only validated, capped evidence to the existing coordinator.
 
-- [ ] **Step 4: Normalize all deterministic and validated semantic outputs**
+- [x] **Step 4: Normalize all deterministic and validated semantic outputs**
 
 Use `normalizeFinding` for every issue family. Return a visible incomplete result on model failure and do not persist partial semantic findings as a completed governed scan.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run: `npm run test:unit && npm run test:e2e && npm run eval:smoke && npm run typecheck`
 
@@ -184,7 +184,7 @@ git commit -m "feat: unify governed scan findings"
 - Produces `listFindings(filter: FindingQuery): FindingRecord[]`, `findProposal(id: string): ProposalRecord | null`, and a plugin-local database lifecycle that migrates before scans.
 - `FindingQuery` permits `scanId`, type, severity, status, policy ID, and minimum confidence; it never accepts arbitrary SQL or a note-content search string.
 
-- [ ] **Step 1: Write failing persistence and recovery tests**
+- [x] **Step 1: Write failing persistence and recovery tests**
 
 ```ts
 repository.saveFinding(record);
@@ -192,13 +192,13 @@ expect(repository.listFindings({ scanId: "scan-1", status: "open" })).toHaveLeng
 expect(recoverDatabaseAfterInterruptedScan(database)).toEqual({ recoveredScans: 1 });
 ```
 
-- [ ] **Step 2: Run focused integration tests**
+- [x] **Step 2: Run focused integration tests**
 
 Run: `npx vitest run tests/integration/persisted-review-queue.test.ts tests/plugin/database.test.ts`
 
 Expected: FAIL because query methods and the plugin database lifecycle do not exist.
 
-- [ ] **Step 3: Add typed repository queries and database initialization**
+- [x] **Step 3: Add typed repository queries and database initialization**
 
 ```ts
 export type FindingQuery = {
@@ -217,11 +217,11 @@ export function openPluginDatabase(adapter: PluginDataAdapter): PluginDatabase {
 
 The adapter remains the only Obsidian-aware storage boundary; core scan code receives repositories through explicit interfaces.
 
-- [ ] **Step 4: Save model trace metadata and final scan state atomically**
+- [x] **Step 4: Save model trace metadata and final scan state atomically**
 
 Persist only provider/model identifiers, duration, counts, outcome, and correlation ID. Do not persist prompts or evidence excerpts in model trace rows.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run: `npm run test:unit && npm run test:integration && npm run security:check`
 
@@ -246,7 +246,7 @@ git commit -m "feat: persist governed review queue"
 - `VaultStewardWorkspace` receives `scan(): Promise<ReviewWorkspaceState>` and `loadFindings(filter: ReviewFilter): Promise<Finding[]>`.
 - `ReviewWorkspaceState` reports `scanId`, `completed`, `limitations`, and safe diagnostics separately from findings.
 
-- [ ] **Step 1: Write failing UI tests for finding type and incomplete scan state**
+- [x] **Step 1: Write failing UI tests for finding type and incomplete scan state**
 
 ```tsx
 render(<VaultStewardWorkspace scan={scan} loadFindings={loadFindings} />);
@@ -254,21 +254,21 @@ expect(await screen.findByText("entity-alias")).toBeInTheDocument();
 expect(screen.getByText("Semantic analysis needs attention")).toBeInTheDocument();
 ```
 
-- [ ] **Step 2: Run focused UI tests**
+- [x] **Step 2: Run focused UI tests**
 
 Run: `npx vitest run tests/ui/persisted-review-queue.test.tsx tests/e2e/persisted-review-workspace.test.tsx`
 
 Expected: FAIL because the workspace currently accepts only an in-memory findings array.
 
-- [ ] **Step 3: Implement query-backed states and provenance**
+- [x] **Step 3: Implement query-backed states and provenance**
 
 Render finding type, severity, confidence, policy ID, evidence locators, source scan, and candidate limitations. Use native labelled controls, `role="status"` for progress, `role="alert"` for failures, and no custom keyboard-only widgets.
 
-- [ ] **Step 4: Preserve readable narrow-pane behavior**
+- [x] **Step 4: Preserve readable narrow-pane behavior**
 
 Keep long note paths and evidence in semantic blocks; use `pre` for source-preserving diff text; never truncate the only evidence locator.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run: `npm run test:unit && npm run test:e2e && npm run typecheck`
 
@@ -294,7 +294,7 @@ git commit -m "feat: render persisted review findings"
 - `onAction` accepts only `"approved" | "dismissed" | "deferred"`; `onApply` accepts only an approved proposal ID.
 - Apply callbacks return `{ ok: true } | { ok: false; reason: "stale" | "write-failed" | "canceled" }` and schedule re-index only on `{ ok: true }`.
 
-- [ ] **Step 1: Write failing explicit-review UI tests**
+- [x] **Step 1: Write failing explicit-review UI tests**
 
 ```tsx
 fireEvent.click(screen.getByRole("button", { name: "Approve proposal" }));
@@ -303,21 +303,21 @@ fireEvent.click(screen.getByRole("button", { name: "Apply approved change" }));
 expect(screen.getByRole("dialog")).toHaveTextContent("Apply this approved change?");
 ```
 
-- [ ] **Step 2: Run focused UI and workflow tests**
+- [x] **Step 2: Run focused UI and workflow tests**
 
 Run: `npx vitest run tests/ui/proposal-review-panel.test.tsx tests/integration/review-workflow.test.ts tests/e2e/persisted-review-workspace.test.tsx`
 
 Expected: FAIL because no proposal action panel exists in the live workspace.
 
-- [ ] **Step 3: Implement proposal rendering and confirmation**
+- [x] **Step 3: Implement proposal rendering and confirmation**
 
 Render the existing deterministic proposal only when `proposeFix` returns `applicable`. The confirmation dialog must name the number of affected notes, present the diff, offer Cancel as the non-destructive default, and never call apply before confirmation.
 
-- [ ] **Step 4: Bind actions to the existing revision-safe workflow**
+- [x] **Step 4: Bind actions to the existing revision-safe workflow**
 
 Record approval/dismiss/defer actions through `ReviewWorkflow.act`. Use the narrow Obsidian vault adapter for apply. Re-render stale and recovery-required results, and invoke re-index only after `ReviewWorkflow.apply` reports success.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run: `npm run test:unit && npm run test:integration && npm run test:e2e && npm run security:check`
 
@@ -342,7 +342,7 @@ git commit -m "feat: add approved reference repair workflow"
 - Produces `npm run eval:local-model`, which reads only synthetic fixtures and exits with a clear unavailable result when the configured loopback provider or selected model is absent.
 - Reports provider/model, schema validity, citation validity, latency, retries, incomplete rate, and aggregate thresholds without retaining prompt or fixture excerpts.
 
-- [ ] **Step 1: Write a failing opt-in evaluation contract test**
+- [x] **Step 1: Write a failing opt-in evaluation contract test**
 
 ```ts
 await expect(runLiveModelEvaluation({ provider: unavailableProvider })).resolves.toMatchObject({
@@ -355,23 +355,23 @@ await expect(runLiveModelEvaluation({ provider: fixtureProvider })).resolves.toM
 });
 ```
 
-- [ ] **Step 2: Run the focused test**
+- [x] **Step 2: Run the focused test**
 
 Run: `npx vitest run tests/evals/live-model-contract.test.ts`
 
 Expected: FAIL because the opt-in live-model evaluator does not exist.
 
-- [ ] **Step 3: Implement a synthetic-only evaluator and baseline gate**
+- [x] **Step 3: Implement a synthetic-only evaluator and baseline gate**
 
 Use the existing local-provider abstraction, cap calls to one per synthetic case, reject uncited outputs before scoring, and keep this command out of the default hermetic unit suite.
 
-- [ ] **Step 4: Run the real local model after fixture validation**
+- [x] **Step 4: Run the real local model after fixture validation**
 
 Run: `OLLAMA_MODEL=llama3.1:8b npm run eval:local-model`
 
 Expected: PASS only when schema and citation validity are 1.0 and all configured latency/incomplete thresholds hold; otherwise fail with a redacted report.
 
-- [ ] **Step 5: Run the Phase 7 completion gate, update docs/tracker, and commit**
+- [x] **Step 5: Run the Phase 7 completion gate, update docs/tracker, and commit**
 
 Run: `npm run format:check && npm run lint && npm run typecheck && npm run build && npm run test:plugin-install && npm run test:unit && npm run test:integration && npm run test:e2e && npm run test:acceptance && npm run eval:smoke && npm run eval:full && npm run eval:local-model && npm run perf:smoke && npm run ops:smoke && npm run security:check`
 

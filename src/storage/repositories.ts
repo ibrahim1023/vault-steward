@@ -1,4 +1,11 @@
 import type { Database } from "sql.js";
+import type {
+  EvidenceRef,
+  Finding,
+  FindingSeverity,
+  FindingStatus,
+  FindingType
+} from "../contracts/index.js";
 
 export type ScanRecord = {
   id: string;
@@ -53,6 +60,47 @@ export type FindingRecord = {
   evidenceJson: string;
   payloadJson: string;
 };
+
+export type FindingQuery = {
+  scanId?: string;
+  type?: FindingType;
+  severity?: FindingSeverity;
+  status?: FindingStatus;
+  policyId?: string;
+  minimumConfidence?: number;
+};
+
+export function hydrateFinding(record: FindingRecord): Finding | null {
+  try {
+    const evidence = JSON.parse(record.evidenceJson) as unknown;
+    const payload = JSON.parse(record.payloadJson) as Record<string, unknown>;
+    if (
+      !Array.isArray(evidence) ||
+      !evidence.every(isEvidence) ||
+      typeof payload.confidence !== "number" ||
+      typeof payload.explanation !== "string"
+    )
+      return null;
+    return {
+      schemaVersion: 1,
+      id: record.id,
+      scanId: record.scanId,
+      type: record.type as FindingType,
+      severity: record.severity as FindingSeverity,
+      evidence,
+      affectedNoteIds: [...new Set(evidence.map((item) => item.notePath))],
+      ...(typeof payload.violatedPolicyId === "string"
+        ? { violatedPolicyId: payload.violatedPolicyId }
+        : {}),
+      explanation: payload.explanation,
+      suggestedFixes: [],
+      confidence: payload.confidence,
+      status: record.status as FindingStatus
+    };
+  } catch {
+    return null;
+  }
+}
 
 export type ProposalRecord = {
   id: string;
@@ -157,11 +205,71 @@ export class VaultStewardRepository {
     );
   }
 
+  listFindings(query: FindingQuery = {}): FindingRecord[] {
+    const clauses: string[] = [];
+    const parameters: string[] = [];
+    if (query.scanId) {
+      clauses.push("scan_id = ?");
+      parameters.push(query.scanId);
+    }
+    if (query.type) {
+      clauses.push("type = ?");
+      parameters.push(query.type);
+    }
+    if (query.severity) {
+      clauses.push("severity = ?");
+      parameters.push(query.severity);
+    }
+    if (query.status) {
+      clauses.push("status = ?");
+      parameters.push(query.status);
+    }
+    const statement = `SELECT id, scan_id, type, severity, status, evidence_json, payload_json FROM findings${clauses.length ? ` WHERE ${clauses.join(" AND ")}` : ""} ORDER BY id`;
+    const rows = this.database.exec(statement, parameters)[0];
+    const findings = (rows?.values ?? []).flatMap((row) => {
+      const [id, scanId, type, severity, status, evidenceJson, payloadJson] = row;
+      if (
+        typeof id !== "string" ||
+        typeof scanId !== "string" ||
+        typeof type !== "string" ||
+        typeof severity !== "string" ||
+        typeof status !== "string" ||
+        typeof evidenceJson !== "string" ||
+        typeof payloadJson !== "string"
+      )
+        return [];
+      const payload = parsePayload(payloadJson);
+      if (
+        (query.policyId && payload.violatedPolicyId !== query.policyId) ||
+        (query.minimumConfidence !== undefined && payload.confidence < query.minimumConfidence)
+      )
+        return [];
+      return [{ id, scanId, type, severity, status, evidenceJson, payloadJson }];
+    });
+    return findings;
+  }
+
   saveProposal(record: ProposalRecord): void {
     this.database.run(
       "INSERT INTO proposals (id, finding_id, patch_json, source_revisions_json, status) VALUES (?, ?, ?, ?, ?)",
       [record.id, record.findingId, record.patchJson, record.sourceRevisionsJson, record.status]
     );
+  }
+
+  findProposal(id: string): ProposalRecord | null {
+    const row = this.database.exec(
+      "SELECT id, finding_id, patch_json, source_revisions_json, status FROM proposals WHERE id = ?",
+      [id]
+    )[0]?.values[0];
+    return row && row.every((value) => typeof value === "string")
+      ? {
+          id: row[0] as string,
+          findingId: row[1] as string,
+          patchJson: row[2] as string,
+          sourceRevisionsJson: row[3] as string,
+          status: row[4] as string
+        }
+      : null;
   }
 
   updateProposalStatus(id: string, status: string): void {
@@ -235,4 +343,28 @@ export type RecordCounts = {
 function countRows(database: Database, tableName: string): number {
   const value = database.exec(`SELECT COUNT(*) AS count FROM ${tableName}`)[0]?.values[0]?.[0];
   return typeof value === "number" ? value : 0;
+}
+
+function parsePayload(payloadJson: string): { confidence: number; violatedPolicyId?: string } {
+  try {
+    const payload = JSON.parse(payloadJson) as Record<string, unknown>;
+    return {
+      confidence: typeof payload.confidence === "number" ? payload.confidence : 0,
+      ...(typeof payload.violatedPolicyId === "string"
+        ? { violatedPolicyId: payload.violatedPolicyId }
+        : {})
+    };
+  } catch {
+    return { confidence: 0 };
+  }
+}
+
+function isEvidence(value: unknown): value is EvidenceRef {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as EvidenceRef).notePath === "string" &&
+    typeof (value as EvidenceRef).locator === "string" &&
+    typeof (value as EvidenceRef).excerpt === "string"
+  );
 }

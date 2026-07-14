@@ -60,4 +60,36 @@ describe("proposal contracts", () => {
       ).toMatchObject({ ok: false });
     }
   });
+
+  it("rejects overlapping operations for the same file", () => {
+    expect(
+      parseProposal({
+        schemaVersion: 1,
+        id: "proposal-1",
+        findingId: "finding-1",
+        scanId: "scan-1",
+        explanation: "Repair",
+        operations: [
+          {
+            kind: "replace-range",
+            path: "Home.md",
+            sourceRevision: "revision",
+            start: 0,
+            end: 4,
+            expected: "Home",
+            replacement: "Vault"
+          },
+          {
+            kind: "replace-range",
+            path: "Home.md",
+            sourceRevision: "revision",
+            start: 2,
+            end: 5,
+            expected: "me.md",
+            replacement: ""
+          }
+        ]
+      })
+    ).toMatchObject({ ok: false, diagnostics: [expect.stringContaining("overlap")] });
+  });
 });
