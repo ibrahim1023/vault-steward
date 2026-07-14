@@ -1,4 +1,5 @@
 import type { Database } from "sql.js";
+import type { FindingSeverity, FindingStatus, FindingType } from "../contracts/index.js";
 
 export type ScanRecord = {
   id: string;
@@ -52,6 +53,15 @@ export type FindingRecord = {
   status: string;
   evidenceJson: string;
   payloadJson: string;
+};
+
+export type FindingQuery = {
+  scanId?: string;
+  type?: FindingType;
+  severity?: FindingSeverity;
+  status?: FindingStatus;
+  policyId?: string;
+  minimumConfidence?: number;
 };
 
 export type ProposalRecord = {
@@ -157,6 +167,50 @@ export class VaultStewardRepository {
     );
   }
 
+  listFindings(query: FindingQuery = {}): FindingRecord[] {
+    const clauses: string[] = [];
+    const parameters: string[] = [];
+    if (query.scanId) {
+      clauses.push("scan_id = ?");
+      parameters.push(query.scanId);
+    }
+    if (query.type) {
+      clauses.push("type = ?");
+      parameters.push(query.type);
+    }
+    if (query.severity) {
+      clauses.push("severity = ?");
+      parameters.push(query.severity);
+    }
+    if (query.status) {
+      clauses.push("status = ?");
+      parameters.push(query.status);
+    }
+    const statement = `SELECT id, scan_id, type, severity, status, evidence_json, payload_json FROM findings${clauses.length ? ` WHERE ${clauses.join(" AND ")}` : ""} ORDER BY id`;
+    const rows = this.database.exec(statement, parameters)[0];
+    const findings = (rows?.values ?? []).flatMap((row) => {
+      const [id, scanId, type, severity, status, evidenceJson, payloadJson] = row;
+      if (
+        typeof id !== "string" ||
+        typeof scanId !== "string" ||
+        typeof type !== "string" ||
+        typeof severity !== "string" ||
+        typeof status !== "string" ||
+        typeof evidenceJson !== "string" ||
+        typeof payloadJson !== "string"
+      )
+        return [];
+      const payload = parsePayload(payloadJson);
+      if (
+        (query.policyId && payload.violatedPolicyId !== query.policyId) ||
+        (query.minimumConfidence !== undefined && payload.confidence < query.minimumConfidence)
+      )
+        return [];
+      return [{ id, scanId, type, severity, status, evidenceJson, payloadJson }];
+    });
+    return findings;
+  }
+
   saveProposal(record: ProposalRecord): void {
     this.database.run(
       "INSERT INTO proposals (id, finding_id, patch_json, source_revisions_json, status) VALUES (?, ?, ?, ?, ?)",
@@ -235,4 +289,18 @@ export type RecordCounts = {
 function countRows(database: Database, tableName: string): number {
   const value = database.exec(`SELECT COUNT(*) AS count FROM ${tableName}`)[0]?.values[0]?.[0];
   return typeof value === "number" ? value : 0;
+}
+
+function parsePayload(payloadJson: string): { confidence: number; violatedPolicyId?: string } {
+  try {
+    const payload = JSON.parse(payloadJson) as Record<string, unknown>;
+    return {
+      confidence: typeof payload.confidence === "number" ? payload.confidence : 0,
+      ...(typeof payload.violatedPolicyId === "string"
+        ? { violatedPolicyId: payload.violatedPolicyId }
+        : {})
+    };
+  } catch {
+    return { confidence: 0 };
+  }
 }
