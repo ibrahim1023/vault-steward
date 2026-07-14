@@ -62,6 +62,19 @@ describe("review UI", () => {
     rerender(<DiffPreview proposal={proposal} sources={{ "A.md": "changed", "B.md": "a" }} />);
     expect(screen.getByRole("alert")).toBeInTheDocument();
   });
+  it("keeps filters keyboard-native and diff evidence preformatted", () => {
+    const { container } = render(<ReviewQueueView status="ready" findings={[finding]} />);
+    const type = container.querySelector("select");
+    if (!type) throw new Error("expected a review type filter");
+    type.focus();
+    expect(type).toHaveFocus();
+    expect(container.querySelectorAll("select")).toHaveLength(4);
+
+    const { container: diffContainer } = render(
+      <DiffPreview proposal={proposal} sources={{ "A.md": "See x", "B.md": "a" }} />
+    );
+    expect(diffContainer.querySelectorAll("pre")).toHaveLength(4);
+  });
   it("renders idle, scanning, error, stale, and dismissed review states", () => {
     const { rerender } = render(<ReviewQueueView status="idle" findings={[]} />);
     expect(screen.getByText("Ready to review findings.")).toBeInTheDocument();

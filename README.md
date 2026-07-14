@@ -44,6 +44,7 @@ npm run package:plugin
 npm run test:unit
 npm run test:integration
 npm run test:e2e
+npm run test:acceptance
 npm run eval:smoke
 npm run perf:smoke
 npm run ops:smoke
@@ -82,6 +83,7 @@ See [local runbooks](docs/runbooks.md) for recovery procedures and diagnostic ha
 | `npm run test:unit`           | Run deterministic unit and component tests.                        |
 | `npm run test:integration`    | Run SQLite migration, snapshot, and coordinator integration tests. |
 | `npm run test:e2e`            | Run the current end-to-end reference-finding test.                 |
+| `npm run test:acceptance`     | Run the synthetic MVP vault acceptance suite.                      |
 | `npm run eval:smoke`          | Run the deterministic reference-integrity evaluation.              |
 | `npm run eval:full`           | Run all registered evaluations.                                    |
 | `npm run perf:smoke`          | Run the fixed large-vault and incremental-scan performance gate.   |

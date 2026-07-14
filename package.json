@@ -17,6 +17,7 @@
     "test:unit": "vitest run tests/agents tests/deterministic-agents.test.ts tests/contracts tests/decisions tests/diagnostics tests/graph tests/model-provider tests/observability tests/packaging tests/performance tests/plugin tests/policy tests/privacy tests/reference tests/resilience tests/review tests/schema tests/security tests/tasks tests/ui tests/docs tests/storage tests/vault-adapter",
     "test:integration": "vitest run tests/integration --passWithNoTests",
     "test:e2e": "vitest run tests/e2e",
+    "test:acceptance": "vitest run tests/acceptance",
     "eval:smoke": "tsx scripts/run-evals.ts --suite reference-integrity",
     "eval:full": "tsx scripts/run-evals.ts --all",
     "perf:smoke": "tsx scripts/run-performance.ts",

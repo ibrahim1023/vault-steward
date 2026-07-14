@@ -48,4 +48,19 @@ describe("VaultStewardWorkspace", () => {
     );
     expect(screen.getByRole("button", { name: "Run scan" })).toBeEnabled();
   });
+
+  it("uses keyboard-native controls and announces scan state without exposing mutation", async () => {
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="A deliberately long vault name for a narrow Obsidian pane"
+        scan={async () => ({ scanId: "scan", findings: [finding] })}
+      />
+    );
+
+    const command = screen.getByRole("button", { name: "Run scan" });
+    command.focus();
+    expect(command).toHaveFocus();
+    expect(screen.getByRole("status")).toHaveTextContent("Ready to scan");
+    expect(screen.queryByRole("button", { name: /approve|apply|dismiss|defer/i })).toBeNull();
+  });
 });

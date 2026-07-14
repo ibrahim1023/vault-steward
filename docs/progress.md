@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
+Phase 6 complete: MVP hardening, packaging, and release validation.
 
 ## Completed Work
 
@@ -38,10 +38,12 @@ Phase 3 in progress: plugin runtime, persistence, and deterministic governance.
 - Versioned operational baselines and a metadata-only smoke report now gate scan duration, parse errors, local-model usage, incomplete work, findings, proposals, and apply outcomes.
 - Offline/privacy acceptance checks now reject runtime shell, telemetry, cloud-storage, and non-loopback provider capabilities.
 - The Obsidian status workspace now exposes a Run scan command that reads the vault, requires the local semantic-analysis stage, and populates the review queue with deterministic reference findings.
+- Accessibility and interaction review completed with keyboard-native scan and filter controls, live scan/error announcements, readable `pre` diff content, narrow-pane-safe layout, and a safe absence of live destructive controls.
+- The synthetic MVP acceptance vault now covers reference, task, schema, decision, policy, local-model coordinator, proposal, approval, apply, and post-write re-index paths.
 
 ## Current Work
 
-Phase 6.1 packaging and desktop install lifecycle are complete; next work is performance and hardening coverage.
+Phase 6 is complete. The branch is ready for promotion to `development` after its final documentation commit.
 
 ## Important Decisions
 
@@ -52,13 +54,13 @@ Phase 6.1 packaging and desktop install lifecycle are complete; next work is per
 
 ## Risks
 
-- Obsidian-compatible SQLite packaging and local model capability need early validation.
-- Agent quality thresholds are initial calibration targets.
+- Semantic candidates and persisted proposal actions are not yet exposed by the live Obsidian workspace; it currently displays deterministic reference findings after the required local semantic-analysis stage.
+- Agent quality thresholds are initial calibration targets and need representative local-vault review before a broader release.
 
 ## Verification Status
 
-Formatting, linting, type checking, build, unit, end-to-end, deterministic evaluation, and dependency-audit checks are configured. Git is initialized; future completed tasks must use small coherent commits. Project skills live in `skills/` because this platform blocks writes to `.codex/`.
+The Phase 6 completion gate passed on 2026-07-14: formatting, linting, type checking, build, packaged install smoke, 71 unit/component tests, 13 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic evaluations, performance and operational baselines, privacy checks, and dependency audit. Git is initialized; completed work is committed in coherent increments.
 
 ## Next Recommended Task
 
-Begin MVP hardening, packaging, and release-readiness work after the completed local-agent branch is promoted.
+Promote the completed Phase 6 branch to `development`; preserve the documented manual desktop and workspace-integration follow-ups.
