@@ -1,4 +1,5 @@
 import matter from "gray-matter";
+import { randomUUID } from "node:crypto";
 import { unified } from "unified";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
@@ -32,7 +33,7 @@ const wikiReference = /(!)?\[\[([^\]]+)\]\]/g;
 
 export function scanVaultFiles(files: readonly VaultFile[]): ScanSnapshot {
   const notes = files.map((file, index) => scanFile(file, index));
-  return { id: `scan-${notes.length}`, notes };
+  return { id: `scan-${randomUUID()}`, notes };
 }
 
 function scanFile(file: VaultFile, index: number): ScannedNote {

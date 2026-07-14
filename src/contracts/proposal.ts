@@ -39,6 +39,7 @@ export function parseProposal(value: unknown): ProposalParseResult {
   const operations = value.operations.flatMap((operation, index) =>
     parseOperation(operation, index, diagnostics)
   );
+  diagnostics.push(...overlapDiagnostics(operations));
   return diagnostics.length > 0
     ? { ok: false, diagnostics }
     : {
@@ -52,6 +53,24 @@ export function parseProposal(value: unknown): ProposalParseResult {
           operations
         }
       };
+}
+
+function overlapDiagnostics(operations: readonly ReplaceRangeOperation[]): string[] {
+  const byPath = new Map<string, ReplaceRangeOperation[]>();
+  for (const operation of operations)
+    byPath.set(operation.path, [...(byPath.get(operation.path) ?? []), operation]);
+  return [...byPath.values()].flatMap((items) => {
+    const sorted = [...items].sort(
+      (left, right) => left.start - right.start || left.end - right.end
+    );
+    return sorted
+      .slice(1)
+      .flatMap((operation, index) =>
+        operation.start < sorted[index]!.end
+          ? [`operations for ${operation.path} must not overlap`]
+          : []
+      );
+  });
 }
 
 function parseOperation(

@@ -13,7 +13,7 @@ export function checkReferenceIntegrity(scan: ScanSnapshot): Finding[] {
         continue;
       }
 
-      const resolved = resolveTarget(reference.rawTarget);
+      const resolved = resolveTarget(reference.rawTarget, note.path, reference.kind === "markdown");
       if (resolved === null) {
         findings.push(
           createFinding(
@@ -48,19 +48,46 @@ function isAllowedExternalUri(target: string): boolean {
   return /^https?:/i.test(target);
 }
 
-function resolveTarget(rawTarget: string): ResolvedTarget | null {
+function resolveTarget(
+  rawTarget: string,
+  sourcePath: string,
+  isRelativeMarkdownLink: boolean
+): ResolvedTarget | null {
   const [rawPath, rawAnchor] = rawTarget.split("#", 2);
   const path = normalizeVaultPath(rawPath ?? "");
 
-  if (!path || path.startsWith("/") || path.includes("..") || /^[a-z][a-z0-9+.-]*:/i.test(path)) {
+  if (!path || path.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(path)) {
     return null;
   }
 
-  const resolvedPath = path.includes(".") ? path : `${path}.md`;
+  const resolvedPath = normalizeResolvedPath(
+    isRelativeMarkdownLink ? `${directoryOf(sourcePath)}/${path}` : path
+  );
+  if (!resolvedPath) return null;
+  const withExtension = resolvedPath.includes(".") ? resolvedPath : `${resolvedPath}.md`;
   const anchor = rawAnchor === undefined ? undefined : normalizeAnchor(rawAnchor);
   return anchor === "" && rawAnchor !== undefined
     ? null
-    : { path: resolvedPath, ...(anchor ? { anchor } : {}) };
+    : { path: withExtension, ...(anchor ? { anchor } : {}) };
+}
+
+function directoryOf(path: string): string {
+  const index = path.lastIndexOf("/");
+  return index < 0 ? "" : path.slice(0, index);
+}
+
+function normalizeResolvedPath(path: string): string | null {
+  const parts: string[] = [];
+  for (const part of path.split("/")) {
+    if (part === "" || part === ".") continue;
+    if (part === "..") {
+      if (parts.length === 0) return null;
+      parts.pop();
+      continue;
+    }
+    parts.push(part);
+  }
+  return parts.length > 0 ? parts.join("/") : null;
 }
 
 function createFinding(

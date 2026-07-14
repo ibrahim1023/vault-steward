@@ -13,6 +13,7 @@ Local correctness takes precedence over scan throughput. All externally visible 
 - Recover after restart by marking interrupted scans failed/canceled, retaining their diagnostics, and resuming only from a safe checkpoint.
 - Reject non-SQLite persisted bytes as corruption; rebuild derived local state through the recovery runbook rather than silently replacing the database.
 - Recheck source revisions before apply; a mismatch transitions the proposal to `stale`.
+- Construct all non-overlapping operations for a file from one preflight snapshot and apply them in descending offset order. If a later file write fails, restore each earlier successful write from its preflight content before marking the proposal `apply-failed`.
 
 ## Health and Diagnostics
 

@@ -33,12 +33,21 @@ export class ReviewWorkflow {
       throw new Error("Only approved proposals can be applied.");
     if (options.signal?.aborted) return { ok: false, reason: "canceled" };
     this.repository.updateProposalStatus(proposal.id, "applying");
-    const current = await Promise.all(
-      proposal.operations.map(async (operation) => ({
-        operation,
-        file: await this.vault.read(operation.path)
-      }))
-    );
+    let current: Array<{
+      operation: Proposal["operations"][number];
+      file: { content: string; revision: string };
+    }>;
+    try {
+      current = await Promise.all(
+        proposal.operations.map(async (operation) => ({
+          operation,
+          file: await this.vault.read(operation.path)
+        }))
+      );
+    } catch {
+      this.repository.updateProposalStatus(proposal.id, "apply-failed");
+      return { ok: false, reason: "write-failed" };
+    }
     if (
       current.some(
         ({ operation, file }) =>
@@ -60,13 +69,27 @@ export class ReviewWorkflow {
       this.repository.updateProposalStatus(proposal.id, "approved");
       return { ok: false, reason: "canceled" };
     }
+    let writes: Array<{ path: string; before: string; content: string }>;
     try {
-      for (const { operation, file } of current)
-        await this.vault.write(
-          operation.path,
-          `${file.content.slice(0, operation.start)}${operation.replacement}${file.content.slice(operation.end)}`
-        );
+      writes = createWrites(current);
     } catch {
+      this.repository.updateProposalStatus(proposal.id, "apply-failed");
+      return { ok: false, reason: "write-failed" };
+    }
+    const written: Array<{ path: string; content: string }> = [];
+    try {
+      for (const write of writes) {
+        await this.vault.write(write.path, write.content);
+        written.push({ path: write.path, content: write.before });
+      }
+    } catch {
+      for (const write of [...written].reverse()) {
+        try {
+          await this.vault.write(write.path, write.content);
+        } catch {
+          // The persisted recovery-required state directs the user to re-index after a failed rollback.
+        }
+      }
       this.repository.updateProposalStatus(proposal.id, "apply-failed");
       return { ok: false, reason: "write-failed" };
     }
@@ -87,4 +110,35 @@ export class ReviewWorkflow {
     if (recovered > 0) onReindex();
     return recovered;
   }
+}
+
+function createWrites(
+  current: ReadonlyArray<{
+    operation: Proposal["operations"][number];
+    file: { content: string; revision: string };
+  }>
+): Array<{ path: string; before: string; content: string }> {
+  const byPath = new Map<string, typeof current>();
+  for (const item of current)
+    byPath.set(item.operation.path, [...(byPath.get(item.operation.path) ?? []), item]);
+  return [...byPath.entries()].map(([path, items]) => {
+    const before = items[0]!.file.content;
+    const ascending = [...items].sort(
+      (left, right) => left.operation.start - right.operation.start
+    );
+    for (let index = 1; index < ascending.length; index += 1) {
+      if (ascending[index]!.operation.start < ascending[index - 1]!.operation.end) {
+        throw new Error(`Overlapping operations for ${path} cannot be applied.`);
+      }
+    }
+    const descending = [...items].sort(
+      (left, right) => right.operation.start - left.operation.start
+    );
+    const content = descending.reduce(
+      (next, { operation }) =>
+        `${next.slice(0, operation.start)}${operation.replacement}${next.slice(operation.end)}`,
+      before
+    );
+    return { path, before, content };
+  });
 }
