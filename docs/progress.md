@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 6 complete: MVP hardening, packaging, and release validation.
+Post-MVP planning: Phase 7 unified findings and safe review workspace is designed; implementation has not started.
 
 ## Completed Work
 
@@ -43,7 +43,7 @@ Phase 6 complete: MVP hardening, packaging, and release validation.
 
 ## Current Work
 
-Phase 6 is complete. The branch is ready for promotion to `development` after its final documentation commit.
+Phase 6 is complete. Phase 7 planning is complete; implementation will begin on a dedicated branch from `development`.
 
 ## Important Decisions
 
@@ -63,4 +63,4 @@ The Phase 6 completion gate passed on 2026-07-14: formatting, linting, type chec
 
 ## Next Recommended Task
 
-Promote the completed Phase 6 branch to `development`; preserve the documented manual desktop and workspace-integration follow-ups.
+Create `feat/phase-7-unified-findings-review` from `development` and begin the unified finding contract task.
