@@ -105,7 +105,7 @@
 - [x] **Step 2: Run focused resilience/performance tests and confirm failure.**
 - [x] **Step 3: Add queue-depth and incremental-reuse metrics; make regressions fail against versioned baselines.**
 - [x] **Step 4: Run the complete Phase 8 gate: format, lint, typecheck, build, install smoke, unit/integration/E2E/acceptance, eval smoke/full/local-model, perf, ops, and security.**
-- [ ] **Step 5: Tick Phase 8 tasks, update progress, commit `test: add incremental indexing release gate`, merge into `development`, and push.**
+- [x] **Step 5: Tick Phase 8 tasks, update progress, commit `test: add incremental indexing release gate`, merge into `development`, and push.**
 
 ## Plan Self-Review
 
