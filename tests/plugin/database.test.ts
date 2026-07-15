@@ -95,4 +95,48 @@ describe("plugin database lifecycle", () => {
     expect(database.loadHistory().scans[0]).toMatchObject({ id: "scan-failure", status: "failed" });
     database.close();
   });
+
+  it("loads findings from only the latest completed scan", async () => {
+    const store = new MemoryBinaryStore();
+    const database = await openPluginDatabase({
+      adapter: store,
+      databasePath: ".obsidian/plugins/vault-steward/vault-steward.sqlite",
+      locateFile: (file) => `node_modules/sql.js/dist/${file}`
+    });
+    const createFinding = (id: string, scanId: string) => ({
+      schemaVersion: 1 as const,
+      id,
+      scanId,
+      type: "broken-reference" as const,
+      severity: "medium" as const,
+      evidence: [{ notePath: "Home.md", locator: "line:1", excerpt: "[[Missing]]" }],
+      affectedNoteIds: ["Home.md"],
+      explanation: "Missing target",
+      suggestedFixes: [],
+      confidence: 1,
+      status: "open" as const
+    });
+    const saveScan = (id: string, finishedAt: string) =>
+      database.saveCompletedScan({
+        id,
+        vaultFingerprint: "vault",
+        configHash: "config",
+        inputHash: id,
+        parserVersion: "parser",
+        startedAt: "2026-07-15T12:00:00Z",
+        finishedAt,
+        files: [],
+        parseProducts: [],
+        findings: [createFinding(`finding-${id}`, id)],
+        modelTraces: []
+      });
+
+    saveScan("scan-older", "2026-07-15T12:00:01Z");
+    saveScan("scan-latest", "2026-07-15T12:00:02Z");
+
+    expect(database.loadFindings()).toMatchObject([
+      { id: "finding-scan-latest", scanId: "scan-latest" }
+    ]);
+    database.close();
+  });
 });
