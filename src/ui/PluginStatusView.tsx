@@ -1,18 +1,20 @@
-export type PluginStatus = "ready" | "scanning" | "unavailable";
+export type PluginStatus = "ready" | "scanning" | "error" | "unavailable";
 
 export function PluginStatusView({
   vaultLabel,
-  status
+  status,
+  errorMessage
 }: {
   vaultLabel: string;
   status: PluginStatus;
+  errorMessage?: string;
 }) {
   return (
     <section aria-label="Vault Steward status">
       <h2>Vault Steward</h2>
       <p>Current vault: {vaultLabel}</p>
       <p role="status" aria-live="polite">
-        {statusMessage(status)}
+        {status === "error" && errorMessage ? errorMessage : statusMessage(status)}
       </p>
     </section>
   );
@@ -26,5 +28,7 @@ function statusMessage(status: PluginStatus): string {
       return "Scanning references...";
     case "unavailable":
       return "Vault access is unavailable";
+    case "error":
+      return "The scan could not complete.";
   }
 }

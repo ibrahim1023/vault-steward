@@ -61,19 +61,23 @@ export function VaultStewardWorkspace({
       const result = await scan();
       setFindings(loadFindings ? await loadFindings() : result.findings);
       setStatus("ready");
-    } catch {
+    } catch (error) {
       setFindings([]);
-      setStatus("unavailable");
-      setErrorMessage("The scan could not complete.");
+      setStatus("error");
+      setErrorMessage(scanFailureMessage(error));
     }
   };
 
   const reviewStatus: ReviewQueueStatus =
-    status === "scanning" ? "scanning" : status === "unavailable" ? "error" : "ready";
+    status === "scanning" ? "scanning" : status === "error" ? "error" : "ready";
 
   return (
     <section aria-label="Vault Steward workspace">
-      <PluginStatusView vaultLabel={vaultLabel} status={status} />
+      <PluginStatusView
+        vaultLabel={vaultLabel}
+        status={status}
+        {...(errorMessage ? { errorMessage } : {})}
+      />
       <button type="button" onClick={runScan} disabled={status === "scanning"}>
         Run scan
       </button>
@@ -125,4 +129,14 @@ export function VaultStewardWorkspace({
       {history ? <HistoryView scans={history.scans} lifecycle={history.lifecycle} /> : null}
     </section>
   );
+}
+
+function scanFailureMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  if (message.includes("local model semantic analysis"))
+    return "Local model analysis did not complete. Check Ollama and the configured model.";
+  if (message.includes("Vault reader") || message.includes("vault read"))
+    return "The active vault could not be read.";
+  if (message.includes("database")) return "The local Vault Steward database is unavailable.";
+  return "The scan could not complete.";
 }
