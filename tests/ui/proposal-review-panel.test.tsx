@@ -48,7 +48,9 @@ describe("ProposalReviewPanel", () => {
       />
     );
     fireEvent.click(screen.getByRole("button", { name: "Apply approved change" }));
-    expect(screen.getByRole("dialog", { name: "Apply this approved change?" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("alertdialog", { name: "Apply this approved change?" })
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Confirm apply" }));
     await expect(onApply).toHaveBeenCalledWith("proposal-1");
   });
