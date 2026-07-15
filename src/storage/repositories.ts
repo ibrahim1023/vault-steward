@@ -335,6 +335,13 @@ export class VaultStewardRepository {
     return findings;
   }
 
+  latestCompletedScanId(): string | null {
+    const id = this.database.exec(
+      "SELECT id FROM scans WHERE status = 'completed' ORDER BY finished_at DESC, started_at DESC LIMIT 1"
+    )[0]?.values[0]?.[0];
+    return typeof id === "string" ? id : null;
+  }
+
   listScanHistory(limit: number): ScanHistoryRecord[] {
     const capped = Math.max(1, Math.min(limit, 100));
     return (

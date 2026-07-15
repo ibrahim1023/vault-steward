@@ -96,11 +96,14 @@ export async function openPluginDatabase(input: {
         throw error;
       }
     },
-    loadFindings: () =>
-      repository.listFindings({}).flatMap((record) => {
+    loadFindings: () => {
+      const scanId = repository.latestCompletedScanId();
+      if (!scanId) return [];
+      return repository.listFindings({ scanId }).flatMap((record) => {
         const finding = hydrateFinding(record);
         return finding ? [finding] : [];
-      }),
+      });
+    },
     loadHistory: () => ({
       scans: repository.listScanHistory(20),
       lifecycle: repository.listFindingLifecycle()
