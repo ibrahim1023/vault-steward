@@ -2,7 +2,9 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  activeDashboardFindings,
   countDashboardFindings,
+  groupDashboardFindings,
   rankDashboardFindings,
   selectDashboardFinding,
   selectNextBestAction
@@ -61,6 +63,17 @@ describe("dashboard model", () => {
     });
     expect(selectDashboardFinding([critical], "missing")).toBeUndefined();
     expect(selectDashboardFinding([critical], critical.id)).toBe(critical);
+  });
+
+  it("keeps only open findings and groups each severity in ranked order", () => {
+    const critical = { ...finding, id: "critical", severity: "critical" as const };
+    const dismissed = { ...finding, id: "dismissed", status: "dismissed" as const };
+
+    expect(activeDashboardFindings([finding, dismissed])).toEqual([finding]);
+    expect(groupDashboardFindings([finding, critical])).toMatchObject([
+      { severity: "critical", findings: [{ id: "critical" }] },
+      { severity: "medium", findings: [{ id: "medium" }] }
+    ]);
   });
 
   it("renders health, a next action, and keyboard-native priority selection", () => {

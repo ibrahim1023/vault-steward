@@ -4,6 +4,10 @@ export const DASHBOARD_SEVERITIES = ["critical", "high", "medium", "low", "info"
 
 export type DashboardCounts = Record<FindingSeverity, number>;
 
+export function activeDashboardFindings(findings: readonly Finding[]): Finding[] {
+  return findings.filter((finding) => finding.status === "open");
+}
+
 export function rankDashboardFindings(findings: readonly Finding[]): Finding[] {
   const severityIndex = new Map<FindingSeverity, number>(
     DASHBOARD_SEVERITIES.map((severity, index) => [severity, index])
@@ -32,4 +36,14 @@ export function selectDashboardFinding(
   selectedId: string | undefined
 ): Finding | undefined {
   return selectedId ? findings.find((finding) => finding.id === selectedId) : undefined;
+}
+
+export function groupDashboardFindings(
+  findings: readonly Finding[]
+): Array<{ severity: FindingSeverity; findings: Finding[] }> {
+  const ranked = rankDashboardFindings(findings);
+  return DASHBOARD_SEVERITIES.flatMap((severity) => {
+    const group = ranked.filter((finding) => finding.severity === severity);
+    return group.length ? [{ severity, findings: group }] : [];
+  });
 }

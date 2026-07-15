@@ -3,7 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { Finding } from "../contracts/index.js";
 import type { Proposal } from "../contracts/proposal.js";
 import type { FindingLifecycleRecord, ScanHistoryRecord } from "../storage/repositories.js";
-import { selectDashboardFinding, selectNextBestAction } from "./dashboard.js";
+import {
+  activeDashboardFindings,
+  selectDashboardFinding,
+  selectNextBestAction
+} from "./dashboard.js";
 import { FindingDetail } from "./FindingDetail.js";
 import { HistoryView } from "./HistoryView.js";
 import { NextBestAction } from "./NextBestAction.js";
@@ -52,9 +56,12 @@ export function VaultStewardWorkspace({
     status: "pending" | "approved" | "dismissed" | "deferred" | "applied" | "stale";
   }>();
   const history = loadHistory?.();
+  const actionableFindings = activeDashboardFindings(findings);
   const selectedFinding = useMemo(
-    () => selectDashboardFinding(findings, selectedFindingId) ?? selectNextBestAction(findings),
-    [findings, selectedFindingId]
+    () =>
+      selectDashboardFinding(actionableFindings, selectedFindingId) ??
+      selectNextBestAction(actionableFindings),
+    [actionableFindings, selectedFindingId]
   );
   const lastCompletedAt = history?.scans.find((item) => item.status === "completed")?.finishedAt;
 
@@ -119,12 +126,15 @@ export function VaultStewardWorkspace({
       </button>
       <VaultHealthSummary
         vaultLabel={vaultLabel}
-        findings={findings}
+        findings={actionableFindings}
         {...(lastCompletedAt ? { lastCompletedAt } : {})}
       />
-      <NextBestAction finding={selectNextBestAction(findings)} onOpen={setSelectedFindingId} />
+      <NextBestAction
+        finding={selectNextBestAction(actionableFindings)}
+        onOpen={setSelectedFindingId}
+      />
       <PriorityFindings
-        findings={findings}
+        findings={actionableFindings}
         selectedFindingId={selectedFinding?.id}
         onSelect={setSelectedFindingId}
       />
