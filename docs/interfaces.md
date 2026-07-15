@@ -86,3 +86,7 @@ Agents receive only read-scoped tools: retrieve indexed evidence, resolve paths 
 ## Versioning and Compatibility
 
 Persisted records and serialized contracts add fields compatibly, preserve old readers during migrations, and increment `schemaVersion` for breaking changes. The plugin never interprets unknown model fields as instructions.
+
+## Incremental Scan Contract
+
+`VaultEvent` is a versioned, vault-relative event record. `planIncrementalScan` may return an incremental plan only for bounded, safe Markdown modify events. Rename, delete, create, malformed paths, empty queues, and event overflow return a full scan plan; correctness takes precedence over work reduction.

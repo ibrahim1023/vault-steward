@@ -35,23 +35,31 @@
 
 **Interfaces:** `planIncrementalScan(events: readonly VaultEvent[], options: ScanPlanOptions): ScanPlan`, where `ScanPlan` is `{ mode: "incremental"; paths: string[]; reasons: string[] } | { mode: "full"; reasons: string[] }`.
 
-- [ ] **Step 1: Write failing planner tests**
+- [x] **Step 1: Write failing planner tests**
   ```ts
-  expect(planIncrementalScan([{ kind: "modify", path: "A.md" }], { maxEvents: 50 }))
-    .toEqual({ mode: "incremental", paths: ["A.md"], reasons: ["modified"] });
-  expect(planIncrementalScan([{ kind: "rename", path: "A.md" }], { maxEvents: 50 }))
-    .toMatchObject({ mode: "full" });
+  expect(planIncrementalScan([{ kind: "modify", path: "A.md" }], { maxEvents: 50 })).toEqual({
+    mode: "incremental",
+    paths: ["A.md"],
+    reasons: ["modified"]
+  });
+  expect(planIncrementalScan([{ kind: "rename", path: "A.md" }], { maxEvents: 50 })).toMatchObject({
+    mode: "full"
+  });
   ```
-- [ ] **Step 2: Run `npx vitest run tests/indexing/plan.test.ts` and confirm it fails.**
-- [ ] **Step 3: Implement path validation, last-event-wins deduplication, queue cap, and full fallback.**
+- [x] **Step 2: Run `npx vitest run tests/indexing/plan.test.ts` and confirm it fails.**
+- [x] **Step 3: Implement path validation, last-event-wins deduplication, queue cap, and full fallback.**
   ```ts
-  export function planIncrementalScan(events: readonly VaultEvent[], options: ScanPlanOptions): ScanPlan {
-    if (events.length === 0 || events.length > options.maxEvents) return { mode: "full", reasons: ["event-overflow"] };
+  export function planIncrementalScan(
+    events: readonly VaultEvent[],
+    options: ScanPlanOptions
+  ): ScanPlan {
+    if (events.length === 0 || events.length > options.maxEvents)
+      return { mode: "full", reasons: ["event-overflow"] };
     // reject unsafe/ambiguous events before returning sorted vault-relative paths
   }
   ```
-- [ ] **Step 4: Run focused tests, `npm run typecheck`, and `npm run format:check`.**
-- [ ] **Step 5: Commit `feat: add incremental scan planner`.**
+- [x] **Step 4: Run focused tests, `npm run typecheck`, and `npm run format:check`.**
+- [x] **Step 5: Commit `feat: add incremental scan planner`.**
 
 ## Task 2: Persist Parse Products and Reuse Decisions
 
