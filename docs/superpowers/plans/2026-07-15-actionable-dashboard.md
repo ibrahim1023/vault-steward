@@ -13,7 +13,7 @@
 - Create `feat/phase-11-actionable-dashboard` from `development`; merge it into `development` and push only after the Phase 11 completion gate passes.
 - Keep all vault mutations behind the existing explicit proposal approval and stale-revision validation workflow.
 - The active dashboard queue uses the latest completed scan only; SQLite history remains queryable and is never deleted.
-- Rank Next best action by critical/high/medium/low severity, confidence descending, then finding ID ascending.
+- Rank Next best action by critical/high/medium/low/info severity, confidence descending, then finding ID ascending.
 - Do not import Obsidian APIs into UI/core helpers; dashboard components receive typed data and callbacks only.
 - Use native semantic controls, visible labels, keyboard-reachable finding selection, and narrow-pane-safe layout.
 - Add `styles.css` as a packaged Obsidian plugin artifact; retain `main.js`, `manifest.json`, and `sql-wasm.wasm`.
@@ -63,11 +63,12 @@ expect(rankDashboardFindings([low, high, highLowerConfidence, critical])).toEqua
   low
 ]);
 expect(selectNextBestAction([medium, high])).toMatchObject({ id: "high" });
-expect(countDashboardFindings([critical, critical, low])).toEqual({
+expect(countDashboardFindings([critical, critical, low, info])).toEqual({
   critical: 2,
   high: 0,
   medium: 0,
-  low: 1
+  low: 1,
+  info: 1
 });
 expect(selectDashboardFinding([high], "missing")).toBeUndefined();
 ```

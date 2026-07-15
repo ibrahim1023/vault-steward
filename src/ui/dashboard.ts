@@ -1,0 +1,35 @@
+import type { Finding, FindingSeverity } from "../contracts/index.js";
+
+export const DASHBOARD_SEVERITIES = ["critical", "high", "medium", "low", "info"] as const;
+
+export type DashboardCounts = Record<FindingSeverity, number>;
+
+export function rankDashboardFindings(findings: readonly Finding[]): Finding[] {
+  const severityIndex = new Map<FindingSeverity, number>(
+    DASHBOARD_SEVERITIES.map((severity, index) => [severity, index])
+  );
+  return [...findings].sort(
+    (left, right) =>
+      (severityIndex.get(left.severity) ?? DASHBOARD_SEVERITIES.length) -
+        (severityIndex.get(right.severity) ?? DASHBOARD_SEVERITIES.length) ||
+      right.confidence - left.confidence ||
+      left.id.localeCompare(right.id)
+  );
+}
+
+export function selectNextBestAction(findings: readonly Finding[]): Finding | undefined {
+  return rankDashboardFindings(findings)[0];
+}
+
+export function countDashboardFindings(findings: readonly Finding[]): DashboardCounts {
+  const counts: DashboardCounts = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  for (const finding of findings) counts[finding.severity] += 1;
+  return counts;
+}
+
+export function selectDashboardFinding(
+  findings: readonly Finding[],
+  selectedId: string | undefined
+): Finding | undefined {
+  return selectedId ? findings.find((finding) => finding.id === selectedId) : undefined;
+}

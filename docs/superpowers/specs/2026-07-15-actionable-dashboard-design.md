@@ -14,7 +14,7 @@ The dashboard must retain the command-palette entry and add a left-ribbon launch
 
 The workspace has one long, responsive page in this order:
 
-1. **Vault health:** vault name, latest scan state, and counts for critical, high, medium, and low findings.
+1. **Vault health:** vault name, latest scan state, and counts for critical, high, medium, low, and informational findings.
 2. **Next best action:** one selected open finding, chosen deterministically from the active queue.
 3. **Priority findings:** a compact, severity-grouped list that opens a selected finding in the detail area.
 4. **Finding detail:** evidence, affected note, confidence, explanation, available repair action, and existing proposal review UI when applicable.
@@ -28,7 +28,7 @@ The active queue contains findings from the latest completed scan only. Historic
 
 `Next best action` chooses an unresolved finding using this stable order:
 
-1. severity: critical, high, medium, low;
+1. severity: critical, high, medium, low, info;
 2. confidence: descending;
 3. finding ID: ascending.
 
