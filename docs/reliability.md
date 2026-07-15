@@ -11,11 +11,13 @@ Local correctness takes precedence over scan throughput. All externally visible 
 - Retry only transient local-model or vault-read failures, with capped exponential backoff and cancellation awareness.
 - Deduplicate work by scan and input hashes; cap parser/model queue depth; process model calls serially at first.
 - Recover after restart by marking interrupted scans failed/canceled, retaining their diagnostics, and resuming only from a safe checkpoint.
+- Reject non-SQLite persisted bytes as corruption; rebuild derived local state through the recovery runbook rather than silently replacing the database.
 - Recheck source revisions before apply; a mismatch transitions the proposal to `stale`.
+- Construct all non-overlapping operations for a file from one preflight snapshot and apply them in descending offset order. If a later file write fails, restore each earlier successful write from its preflight content before marking the proposal `apply-failed`.
 
 ## Health and Diagnostics
 
-The UI exposes vault access, database migration state, last completed scan, local-provider availability, and bounded error summaries. Planned metrics: scan duration, files parsed, parse errors, model latency, structured-output failures, finding counts, stale proposals, apply failures, retries, tokens, and queue depth. No metric includes note content.
+The UI exposes vault access, database migration state, last completed scan, local-provider availability, and bounded error summaries. Operational metrics gate scan duration, parse errors, model latency, token usage, tool calls, retry rate, incomplete rate, finding volume, stale proposals, and apply failure rate. No metric includes note content.
 
 ## Runbook Triggers
 

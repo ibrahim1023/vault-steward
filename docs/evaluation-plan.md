@@ -45,3 +45,11 @@ A case declares `id`, `split`, fixture reference, task, expected evidence, expec
 ## Runtime Efficiency Metrics
 
 Report input/output tokens, token per valid finding, repeated-context ratio, retrieved-context utilization, model latency, tool calls, retries, and incomplete-rate. Default budgets from `docs/ai-system.md` are hard limits; a 20% increase in p95 token use or latency versus baseline is an investigation gate.
+
+## Performance Release Gate
+
+`npm run perf:smoke` uses a fixed synthetic fixture with 250 Markdown notes and 50 attachments. The versioned baseline in `evals/baselines/performance.json` requires at least 300 files and 50 attachments, a full deterministic scan below 10 seconds, a one-file incremental reparse below 1 second, heap growth below 128 MiB, and SQLite export size below 20 MiB. The command writes its measurements to the ignored `evals/reports/performance.json` and fails on any threshold regression. Run it in release review and CI environments where the synthetic fixture is representative.
+
+## Operational Release Gate
+
+`npm run ops:smoke` writes a redacted operational report to `evals/reports/operational.json`. Its versioned baseline gates scan duration, parse errors, model latency, token usage, tool calls, retry rate, incomplete rate, finding volume, stale proposals, and apply failure rate. The current smoke path uses a deterministic local provider fixture so this report validates the format and thresholds without sending vault data or requiring a live model.

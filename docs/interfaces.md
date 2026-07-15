@@ -8,6 +8,7 @@ This document owns stable contract shapes. Internal implementation details may c
 
 - Contracts are TypeScript-first and serialized with explicit `schemaVersion`.
 - Model output is a candidate only. Deterministic validators attach authoritative evidence and reject invalid claims.
+- A governed scan requires the local model-analysis stage to complete. `modelAvailable: false` or `completed: false` is a terminal incomplete state, not permission to omit semantic analysis.
 - Errors have a machine-readable code, user-safe message, correlation ID, retryability, and optional causal detail for local diagnostics.
 
 ## Core Shapes
@@ -26,6 +27,25 @@ type Finding = {
   suggestedFixes: SuggestedFix[];
   confidence: number; // 0..1
   status: "open" | "dismissed" | "approved" | "applied" | "stale";
+};
+
+type NormalizedFindingInput = {
+  scanId: string;
+  type:
+    | "broken-reference"
+    | "invalid-reference"
+    | "entity-alias"
+    | "contradiction"
+    | "staleness"
+    | "task"
+    | "schema"
+    | "decision"
+    | "policy";
+  evidence: EvidenceRef[];
+  availableEvidence: EvidenceRef[]; // immutable active scan evidence
+  confidence: number; // 0..1
+  severity: FindingSeverity;
+  explanation: string;
 };
 
 type AgentRequest = {
@@ -49,9 +69,19 @@ type ToolResult<T> =
   | { ok: false; error: VaultStewardError; correlationId: string };
 ```
 
+## Proposal Contracts
+
+`Proposal` is a versioned, review-only request bound to a finding and scan. The current patch operation is `replace-range`: it names a vault-relative Markdown path, source revision, byte offsets, expected current text, and replacement text. Unknown operation kinds, traversal paths, invalid ranges, and missing expected text are rejected before a proposal can reach approval or apply.
+
+Approval actions are append-only records. Only a pending proposal can be approved, dismissed, or deferred. The apply workflow accepts only an approved proposal, re-reads every affected file, verifies its revision and expected text, then writes through the narrow vault adapter. Any mismatch marks the proposal stale; failed or interrupted apply attempts require explicit recovery.
+
 ## Tool Permissions
 
 Agents receive only read-scoped tools: retrieve indexed evidence, resolve paths within the active vault, and inspect parsed policy/graph data. The apply tool is not agent-callable; it is invoked by the review workflow only after explicit approval and stale-revision validation.
+
+## Unified Finding Normalization
+
+`src/findings/normalize.ts` is the only boundary that promotes deterministic issues or local-model candidates into a unified `Finding`. It accepts only a supported type, finite confidence in the inclusive `0..1` range, a non-empty explanation, and evidence that exactly matches an item in the immutable active scan. Unknown model fields, uncited candidates, and unsupported issue types are discarded. Model output never directly becomes a finding or proposal.
 
 ## Versioning and Compatibility
 

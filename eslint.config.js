@@ -4,11 +4,11 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "coverage", "evals/reports"] },
+  { ignores: ["dist", "coverage", "evals/reports", "main.js"] },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["**/*.{ts,tsx}"],
+    files: ["**/*.{ts,tsx,mjs}"],
     languageOptions: { globals: { ...globals.browser, ...globals.node } }
   },
   prettier

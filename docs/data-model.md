@@ -2,21 +2,21 @@
 
 ## Authority
 
-This document owns persisted domain concepts and lifecycle. Exact TypeScript/SQLite schemas will be introduced by the storage plan.
+This document owns persisted domain concepts and lifecycle. The forward-only SQLite schema is implemented in `src/storage/migrations.ts`; repository record shapes are implemented in `src/storage/repositories.ts`.
 
 ## Core Records
 
-| Record        | Key fields                                                          | Notes                                                    |
-| ------------- | ------------------------------------------------------------------- | -------------------------------------------------------- |
-| `scan`        | `id`, vault fingerprint, started/finished time, status, config hash | immutable run boundary                                   |
-| `note`        | stable file ID, path, revision hash, frontmatter, body metadata     | content stays local                                      |
-| `node`        | `id`, `kind`, scan ID, source note ID, display label                | kinds: note, entity, project, task, decision, attachment |
-| `edge`        | `id`, scan ID, from, to, relation, evidence locator                 | relations from `spec.md`                                 |
-| `policy`      | ID, YAML source hash, enabled status                                | parsed before evaluation                                 |
-| `finding`     | required fields from `spec.md`, scan ID, lifecycle status           | user-reviewable output                                   |
-| `proposal`    | finding ID, patch, source revisions, status                         | cannot be applied stale                                  |
-| `approval`    | proposal ID, user action, timestamp, applied revision               | append-only audit record                                 |
-| `model_trace` | request metadata, schema version, timing, token counts, outcome     | excludes note text by default                            |
+| Record        | Key fields                                                          | Notes                                                        |
+| ------------- | ------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `scan`        | `id`, vault fingerprint, started/finished time, status, config hash | immutable run boundary; `scan_inputs` stores paths/revisions |
+| `note`        | stable file ID, path, revision hash, frontmatter, body metadata     | content stays local                                          |
+| `node`        | `id`, `kind`, scan ID, source note ID, display label                | kinds: note, entity, project, task, decision, attachment     |
+| `edge`        | `id`, scan ID, from, to, relation, evidence locator                 | relations from `spec.md`                                     |
+| `policy`      | ID, YAML source hash, enabled status                                | parsed before evaluation                                     |
+| `finding`     | required fields from `spec.md`, scan ID, lifecycle status           | user-reviewable output                                       |
+| `proposal`    | finding ID, patch, source revisions, status                         | cannot be applied stale                                      |
+| `approval`    | proposal ID, user action, timestamp, applied revision               | append-only audit record                                     |
+| `model_trace` | request metadata, schema version, timing, token counts, outcome     | excludes note text by default                                |
 
 ## Consistency and Transactions
 

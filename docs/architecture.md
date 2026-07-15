@@ -6,7 +6,7 @@ This document owns module boundaries, data ownership, trust boundaries, and work
 
 ## Deployment Model
 
-Vault Steward is a TypeScript/React Obsidian plugin. It runs locally in the Obsidian desktop process and accesses the selected vault only through a narrow vault adapter. SQLite persists canonical indexed state. A local model provider (Ollama or llama.cpp) is optional for model-assisted agents.
+Vault Steward is a TypeScript/React Obsidian plugin. It runs locally in the Obsidian desktop process and accesses the selected vault only through a narrow vault adapter. SQLite persists canonical indexed state. A configured local model provider (Ollama or llama.cpp) is required for a completed governed scan.
 
 ```mermaid
 flowchart LR
@@ -30,10 +30,12 @@ flowchart LR
 | ---------------- | ---------------------------------------------------- | ------------------------------------- |
 | `vault-adapter`  | Narrow read/write access through Obsidian APIs       | live vault interaction                |
 | `scanner`        | Parse files and generate normalized scan records     | scan snapshot inputs                  |
+| `core`           | Derive checks and bounded model inputs from one scan | governed scan result                  |
 | `graph`          | Build deterministic note/entity/task/reference graph | graph projection                      |
 | `policy`         | Parse and evaluate YAML policies                     | policy results                        |
 | `agents`         | Produce typed candidate findings from bounded inputs | candidate outputs only                |
 | `coordinator`    | Deduplicate, prioritize, persist findings            | review queue ordering                 |
+| `findings`       | Normalize bounded deterministic/model candidates     | authoritative typed finding boundary  |
 | `review`         | Render evidence and preview edits                    | approval state                        |
 | `apply`          | Validate and atomically apply approved patches       | audit trail and re-index trigger      |
 | `storage`        | SQLite repositories and migrations                   | persisted product state               |
@@ -51,11 +53,12 @@ sequenceDiagram
   participant Review
   User->>Coordinator: start scan
   Coordinator->>Scanner: read vault snapshot
-  Scanner->>Core: normalized records
+  Scanner->>Core: one immutable normalized snapshot
   Core-->>Coordinator: deterministic findings + bounded agent inputs
   Coordinator->>Model: typed request when needed
   Model-->>Coordinator: candidate structured output
   Coordinator->>Core: validate evidence, policy, schema
+  Core->>Core: normalize supported evidence-backed candidates
   Core-->>Review: persisted, deduplicated findings
   User->>Review: approve one proposed edit
   Review->>Core: validate diff against current revision

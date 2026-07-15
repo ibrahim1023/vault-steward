@@ -1,6 +1,8 @@
 .DS_Store
 node_modules/
 dist/
+main.js
+sql-wasm.wasm
 coverage/
 evals/reports/*.json
 npm-debug.log*

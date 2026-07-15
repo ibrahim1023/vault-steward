@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "minimumFileCount": 300,
+  "minimumAttachmentCount": 50,
+  "maxFullScanMs": 10000,
+  "maxIncrementalScanMs": 1000,
+  "maxHeapDeltaBytes": 134217728,
+  "maxSqliteWriteBytes": 20971520
+}

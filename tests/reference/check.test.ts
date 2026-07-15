@@ -40,4 +40,20 @@ describe("reference integrity", () => {
 
     expect(checkReferenceIntegrity(scan)).toEqual([]);
   });
+
+  it("resolves Markdown links relative to the source note", () => {
+    const scan = scanVaultFiles([
+      { path: "Notes/Home.md", content: "[Target](Target.md)\n[Parent](../Root.md)" },
+      { path: "Notes/Target.md", content: "# Target" },
+      { path: "Root.md", content: "# Root" }
+    ]);
+
+    expect(checkReferenceIntegrity(scan)).toEqual([]);
+  });
+
+  it("assigns a distinct immutable ID to each scan", () => {
+    const files = [{ path: "Home.md", content: "# Home" }];
+
+    expect(scanVaultFiles(files).id).not.toBe(scanVaultFiles(files).id);
+  });
 });

@@ -1,4 +1,14 @@
-export const FINDING_TYPES = ["broken-reference", "invalid-reference"] as const;
+export const FINDING_TYPES = [
+  "broken-reference",
+  "invalid-reference",
+  "entity-alias",
+  "contradiction",
+  "staleness",
+  "task",
+  "schema",
+  "decision",
+  "policy"
+] as const;
 
 export type FindingType = (typeof FINDING_TYPES)[number];
 export type FindingSeverity = "info" | "low" | "medium" | "high" | "critical";

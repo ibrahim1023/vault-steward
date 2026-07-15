@@ -1,0 +1,10 @@
+{
+  "id": "vault-steward",
+  "name": "Vault Steward",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Local-first, evidence-backed vault maintenance for Obsidian.",
+  "author": "Vault Steward",
+  "isDesktopOnly": true,
+  "main": "main.js"
+}

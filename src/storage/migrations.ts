@@ -1,0 +1,143 @@
+import type { Database } from "sql.js";
+
+export interface Migration {
+  readonly version: number;
+  readonly sql: string;
+}
+
+export const MIGRATIONS: readonly Migration[] = [
+  {
+    version: 1,
+    sql: `
+      CREATE TABLE scans (
+        id TEXT PRIMARY KEY,
+        vault_fingerprint TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        finished_at TEXT,
+        status TEXT NOT NULL,
+        config_hash TEXT NOT NULL
+      );
+    `
+  },
+  {
+    version: 2,
+    sql: `
+      ALTER TABLE scans ADD COLUMN input_hash TEXT NOT NULL DEFAULT '';
+      ALTER TABLE scans ADD COLUMN parser_version TEXT NOT NULL DEFAULT '';
+
+      CREATE TABLE notes (
+        id TEXT PRIMARY KEY,
+        scan_id TEXT NOT NULL REFERENCES scans(id),
+        path TEXT NOT NULL,
+        revision_hash TEXT NOT NULL,
+        frontmatter_json TEXT NOT NULL,
+        body_metadata_json TEXT NOT NULL,
+        UNIQUE (scan_id, path)
+      );
+      CREATE TABLE nodes (
+        id TEXT PRIMARY KEY,
+        scan_id TEXT NOT NULL REFERENCES scans(id),
+        kind TEXT NOT NULL,
+        source_note_id TEXT REFERENCES notes(id),
+        label TEXT NOT NULL
+      );
+      CREATE TABLE edges (
+        id TEXT PRIMARY KEY,
+        scan_id TEXT NOT NULL REFERENCES scans(id),
+        from_node_id TEXT NOT NULL REFERENCES nodes(id),
+        to_node_id TEXT NOT NULL REFERENCES nodes(id),
+        relation TEXT NOT NULL,
+        evidence_locator TEXT NOT NULL,
+        UNIQUE (scan_id, from_node_id, to_node_id, relation, evidence_locator)
+      );
+      CREATE TABLE policies (
+        id TEXT PRIMARY KEY,
+        source_hash TEXT NOT NULL,
+        enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)),
+        schema_version INTEGER NOT NULL
+      );
+      CREATE TABLE findings (
+        id TEXT PRIMARY KEY,
+        scan_id TEXT NOT NULL REFERENCES scans(id),
+        type TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        status TEXT NOT NULL,
+        evidence_json TEXT NOT NULL,
+        payload_json TEXT NOT NULL
+      );
+      CREATE TABLE proposals (
+        id TEXT PRIMARY KEY,
+        finding_id TEXT NOT NULL REFERENCES findings(id),
+        patch_json TEXT NOT NULL,
+        source_revisions_json TEXT NOT NULL,
+        status TEXT NOT NULL
+      );
+      CREATE TABLE approvals (
+        id TEXT PRIMARY KEY,
+        proposal_id TEXT NOT NULL REFERENCES proposals(id),
+        action TEXT NOT NULL,
+        acted_at TEXT NOT NULL,
+        applied_revision TEXT
+      );
+      CREATE TABLE model_traces (
+        id TEXT PRIMARY KEY,
+        scan_id TEXT NOT NULL REFERENCES scans(id),
+        request_metadata_json TEXT NOT NULL,
+        schema_version INTEGER NOT NULL,
+        duration_ms INTEGER NOT NULL,
+        input_tokens INTEGER NOT NULL,
+        output_tokens INTEGER NOT NULL,
+        outcome TEXT NOT NULL
+      );
+    `
+  },
+  {
+    version: 3,
+    sql: `
+      CREATE TABLE scan_inputs (
+        scan_id TEXT NOT NULL REFERENCES scans(id),
+        path TEXT NOT NULL,
+        revision_hash TEXT NOT NULL,
+        PRIMARY KEY (scan_id, path)
+      );
+      CREATE INDEX scans_reusable_snapshot_idx
+        ON scans (vault_fingerprint, input_hash, parser_version, status);
+    `
+  }
+];
+
+export const LATEST_SCHEMA_VERSION = MIGRATIONS.at(-1)?.version ?? 0;
+
+export function applyMigrations(
+  database: Database,
+  migrations: readonly Migration[] = MIGRATIONS
+): number {
+  database.run("PRAGMA foreign_keys = ON");
+  database.run(
+    "CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
+  );
+  const appliedVersions = new Set(
+    database.exec("SELECT version FROM schema_migrations")[0]?.values.map(([version]) => version)
+  );
+
+  for (const migration of migrations) {
+    if (appliedVersions.has(migration.version)) {
+      continue;
+    }
+
+    database.run("BEGIN IMMEDIATE");
+    try {
+      database.run(migration.sql);
+      database.run("INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)", [
+        migration.version,
+        new Date().toISOString()
+      ]);
+      database.run("COMMIT");
+    } catch (error) {
+      database.run("ROLLBACK");
+      throw error;
+    }
+  }
+
+  return migrations.at(-1)?.version ?? 0;
+}
