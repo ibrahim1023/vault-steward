@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   countDashboardFindings,
@@ -6,6 +7,9 @@ import {
   selectDashboardFinding,
   selectNextBestAction
 } from "../../src/ui/dashboard.js";
+import { NextBestAction } from "../../src/ui/NextBestAction.js";
+import { PriorityFindings } from "../../src/ui/PriorityFindings.js";
+import { VaultHealthSummary } from "../../src/ui/VaultHealthSummary.js";
 
 const finding = {
   schemaVersion: 1 as const,
@@ -22,6 +26,8 @@ const finding = {
 };
 
 describe("dashboard model", () => {
+  afterEach(cleanup);
+
   it("ranks findings by severity, confidence, and stable ID", () => {
     const critical = { ...finding, id: "critical", severity: "critical" as const };
     const high = { ...finding, id: "high", severity: "high" as const, confidence: 0.9 };
@@ -55,5 +61,39 @@ describe("dashboard model", () => {
     });
     expect(selectDashboardFinding([critical], "missing")).toBeUndefined();
     expect(selectDashboardFinding([critical], critical.id)).toBe(critical);
+  });
+
+  it("renders health, a next action, and keyboard-native priority selection", () => {
+    const critical = { ...finding, id: "critical", severity: "critical" as const };
+    const onOpen = vi.fn();
+    const onSelect = vi.fn();
+
+    render(<VaultHealthSummary vaultLabel="Test vault" findings={[critical, finding]} />);
+    expect(screen.getByText("Critical 1")).toBeInTheDocument();
+    expect(screen.getByText("Medium 1")).toBeInTheDocument();
+
+    render(<NextBestAction finding={critical} onOpen={onOpen} />);
+    fireEvent.click(screen.getByRole("button", { name: /review critical finding/i }));
+    expect(onOpen).toHaveBeenCalledWith("critical");
+
+    render(
+      <PriorityFindings
+        findings={[finding, critical]}
+        selectedFindingId="critical"
+        onSelect={onSelect}
+      />
+    );
+    const selected = screen.getByRole("button", { name: /critical.*missing target.*selected/i });
+    expect(selected).toHaveAttribute("aria-pressed", "true");
+    selected.focus();
+    expect(selected).toHaveFocus();
+    fireEvent.click(selected);
+    expect(onSelect).toHaveBeenCalledWith("critical");
+  });
+
+  it("does not expose an action button without a finding", () => {
+    render(<NextBestAction onOpen={vi.fn()} />);
+    expect(screen.getByText("No findings need review.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /review/i })).toBeNull();
   });
 });
