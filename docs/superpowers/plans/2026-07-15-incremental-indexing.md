@@ -67,11 +67,11 @@
 
 **Interfaces:** `getReusableParseProducts(input: { vaultFingerprint: string; parserVersion: string; paths: string[] }): ReusableParseProduct[]` and `saveParseProducts(scanId, products): void`.
 
-- [ ] **Step 1: Write a failing fixture test proving unchanged revisions are reused and changed revisions are reparsed.**
-- [ ] **Step 2: Run `npx vitest run tests/integration/incremental-indexing.test.ts` and confirm failure.**
-- [ ] **Step 3: Add a forward-only migration for parse product metadata only: path, revision hash, parser version, frontmatter/body metadata hashes, and dependencies.**
-- [ ] **Step 4: Wire the governed scan to reuse only matching parser-version/revision products; require a full parse when dependency correctness is unknown.**
-- [ ] **Step 5: Run integration/unit/type checks and commit `feat: persist incremental parse products`.**
+- [x] **Step 1: Write a failing fixture test proving unchanged revisions are reused and changed revisions are reparsed.**
+- [x] **Step 2: Run `npx vitest run tests/integration/incremental-indexing.test.ts` and confirm failure.**
+- [x] **Step 3: Add a forward-only migration for parse product metadata only: path, revision hash, parser version, frontmatter/body metadata hashes, and dependencies.**
+- [x] **Step 4: Wire the governed scan to reuse only matching parser-version/revision products; require a full parse when dependency correctness is unknown.**
+- [x] **Step 5: Run integration/unit/type checks and commit `feat: persist incremental parse products`.**
 
 ## Task 3: Rename/Delete Impact Analysis and Repairs
 

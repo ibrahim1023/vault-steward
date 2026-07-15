@@ -1,4 +1,8 @@
-import type { CoordinatorResult } from "../agents/coordinator.js";
+import {
+  AgentResultCache,
+  LocalAgentCoordinator,
+  type CoordinatorResult
+} from "../agents/coordinator.js";
 import { runGovernedScan, type GovernedScanResult } from "../core/governed-scan.js";
 import type { LocalProvider } from "../model-provider/local-provider.js";
 import { checkReferenceIntegrity } from "../reference/check.js";
@@ -23,13 +27,17 @@ export function createReferenceIntegritySession(): {
   };
 }
 
-export function createGovernedIntegritySession(providers: readonly LocalProvider[]): {
+export function createGovernedIntegritySession(
+  providers: readonly LocalProvider[],
+  cache?: AgentResultCache
+): {
   scan(files: readonly VaultFile[], snapshot?: ScanSnapshot): Promise<GovernedIntegrityResult>;
 } {
   return {
     async scan(files, snapshot) {
       const result = await runGovernedScan(files, providers, new Date().toISOString(), {
-        ...(snapshot ? { snapshot } : {})
+        ...(snapshot ? { snapshot } : {}),
+        ...(cache ? { coordinator: new LocalAgentCoordinator(providers, cache) } : {})
       });
       if (!result.completed)
         throw new Error("required local model semantic analysis did not complete");

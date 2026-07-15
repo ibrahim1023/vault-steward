@@ -29,7 +29,8 @@ export async function runLiveModelEvaluation(input: {
     };
   try {
     const generation = await input.provider.generate({
-      prompt: 'Synthetic evaluation. Return JSON only: {"candidates":[]}.',
+      prompt:
+        'Synthetic evaluation. Reply with exactly this JSON object and nothing else: {"candidates":[]}',
       maxOutputTokens: 64
     });
     const valid = isCandidateList(generation.text);

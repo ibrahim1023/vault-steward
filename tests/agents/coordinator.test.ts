@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { LocalAgentCoordinator } from "../../src/agents/coordinator.js";
+import { AgentResultCache, LocalAgentCoordinator } from "../../src/agents/coordinator.js";
 import type { LocalProvider } from "../../src/model-provider/local-provider.js";
 
 const provider: LocalProvider = {
@@ -57,5 +57,36 @@ describe("local-agent coordinator", () => {
     expect(result.completed).toBe(true);
     expect(result.modelAvailable).toBe(true);
     expect(result.toolCalls).toBe(1);
+  });
+
+  it("reuses only an exact declared model context across scan IDs", async () => {
+    let calls = 0;
+    const countingProvider: LocalProvider = {
+      ...provider,
+      generate: async () => {
+        calls += 1;
+        return { text: '{"candidates":[]}', model: "test", provider: "ollama", latencyMs: 1 };
+      }
+    };
+    const coordinator = new LocalAgentCoordinator([countingProvider], new AgentResultCache());
+    const input = {
+      now: "2026-07-13T00:00:00Z",
+      evidence: [{ notePath: "A.md", locator: "line:1", excerpt: "Ada Lovelace" }],
+      propositions: [],
+      stalenessRecords: [],
+      decisions: []
+    };
+
+    await coordinator.run({ ...input, scanId: "scan-1" });
+    const reused = await coordinator.run({ ...input, scanId: "scan-2" });
+    const changed = await coordinator.run({
+      ...input,
+      scanId: "scan-3",
+      evidence: [{ notePath: "A.md", locator: "line:1", excerpt: "Ada Byron" }]
+    });
+
+    expect(calls).toBe(2);
+    expect(reused).toMatchObject({ toolCalls: 0, reusedRoutes: ["entity"] });
+    expect(changed).toMatchObject({ toolCalls: 1, reusedRoutes: [] });
   });
 });

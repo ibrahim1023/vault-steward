@@ -17,7 +17,7 @@ Tests prove deterministic contracts: parsing, normalization, graph rules, policy
 
 ## Fixture Policy
 
-Use small synthetic vaults with stable IDs. Maintain fixtures for valid and malformed Markdown, invalid YAML, duplicate paths, renamed files, broken anchors, large notes, parser failures, malformed model JSON, timeouts, tool failures, prompt injection, duplicate and overflowed events, partial scans, parse-reuse version mismatches, resolved/stale/recurrent findings, stale proposals, and discovered regressions. Keep tests hermetic; model-provider calls are opt-in outside deterministic suites.
+Use small synthetic vaults with stable IDs. Maintain fixtures for valid and malformed Markdown, invalid YAML, duplicate paths, renamed files, broken anchors, large notes, parser failures, malformed model JSON, timeouts, tool failures, prompt injection, duplicate and overflowed events, partial scans, parse-reuse version mismatches, exact-context model-cache hits and invalidations, resolved/stale/recurrent findings, stale proposals, and discovered regressions. Keep tests hermetic; model-provider calls are opt-in outside deterministic suites.
 
 ## Planned CI Stages
 

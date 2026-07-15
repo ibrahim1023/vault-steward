@@ -91,7 +91,7 @@ Persisted records and serialized contracts add fields compatibly, preserve old r
 
 `VaultEvent` is a versioned, vault-relative event record. `planIncrementalScan` may return an incremental plan only for bounded, safe Markdown modify events. Rename, delete, create, malformed paths, empty queues, and event overflow return a full scan plan; correctness takes precedence over work reduction.
 
-`ParseProduct` stores only a normalized path, revision hash, parser version, metadata hashes, and typed dependency targets. It is reusable only for the exact parser version and revision. The active process may reuse its immutable parsed note; SQLite does not retain historical note bodies to reconstruct parse state after restart.
+`ParseProduct` stores only a normalized path, revision hash, parser version, metadata hashes, and typed dependency targets. It is reusable only for the exact parser version and revision. The active process may reuse its immutable parsed note; SQLite does not retain historical note bodies to reconstruct parse state after restart. Model route results are held only in process memory and are reused only when the provider identity and that route's declared evidence context hash match exactly.
 
 `ChangeImpact` reports affected inbound references, aliases, task/decision/policy dependencies, and deterministic wiki-link rewrites. It never writes the vault. A rewrite is supplied only for an exact internal wiki target, while Markdown links, embeds, ambiguous aliases, and delete events remain review-only impact records.
 

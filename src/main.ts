@@ -13,6 +13,7 @@ import {
 } from "./plugin/settings.js";
 import { ObsidianVaultReader, ObsidianVaultWriter } from "./vault-adapter/obsidian-reader.js";
 import { createLocalProvider } from "./model-provider/local-provider.js";
+import { AgentResultCache } from "./agents/coordinator.js";
 import { proposeFix } from "./review/propose.js";
 import { ReviewWorkflow, type ReviewAction } from "./review/workflow.js";
 import { getPluginDatabasePath } from "./storage/sqlite-runtime.js";
@@ -26,6 +27,7 @@ export default class VaultStewardPlugin extends Plugin {
   private vaultReader?: ObsidianVaultReader;
   private database: PluginDatabase | undefined;
   private readonly parsedNotes = new Map<string, ScannedNote>();
+  private readonly agentResultCache = new AgentResultCache();
 
   async onload(): Promise<void> {
     this.settings = parsePluginSettings(await this.loadData());
@@ -60,6 +62,7 @@ export default class VaultStewardPlugin extends Plugin {
 
   async saveSettings(nextSettings: PluginSettings): Promise<void> {
     this.settings = parsePluginSettings(nextSettings);
+    this.agentResultCache.clear();
     await this.saveData(this.settings);
   }
 
@@ -73,7 +76,10 @@ export default class VaultStewardPlugin extends Plugin {
     const files = await this.vaultReader.listFiles();
     const snapshot = scanVaultFiles(files, this.parsedNotes);
     const startedAt = new Date().toISOString();
-    const result = await createGovernedIntegritySession([provider]).scan(files, snapshot);
+    const result = await createGovernedIntegritySession([provider], this.agentResultCache).scan(
+      files,
+      snapshot
+    );
     this.parsedNotes.clear();
     for (const note of snapshot.notes) this.parsedNotes.set(note.path, note);
     this.database.saveCompletedScan({
