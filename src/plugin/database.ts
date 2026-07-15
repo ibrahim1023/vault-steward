@@ -71,25 +71,30 @@ export async function openPluginDatabase(input: {
         parserVersion: scan.parserVersion,
         files: scan.files.map((file) => ({ path: file.path, revisionHash: file.revision ?? "" }))
       });
-      repository.saveParseProducts(scan.id, scan.parserVersion, scan.parseProducts);
-      persistReviewQueue(repository, scan.findings);
-      for (const [index, trace] of scan.modelTraces.entries()) {
-        repository.saveModelTrace({
-          id: `${scan.id}:trace:${index}`,
-          scanId: scan.id,
-          requestMetadataJson: JSON.stringify({
-            provider: trace.provider,
-            model: trace.model,
-            retries: trace.retries
-          }),
-          schemaVersion: 1,
-          durationMs: trace.latencyMs,
-          inputTokens: 0,
-          outputTokens: 0,
-          outcome: trace.outcome
-        });
+      try {
+        repository.saveParseProducts(scan.id, scan.parserVersion, scan.parseProducts);
+        persistReviewQueue(repository, scan.findings);
+        for (const [index, trace] of scan.modelTraces.entries()) {
+          repository.saveModelTrace({
+            id: `${scan.id}:trace:${index}`,
+            scanId: scan.id,
+            requestMetadataJson: JSON.stringify({
+              provider: trace.provider,
+              model: trace.model,
+              retries: trace.retries
+            }),
+            schemaVersion: 1,
+            durationMs: trace.latencyMs,
+            inputTokens: 0,
+            outputTokens: 0,
+            outcome: trace.outcome
+          });
+        }
+        snapshots.transition(scan.id, "completed", scan.finishedAt);
+      } catch (error) {
+        snapshots.transition(scan.id, "failed", scan.finishedAt);
+        throw error;
       }
-      snapshots.transition(scan.id, "completed", scan.finishedAt);
     },
     loadFindings: () =>
       repository.listFindings({}).flatMap((record) => {

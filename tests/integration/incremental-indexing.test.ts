@@ -54,4 +54,41 @@ describe("incremental parse-product reuse", () => {
       })
     ).toEqual([]);
   });
+
+  it("deduplicates repeated dependency edges from one source note", async () => {
+    const sql = await initSqlJs({ locateFile: (file) => `node_modules/sql.js/dist/${file}` });
+    const database = new sql.Database();
+    applyMigrations(database);
+    const repository = new VaultStewardRepository(database);
+    repository.saveScan({
+      id: "scan-duplicate-dependency",
+      vaultFingerprint: "vault",
+      startedAt: "now",
+      finishedAt: "later",
+      status: "completed",
+      configHash: "config",
+      inputHash: "input",
+      parserVersion: "parser-1"
+    });
+
+    repository.saveParseProducts("scan-duplicate-dependency", "parser-1", [
+      {
+        path: "Home.md",
+        revisionHash: "r1",
+        frontmatterHash: "frontmatter",
+        bodyMetadataHash: "metadata",
+        dependencies: [
+          { targetPath: "Target", relation: "wiki" },
+          { targetPath: "Target", relation: "wiki" }
+        ]
+      }
+    ]);
+
+    expect(
+      repository.getReusableParseProducts({
+        parserVersion: "parser-1",
+        files: [{ path: "Home.md", revisionHash: "r1" }]
+      })[0]?.dependencies
+    ).toEqual([{ targetPath: "Target", relation: "wiki" }]);
+  });
 });
