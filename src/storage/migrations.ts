@@ -103,6 +103,22 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX scans_reusable_snapshot_idx
         ON scans (vault_fingerprint, input_hash, parser_version, status);
     `
+  },
+  {
+    version: 4,
+    sql: `
+      CREATE TABLE parse_products (
+        scan_id TEXT NOT NULL REFERENCES scans(id),
+        parser_version TEXT NOT NULL,
+        path TEXT NOT NULL,
+        revision_hash TEXT NOT NULL,
+        frontmatter_hash TEXT NOT NULL,
+        body_metadata_hash TEXT NOT NULL,
+        PRIMARY KEY (scan_id, path)
+      );
+      CREATE INDEX parse_products_reuse_idx
+        ON parse_products (parser_version, path, revision_hash);
+    `
   }
 ];
 

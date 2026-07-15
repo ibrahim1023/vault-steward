@@ -27,6 +27,13 @@ export type NoteRecord = {
   bodyMetadataJson: string;
 };
 
+export type ParseProduct = {
+  path: string;
+  revisionHash: string;
+  frontmatterHash: string;
+  bodyMetadataHash: string;
+};
+
 export type NodeRecord = {
   id: string;
   scanId: string;
@@ -160,6 +167,48 @@ export class VaultStewardRepository {
         record.bodyMetadataJson
       ]
     );
+  }
+
+  saveParseProducts(
+    scanId: string,
+    parserVersion: string,
+    products: readonly ParseProduct[]
+  ): void {
+    for (const product of products) {
+      this.database.run(
+        "INSERT INTO parse_products (scan_id, parser_version, path, revision_hash, frontmatter_hash, body_metadata_hash) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          scanId,
+          parserVersion,
+          product.path,
+          product.revisionHash,
+          product.frontmatterHash,
+          product.bodyMetadataHash
+        ]
+      );
+    }
+  }
+
+  getReusableParseProducts(input: {
+    parserVersion: string;
+    files: readonly Pick<ParseProduct, "path" | "revisionHash">[];
+  }): ParseProduct[] {
+    return input.files.flatMap((file) => {
+      const row = this.database.exec(
+        "SELECT path, revision_hash, frontmatter_hash, body_metadata_hash FROM parse_products WHERE parser_version = ? AND path = ? AND revision_hash = ? ORDER BY rowid DESC LIMIT 1",
+        [input.parserVersion, file.path, file.revisionHash]
+      )[0]?.values[0];
+      return row && row.every((value) => typeof value === "string")
+        ? [
+            {
+              path: row[0] as string,
+              revisionHash: row[1] as string,
+              frontmatterHash: row[2] as string,
+              bodyMetadataHash: row[3] as string
+            }
+          ]
+        : [];
+    });
   }
 
   saveNode(record: NodeRecord): void {
