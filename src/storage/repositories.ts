@@ -205,7 +205,7 @@ export class VaultStewardRepository {
       );
       for (const dependency of product.dependencies) {
         this.database.run(
-          "INSERT INTO parse_dependencies (scan_id, path, target_path, relation) VALUES (?, ?, ?, ?)",
+          "INSERT OR IGNORE INTO parse_dependencies (scan_id, path, target_path, relation) VALUES (?, ?, ?, ?)",
           [scanId, product.path, dependency.targetPath, dependency.relation]
         );
       }

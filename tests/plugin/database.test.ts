@@ -49,4 +49,50 @@ describe("plugin database lifecycle", () => {
     expect(reopened.repository.getRecordCounts().scans).toBe(1);
     reopened.close();
   });
+
+  it("marks a snapshot failed when persistence after snapshot creation throws", async () => {
+    const store = new MemoryBinaryStore();
+    const database = await openPluginDatabase({
+      adapter: store,
+      databasePath: ".obsidian/plugins/vault-steward/vault-steward.sqlite",
+      locateFile: (file) => `node_modules/sql.js/dist/${file}`
+    });
+    const duplicateFinding = {
+      schemaVersion: 1 as const,
+      id: "duplicate",
+      scanId: "scan-failure",
+      type: "broken-reference" as const,
+      severity: "medium" as const,
+      evidence: [{ notePath: "Home.md", locator: "line:1", excerpt: "[[Missing]]" }],
+      affectedNoteIds: ["Home.md"],
+      explanation: "Missing target",
+      suggestedFixes: [],
+      confidence: 1,
+      status: "open" as const
+    };
+
+    expect(() =>
+      database.saveCompletedScan({
+        id: "scan-failure",
+        vaultFingerprint: "vault",
+        configHash: "config",
+        inputHash: "input",
+        parserVersion: "parser",
+        startedAt: "2026-07-15T12:00:00Z",
+        finishedAt: "2026-07-15T12:00:01Z",
+        files: [],
+        parseProducts: [],
+        findings: [
+          duplicateFinding,
+          {
+            ...duplicateFinding,
+            evidence: [{ notePath: "Home.md", locator: "line:2", excerpt: "[[Also Missing]]" }]
+          }
+        ],
+        modelTraces: []
+      })
+    ).toThrow();
+    expect(database.loadHistory().scans[0]).toMatchObject({ id: "scan-failure", status: "failed" });
+    database.close();
+  });
 });
