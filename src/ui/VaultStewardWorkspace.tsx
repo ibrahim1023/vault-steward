@@ -4,7 +4,9 @@ import type { Finding } from "../contracts/index.js";
 import { PluginStatusView, type PluginStatus } from "./PluginStatusView.js";
 import { ReviewQueueView, type ReviewQueueStatus } from "./ReviewQueueView.js";
 import { ProposalReviewPanel } from "./ProposalReviewPanel.js";
+import { HistoryView } from "./HistoryView.js";
 import type { Proposal } from "../contracts/proposal.js";
+import type { FindingLifecycleRecord, ScanHistoryRecord } from "../storage/repositories.js";
 
 export function VaultStewardWorkspace({
   vaultLabel,
@@ -12,7 +14,8 @@ export function VaultStewardWorkspace({
   loadFindings,
   createProposal,
   reviewProposal,
-  applyProposal
+  applyProposal,
+  loadHistory
 }: {
   vaultLabel: string;
   scan: () => Promise<{
@@ -31,6 +34,7 @@ export function VaultStewardWorkspace({
     action: "approved" | "dismissed" | "deferred"
   ) => Promise<void>;
   applyProposal?: (proposalId: string) => Promise<{ ok: true } | { ok: false; reason: string }>;
+  loadHistory?: () => { scans: ScanHistoryRecord[]; lifecycle: FindingLifecycleRecord[] };
 }) {
   const [status, setStatus] = useState<PluginStatus>("ready");
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -41,6 +45,7 @@ export function VaultStewardWorkspace({
     sources: Record<string, string>;
     status: "pending" | "approved" | "dismissed" | "deferred" | "applied" | "stale";
   }>();
+  const history = loadHistory?.();
 
   useEffect(() => {
     if (!loadFindings) return;
@@ -117,6 +122,7 @@ export function VaultStewardWorkspace({
           }}
         />
       ) : null}
+      {history ? <HistoryView scans={history.scans} lifecycle={history.lifecycle} /> : null}
     </section>
   );
 }

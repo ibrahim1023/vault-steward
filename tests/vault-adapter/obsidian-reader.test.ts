@@ -100,11 +100,18 @@ describe("ObsidianVaultReader", () => {
     const reader = new ObsidianVaultReader(vault);
     const stopWatching = reader.watchInvalidations();
 
+    vault.emit("create", { path: "Created.md", extension: "md" });
     vault.emit("modify", { path: "Home.md", extension: "md" });
     vault.emit("rename", { path: "Renamed.md", extension: "md" }, "Home.md");
 
-    expect(reader.consumeInvalidatedPaths()).toEqual(["Home.md", "Renamed.md"]);
+    expect(reader.consumeInvalidatedPaths()).toEqual(["Created.md", "Home.md", "Renamed.md"]);
     expect(reader.consumeInvalidatedPaths()).toEqual([]);
+    expect(reader.consumeInvalidatedEvents()).toEqual([
+      { schemaVersion: 1, kind: "create", path: "Created.md" },
+      { schemaVersion: 1, kind: "modify", path: "Home.md" },
+      { schemaVersion: 1, kind: "rename", path: "Renamed.md", oldPath: "Home.md" }
+    ]);
+    expect(reader.consumeInvalidatedEvents()).toEqual([]);
 
     stopWatching();
     vault.emit("delete", { path: "Renamed.md", extension: "md" });

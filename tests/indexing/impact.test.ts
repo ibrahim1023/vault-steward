@@ -27,4 +27,24 @@ describe("change impact analysis", () => {
       analyzeChangeImpact({ kind: "delete", path: "Target.md" }, snapshot).safeRenameTargets
     ).toEqual([]);
   });
+
+  it("includes frontmatter dependents and preserves wiki aliases and anchors in a safe rename", () => {
+    const snapshot = scanVaultFiles([
+      { path: "Task.md", content: "---\nproject: Target\n---\n[[Target#Plan|the plan]]" },
+      { path: "Decision.md", content: "---\nsupersedes: Target\n---\n" },
+      { path: "Policy.md", content: "---\nappliesTo: Target\n---\n" },
+      { path: "Target.md", content: "---\naliases: [Legacy]\n---\nTarget" }
+    ]);
+    const impact = analyzeChangeImpact(
+      { kind: "rename", oldPath: "Target.md", path: "Renamed.md" },
+      snapshot
+    );
+
+    expect(impact).toMatchObject({
+      taskDependents: ["Task.md"],
+      decisionDependents: ["Decision.md"],
+      policyDependents: ["Policy.md"],
+      safeRenameTargets: [{ sourcePath: "Task.md", replacement: "[[Renamed#Plan|the plan]]" }]
+    });
+  });
 });

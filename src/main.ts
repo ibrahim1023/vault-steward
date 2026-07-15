@@ -1,4 +1,5 @@
 import { ItemView, Plugin, PluginSettingTab, Setting, WorkspaceLeaf } from "obsidian";
+import { createHash } from "node:crypto";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 
@@ -16,6 +17,7 @@ import { proposeFix } from "./review/propose.js";
 import { ReviewWorkflow, type ReviewAction } from "./review/workflow.js";
 import { getPluginDatabasePath } from "./storage/sqlite-runtime.js";
 import { VaultStewardWorkspace } from "./ui/VaultStewardWorkspace.js";
+import { scanVaultFiles, type ScannedNote } from "./scanner/scan.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 
@@ -23,6 +25,7 @@ export default class VaultStewardPlugin extends Plugin {
   settings: PluginSettings = DEFAULT_PLUGIN_SETTINGS;
   private vaultReader?: ObsidianVaultReader;
   private database: PluginDatabase | undefined;
+  private readonly parsedNotes = new Map<string, ScannedNote>();
 
   async onload(): Promise<void> {
     this.settings = parsePluginSettings(await this.loadData());
@@ -64,9 +67,15 @@ export default class VaultStewardPlugin extends Plugin {
     if (!this.vaultReader) throw new Error("Vault reader is unavailable.");
     if (!this.database) throw new Error("Vault Steward database is unavailable.");
     const provider = createLocalProvider(this.settings.modelProvider);
+    // Consume events here so a subsequent incremental worker can operate from a bounded batch.
+    // The governed scan remains vault-wide: reference and semantic checks need global context.
+    this.vaultReader.consumeInvalidatedEvents();
     const files = await this.vaultReader.listFiles();
+    const snapshot = scanVaultFiles(files, this.parsedNotes);
     const startedAt = new Date().toISOString();
-    const result = await createGovernedIntegritySession([provider]).scan(files);
+    const result = await createGovernedIntegritySession([provider]).scan(files, snapshot);
+    this.parsedNotes.clear();
+    for (const note of snapshot.notes) this.parsedNotes.set(note.path, note);
     this.database.saveCompletedScan({
       id: result.scanId,
       vaultFingerprint: this.app.vault.getName(),
@@ -76,6 +85,12 @@ export default class VaultStewardPlugin extends Plugin {
       startedAt,
       finishedAt: new Date().toISOString(),
       files,
+      parseProducts: snapshot.notes.map((note) => ({
+        path: note.path,
+        revisionHash: note.revision,
+        frontmatterHash: hashMetadata(note.frontmatter),
+        bodyMetadataHash: hashMetadata({ headings: note.headings, references: note.references })
+      })),
       findings: result.findings,
       modelTraces: result.modelTraces
     });
@@ -85,6 +100,10 @@ export default class VaultStewardPlugin extends Plugin {
 
   loadFindings() {
     return this.database?.loadFindings() ?? [];
+  }
+
+  loadHistory() {
+    return this.database?.loadHistory() ?? { scans: [], lifecycle: [] };
   }
 
   async createReferenceProposal(findingId: string, target: string) {
@@ -151,6 +170,10 @@ export default class VaultStewardPlugin extends Plugin {
   }
 }
 
+function hashMetadata(value: unknown): string {
+  return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
 function sourcePath(proposal: { operations: Array<{ path: string }> }): string {
   return proposal.operations[0]?.path ?? "";
 }
@@ -183,6 +206,7 @@ class VaultStewardStatusItemView extends ItemView {
           vaultLabel: this.plugin.settings.vaultLabel,
           scan: () => this.plugin.scanVault(),
           loadFindings: () => this.plugin.loadFindings(),
+          loadHistory: () => this.plugin.loadHistory(),
           createProposal: (findingId, target) =>
             this.plugin.createReferenceProposal(findingId, target),
           reviewProposal: (proposalId, action) => this.plugin.reviewProposal(proposalId, action),

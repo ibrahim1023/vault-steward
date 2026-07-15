@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import type { VaultEvent } from "../contracts/incremental.js";
 import type { WritableVault } from "../review/workflow.js";
 import type { VaultFile, VaultReader } from "./types.js";
 
@@ -23,6 +24,7 @@ export type WritableVaultEventSource = VaultEventSource & {
 
 export class ObsidianVaultReader implements VaultReader {
   private readonly invalidatedPaths = new Set<string>();
+  private readonly invalidatedEvents: VaultEvent[] = [];
 
   constructor(private readonly vault: VaultEventSource) {}
 
@@ -45,10 +47,11 @@ export class ObsidianVaultReader implements VaultReader {
 
   watchInvalidations(): () => void {
     const refs = [
-      this.vault.on("modify", (file) => this.invalidateFile(file)),
-      this.vault.on("delete", (file) => this.invalidateFile(file)),
+      this.vault.on("create", (file) => this.invalidateFile(file, "create")),
+      this.vault.on("modify", (file) => this.invalidateFile(file, "modify")),
+      this.vault.on("delete", (file) => this.invalidateFile(file, "delete")),
       this.vault.on("rename", (file, oldPath) => {
-        this.invalidateFile(file);
+        this.invalidateFile(file, "rename", typeof oldPath === "string" ? oldPath : undefined);
         if (typeof oldPath === "string") this.invalidatePath(oldPath);
       })
     ];
@@ -64,8 +67,21 @@ export class ObsidianVaultReader implements VaultReader {
     return paths;
   }
 
-  private invalidateFile(file: unknown): void {
-    if (isVaultFileHandle(file)) this.invalidatePath(file.path);
+  consumeInvalidatedEvents(): VaultEvent[] {
+    const events = [...this.invalidatedEvents];
+    this.invalidatedEvents.length = 0;
+    return events;
+  }
+
+  private invalidateFile(file: unknown, kind: VaultEvent["kind"], oldPath?: string): void {
+    if (!isVaultFileHandle(file)) return;
+    this.invalidatedEvents.push({
+      schemaVersion: 1,
+      kind,
+      path: file.path,
+      ...(oldPath ? { oldPath } : {})
+    });
+    this.invalidatePath(file.path);
   }
 
   private invalidatePath(path: string): void {

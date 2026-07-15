@@ -32,8 +32,16 @@ export type ScanSnapshot = {
 const markdownReference = /!?\[[^\]]*\]\(([^)]+)\)/g;
 const wikiReference = /(!)?\[\[([^\]]+)\]\]/g;
 
-export function scanVaultFiles(files: readonly VaultFile[]): ScanSnapshot {
-  const notes = files.map((file, index) => scanFile(file, index));
+export function scanVaultFiles(
+  files: readonly VaultFile[],
+  reusableNotes: ReadonlyMap<string, ScannedNote> = new Map()
+): ScanSnapshot {
+  const notes = files.map((file, index) => {
+    const path = normalizeVaultPath(file.path);
+    const revision = file.revision ?? `memory-${index}`;
+    const cached = reusableNotes.get(path);
+    return cached?.revision === revision ? cached : scanFile(file, index);
+  });
   return { id: `scan-${randomUUID()}`, notes };
 }
 

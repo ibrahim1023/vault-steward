@@ -89,6 +89,8 @@ export type FindingLifecycleRecord = {
   firstSeen: string;
   lastSeen: string;
   occurrences: number;
+  resolved: boolean;
+  stale: boolean;
 };
 
 export function hydrateFinding(record: FindingRecord): Finding | null {
@@ -330,23 +332,29 @@ export class VaultStewardRepository {
   }
 
   listFindingLifecycle(): FindingLifecycleRecord[] {
+    const latestCompletedScan = this.database.exec(
+      "SELECT MAX(started_at) FROM scans WHERE status = 'completed'"
+    )[0]?.values[0]?.[0];
     return (
       this.database.exec(
-        "SELECT f.type, f.evidence_json, MIN(s.started_at), MAX(s.started_at), COUNT(*) FROM findings f JOIN scans s ON s.id = f.scan_id GROUP BY f.type, f.evidence_json"
+        "SELECT f.type, f.evidence_json, MIN(s.started_at), MAX(s.started_at), COUNT(*), MAX(CASE WHEN f.status = 'stale' THEN 1 ELSE 0 END) FROM findings f JOIN scans s ON s.id = f.scan_id WHERE s.status = 'completed' GROUP BY f.type, f.evidence_json"
       )[0]?.values ?? []
     ).flatMap((row) =>
       typeof row[0] === "string" &&
       typeof row[1] === "string" &&
       typeof row[2] === "string" &&
       typeof row[3] === "string" &&
-      typeof row[4] === "number"
+      typeof row[4] === "number" &&
+      typeof row[5] === "number"
         ? [
             {
               type: row[0],
               evidenceJson: row[1],
               firstSeen: row[2],
               lastSeen: row[3],
-              occurrences: row[4]
+              occurrences: row[4],
+              resolved: typeof latestCompletedScan === "string" && row[3] < latestCompletedScan,
+              stale: row[5] === 1
             }
           ]
         : []
