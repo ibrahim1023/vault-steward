@@ -32,6 +32,7 @@ export type ParseProduct = {
   revisionHash: string;
   frontmatterHash: string;
   bodyMetadataHash: string;
+  dependencies: readonly { targetPath: string; relation: string }[];
 };
 
 export type NodeRecord = {
@@ -202,6 +203,12 @@ export class VaultStewardRepository {
           product.bodyMetadataHash
         ]
       );
+      for (const dependency of product.dependencies) {
+        this.database.run(
+          "INSERT INTO parse_dependencies (scan_id, path, target_path, relation) VALUES (?, ?, ?, ?)",
+          [scanId, product.path, dependency.targetPath, dependency.relation]
+        );
+      }
     }
   }
 
@@ -211,20 +218,34 @@ export class VaultStewardRepository {
   }): ParseProduct[] {
     return input.files.flatMap((file) => {
       const row = this.database.exec(
-        "SELECT path, revision_hash, frontmatter_hash, body_metadata_hash FROM parse_products WHERE parser_version = ? AND path = ? AND revision_hash = ? ORDER BY rowid DESC LIMIT 1",
+        "SELECT scan_id, path, revision_hash, frontmatter_hash, body_metadata_hash FROM parse_products WHERE parser_version = ? AND path = ? AND revision_hash = ? ORDER BY rowid DESC LIMIT 1",
         [input.parserVersion, file.path, file.revisionHash]
       )[0]?.values[0];
       return row && row.every((value) => typeof value === "string")
         ? [
             {
-              path: row[0] as string,
-              revisionHash: row[1] as string,
-              frontmatterHash: row[2] as string,
-              bodyMetadataHash: row[3] as string
+              path: row[1] as string,
+              revisionHash: row[2] as string,
+              frontmatterHash: row[3] as string,
+              bodyMetadataHash: row[4] as string,
+              dependencies: this.getParseDependencies(row[0] as string, row[1] as string)
             }
           ]
         : [];
     });
+  }
+
+  private getParseDependencies(scanId: string, path: string): ParseProduct["dependencies"] {
+    return (
+      this.database.exec(
+        "SELECT target_path, relation FROM parse_dependencies WHERE scan_id = ? AND path = ? ORDER BY target_path, relation",
+        [scanId, path]
+      )[0]?.values ?? []
+    ).flatMap((row) =>
+      typeof row[0] === "string" && typeof row[1] === "string"
+        ? [{ targetPath: row[0], relation: row[1] }]
+        : []
+    );
   }
 
   saveNode(record: NodeRecord): void {

@@ -21,7 +21,13 @@ describe("incremental parse-product reuse", () => {
       parserVersion: "parser-1"
     });
     repository.saveParseProducts("scan-1", "parser-1", [
-      { path: "A.md", revisionHash: "a1", frontmatterHash: "f1", bodyMetadataHash: "b1" }
+      {
+        path: "A.md",
+        revisionHash: "a1",
+        frontmatterHash: "f1",
+        bodyMetadataHash: "b1",
+        dependencies: [{ targetPath: "B", relation: "wiki" }]
+      }
     ]);
 
     expect(
@@ -33,7 +39,13 @@ describe("incremental parse-product reuse", () => {
         ]
       })
     ).toEqual([
-      { path: "A.md", revisionHash: "a1", frontmatterHash: "f1", bodyMetadataHash: "b1" }
+      {
+        path: "A.md",
+        revisionHash: "a1",
+        frontmatterHash: "f1",
+        bodyMetadataHash: "b1",
+        dependencies: [{ targetPath: "B", relation: "wiki" }]
+      }
     ]);
     expect(
       repository.getReusableParseProducts({

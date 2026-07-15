@@ -119,6 +119,20 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX parse_products_reuse_idx
         ON parse_products (parser_version, path, revision_hash);
     `
+  },
+  {
+    version: 5,
+    sql: `
+      CREATE TABLE parse_dependencies (
+        scan_id TEXT NOT NULL REFERENCES scans(id),
+        path TEXT NOT NULL,
+        target_path TEXT NOT NULL,
+        relation TEXT NOT NULL,
+        PRIMARY KEY (scan_id, path, target_path, relation)
+      );
+      CREATE INDEX parse_dependencies_target_idx
+        ON parse_dependencies (target_path);
+    `
   }
 ];
 
