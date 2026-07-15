@@ -49,6 +49,26 @@ describe("VaultStewardWorkspace", () => {
     expect(screen.getByRole("button", { name: "Run scan" })).toBeEnabled();
   });
 
+  it("distinguishes a local-model failure from unavailable vault access", async () => {
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () =>
+          Promise.reject(new Error("required local model semantic analysis did not complete"))
+        }
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Run scan" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Local model analysis did not complete. Check Ollama and the configured model."
+      )
+    );
+    expect(screen.queryByText("Vault access is unavailable")).not.toBeInTheDocument();
+  });
+
   it("uses keyboard-native controls and announces scan state without exposing mutation", async () => {
     render(
       <VaultStewardWorkspace
