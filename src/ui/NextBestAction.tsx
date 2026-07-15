@@ -4,7 +4,7 @@ export function NextBestAction({
   finding,
   onOpen
 }: {
-  finding?: Finding;
+  finding: Finding | undefined;
   onOpen: (findingId: string) => void;
 }) {
   return (

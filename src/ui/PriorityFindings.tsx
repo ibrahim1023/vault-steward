@@ -7,7 +7,7 @@ export function PriorityFindings({
   onSelect
 }: {
   findings: readonly Finding[];
-  selectedFindingId?: string;
+  selectedFindingId: string | undefined;
   onSelect: (findingId: string) => void;
 }) {
   return (

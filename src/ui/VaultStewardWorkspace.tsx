@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { Finding } from "../contracts/index.js";
-import { PluginStatusView, type PluginStatus } from "./PluginStatusView.js";
-import { ReviewQueueView, type ReviewQueueStatus } from "./ReviewQueueView.js";
-import { ProposalReviewPanel } from "./ProposalReviewPanel.js";
-import { HistoryView } from "./HistoryView.js";
 import type { Proposal } from "../contracts/proposal.js";
 import type { FindingLifecycleRecord, ScanHistoryRecord } from "../storage/repositories.js";
+import { selectDashboardFinding, selectNextBestAction } from "./dashboard.js";
+import { FindingDetail } from "./FindingDetail.js";
+import { HistoryView } from "./HistoryView.js";
+import { NextBestAction } from "./NextBestAction.js";
+import { PluginStatusView, type PluginStatus } from "./PluginStatusView.js";
+import { PriorityFindings } from "./PriorityFindings.js";
+import { ProposalReviewPanel } from "./ProposalReviewPanel.js";
+import { VaultHealthSummary } from "./VaultHealthSummary.js";
 
 export function VaultStewardWorkspace({
   vaultLabel,
@@ -38,17 +42,21 @@ export function VaultStewardWorkspace({
 }) {
   const [status, setStatus] = useState<PluginStatus>("ready");
   const [findings, setFindings] = useState<Finding[]>([]);
-  const [errorMessage, setErrorMessage] = useState<string | undefined>();
-  const [repairMessage, setRepairMessage] = useState<string | undefined>();
+  const [errorMessage, setErrorMessage] = useState<string>();
+  const [repairMessage, setRepairMessage] = useState<string>();
   const [target, setTarget] = useState("");
-  const [selectedFindingId, setSelectedFindingId] = useState<string | undefined>();
+  const [selectedFindingId, setSelectedFindingId] = useState<string>();
   const [review, setReview] = useState<{
     proposal: Proposal;
     sources: Record<string, string>;
     status: "pending" | "approved" | "dismissed" | "deferred" | "applied" | "stale";
   }>();
   const history = loadHistory?.();
-  const brokenReferences = findings.filter((item) => item.type === "broken-reference");
+  const selectedFinding = useMemo(
+    () => selectDashboardFinding(findings, selectedFindingId) ?? selectNextBestAction(findings),
+    [findings, selectedFindingId]
+  );
+  const lastCompletedAt = history?.scans.find((item) => item.status === "completed")?.finishedAt;
 
   useEffect(() => {
     if (!loadFindings) return;
@@ -56,12 +64,6 @@ export function VaultStewardWorkspace({
       .then(setFindings)
       .catch(() => setErrorMessage("The persisted review queue is unavailable."));
   }, [loadFindings]);
-
-  useEffect(() => {
-    if (!brokenReferences.some((finding) => finding.id === selectedFindingId)) {
-      setSelectedFindingId(brokenReferences[0]?.id);
-    }
-  }, [brokenReferences, selectedFindingId]);
 
   const runScan = async () => {
     setStatus("scanning");
@@ -72,80 +74,61 @@ export function VaultStewardWorkspace({
       setFindings(loadFindings ? await loadFindings() : result.findings);
       setStatus("ready");
     } catch (error) {
-      setFindings([]);
       setStatus("error");
       setErrorMessage(scanFailureMessage(error));
     }
   };
 
-  const reviewStatus: ReviewQueueStatus =
-    status === "scanning" ? "scanning" : status === "error" ? "error" : "ready";
+  const repairControls =
+    selectedFinding?.type === "broken-reference" && createProposal ? (
+      <div>
+        <label>
+          Reference target{" "}
+          <input
+            aria-label="Reference target"
+            value={target}
+            onChange={(event) => setTarget(event.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          disabled={!target}
+          onClick={() => {
+            setRepairMessage(undefined);
+            void createProposal(selectedFinding.id, target)
+              .then(({ proposal, sources }) => setReview({ proposal, sources, status: "pending" }))
+              .catch(() => setRepairMessage("A safe proposal could not be created."));
+          }}
+        >
+          Prepare reference repair
+        </button>
+        {repairMessage ? <p role="alert">{repairMessage}</p> : null}
+      </div>
+    ) : null;
 
   return (
-    <section aria-label="Vault Steward workspace">
+    <section className="vault-steward-dashboard" aria-label="Vault Steward workspace">
       <PluginStatusView
         vaultLabel={vaultLabel}
         status={status}
         {...(errorMessage ? { errorMessage } : {})}
       />
+      {status === "error" && errorMessage ? <p role="alert">{errorMessage}</p> : null}
       <button type="button" onClick={runScan} disabled={status === "scanning"}>
         Run scan
       </button>
-      {status === "ready" ? <p>{findings.length} persisted findings loaded.</p> : null}
-      <ReviewQueueView
-        status={reviewStatus}
+      <VaultHealthSummary
+        vaultLabel={vaultLabel}
         findings={findings}
-        {...(errorMessage ? { errorMessage } : {})}
+        {...(lastCompletedAt ? { lastCompletedAt } : {})}
       />
-      {createProposal ? (
-        <div>
-          <label>
-            Reference finding{" "}
-            <select
-              aria-label="Reference finding"
-              value={selectedFindingId ?? ""}
-              onChange={(event) => setSelectedFindingId(event.target.value || undefined)}
-              disabled={brokenReferences.length === 0}
-            >
-              {brokenReferences.length === 0 ? (
-                <option value="">Run a successful scan with a broken reference</option>
-              ) : (
-                brokenReferences.map((finding) => (
-                  <option key={finding.id} value={finding.id}>
-                    {referenceFindingLabel(finding)}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
-          <label>
-            Reference target{" "}
-            <input value={target} onChange={(event) => setTarget(event.target.value)} />
-          </label>
-          <button
-            type="button"
-            disabled={!target || !selectedFindingId}
-            onClick={() => {
-              const finding = brokenReferences.find((item) => item.id === selectedFindingId);
-              if (!finding) {
-                setRepairMessage(
-                  "Run a successful scan and select a broken-reference finding before preparing a repair."
-                );
-                return;
-              }
-              setRepairMessage(undefined);
-              void createProposal(finding.id, target)
-                .then(({ proposal, sources }) =>
-                  setReview({ proposal, sources, status: "pending" })
-                )
-                .catch(() => setRepairMessage("A safe proposal could not be created."));
-            }}
-          >
-            Prepare reference repair
-          </button>
-          {repairMessage ? <p role="alert">{repairMessage}</p> : null}
-        </div>
-      ) : null}
+      <NextBestAction finding={selectNextBestAction(findings)} onOpen={setSelectedFindingId} />
+      <PriorityFindings
+        findings={findings}
+        selectedFindingId={selectedFinding?.id}
+        onSelect={setSelectedFindingId}
+      />
+      <FindingDetail finding={selectedFinding}>{repairControls}</FindingDetail>
       {review && reviewProposal && applyProposal ? (
         <ProposalReviewPanel
           proposal={review.proposal}
@@ -162,14 +145,14 @@ export function VaultStewardWorkspace({
           }}
         />
       ) : null}
-      {history ? <HistoryView scans={history.scans} lifecycle={history.lifecycle} /> : null}
+      {history ? (
+        <details>
+          <summary>History</summary>
+          <HistoryView scans={history.scans} lifecycle={history.lifecycle} />
+        </details>
+      ) : null}
     </section>
   );
-}
-
-function referenceFindingLabel(finding: Finding): string {
-  const evidence = finding.evidence[0];
-  return evidence ? `${evidence.notePath} (${evidence.locator}): ${evidence.excerpt}` : finding.id;
 }
 
 function scanFailureMessage(error: unknown): string {

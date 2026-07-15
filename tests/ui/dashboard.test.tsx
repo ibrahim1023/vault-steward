@@ -92,7 +92,7 @@ describe("dashboard model", () => {
   });
 
   it("does not expose an action button without a finding", () => {
-    render(<NextBestAction onOpen={vi.fn()} />);
+    render(<NextBestAction finding={undefined} onOpen={vi.fn()} />);
     expect(screen.getByText("No findings need review.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /review/i })).toBeNull();
   });

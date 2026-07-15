@@ -1,4 +1,10 @@
-const ARTIFACTS = ["main.js", "manifest.json", "sql-wasm.wasm", "release-manifest.json"] as const;
+const ARTIFACTS = [
+  "main.js",
+  "manifest.json",
+  "sql-wasm.wasm",
+  "styles.css",
+  "release-manifest.json"
+] as const;
 
 export function pluginInstallPath(vaultDirectory: string, pluginId: string): string {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(pluginId))

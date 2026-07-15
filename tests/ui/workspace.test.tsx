@@ -31,7 +31,11 @@ describe("VaultStewardWorkspace", () => {
     fireEvent.click(button);
     expect(button).toBeDisabled();
     expect(screen.getByText("Scanning references...")).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText("Missing target")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: "Finding detail" })).toHaveTextContent(
+        "Missing target"
+      )
+    );
     expect(screen.getByText("Ready to scan")).toBeInTheDocument();
   });
 
@@ -73,6 +77,7 @@ describe("VaultStewardWorkspace", () => {
     const secondFinding = {
       ...finding,
       id: "second-finding",
+      explanation: "Old target needs repair",
       evidence: [{ notePath: "Home.md", locator: "line:2", excerpt: "[[Old Target]]" }]
     };
     let selectedId: string | undefined;
@@ -88,10 +93,10 @@ describe("VaultStewardWorkspace", () => {
       />
     );
 
-    await waitFor(() => expect(screen.getByLabelText("Reference finding")).toBeEnabled());
-    fireEvent.change(screen.getByLabelText("Reference finding"), {
-      target: { value: "second-finding" }
-    });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /old target needs repair/i })).toBeEnabled()
+    );
+    fireEvent.click(screen.getByRole("button", { name: /old target needs repair/i }));
     fireEvent.change(screen.getByLabelText("Reference target"), {
       target: { value: "Vault Steward Test/Target" }
     });
