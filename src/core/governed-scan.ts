@@ -25,6 +25,8 @@ export type GovernedScanResult = {
 export type GovernedScanOptions = {
   schemas?: readonly SchemaDefinition[];
   policies?: readonly Policy[];
+  snapshot?: ScanSnapshot;
+  coordinator?: LocalAgentCoordinator;
 };
 
 export async function runGovernedScan(
@@ -33,10 +35,10 @@ export async function runGovernedScan(
   now: string,
   options: GovernedScanOptions = {}
 ): Promise<GovernedScanResult> {
-  const snapshot = scanVaultFiles(files);
+  const snapshot = options.snapshot ?? scanVaultFiles(files);
   const agentEvidence = snapshot.notes.map(toEvidence);
   const activeEvidence = collectActiveEvidence(snapshot, options.schemas ?? []);
-  const coordinator = new LocalAgentCoordinator(providers);
+  const coordinator = options.coordinator ?? new LocalAgentCoordinator(providers);
   const semanticAnalysis = await coordinator.run({
     scanId: snapshot.id,
     now,

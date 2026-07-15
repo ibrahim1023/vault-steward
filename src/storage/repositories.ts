@@ -27,6 +27,14 @@ export type NoteRecord = {
   bodyMetadataJson: string;
 };
 
+export type ParseProduct = {
+  path: string;
+  revisionHash: string;
+  frontmatterHash: string;
+  bodyMetadataHash: string;
+  dependencies: readonly { targetPath: string; relation: string }[];
+};
+
 export type NodeRecord = {
   id: string;
   scanId: string;
@@ -68,6 +76,22 @@ export type FindingQuery = {
   status?: FindingStatus;
   policyId?: string;
   minimumConfidence?: number;
+};
+
+export type ScanHistoryRecord = {
+  id: string;
+  startedAt: string;
+  finishedAt: string | null;
+  status: string;
+};
+export type FindingLifecycleRecord = {
+  type: string;
+  evidenceJson: string;
+  firstSeen: string;
+  lastSeen: string;
+  occurrences: number;
+  resolved: boolean;
+  stale: boolean;
 };
 
 export function hydrateFinding(record: FindingRecord): Finding | null {
@@ -162,6 +186,68 @@ export class VaultStewardRepository {
     );
   }
 
+  saveParseProducts(
+    scanId: string,
+    parserVersion: string,
+    products: readonly ParseProduct[]
+  ): void {
+    for (const product of products) {
+      this.database.run(
+        "INSERT INTO parse_products (scan_id, parser_version, path, revision_hash, frontmatter_hash, body_metadata_hash) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          scanId,
+          parserVersion,
+          product.path,
+          product.revisionHash,
+          product.frontmatterHash,
+          product.bodyMetadataHash
+        ]
+      );
+      for (const dependency of product.dependencies) {
+        this.database.run(
+          "INSERT INTO parse_dependencies (scan_id, path, target_path, relation) VALUES (?, ?, ?, ?)",
+          [scanId, product.path, dependency.targetPath, dependency.relation]
+        );
+      }
+    }
+  }
+
+  getReusableParseProducts(input: {
+    parserVersion: string;
+    files: readonly Pick<ParseProduct, "path" | "revisionHash">[];
+  }): ParseProduct[] {
+    return input.files.flatMap((file) => {
+      const row = this.database.exec(
+        "SELECT scan_id, path, revision_hash, frontmatter_hash, body_metadata_hash FROM parse_products WHERE parser_version = ? AND path = ? AND revision_hash = ? ORDER BY rowid DESC LIMIT 1",
+        [input.parserVersion, file.path, file.revisionHash]
+      )[0]?.values[0];
+      return row && row.every((value) => typeof value === "string")
+        ? [
+            {
+              path: row[1] as string,
+              revisionHash: row[2] as string,
+              frontmatterHash: row[3] as string,
+              bodyMetadataHash: row[4] as string,
+              dependencies: this.getParseDependencies(row[0] as string, row[1] as string)
+            }
+          ]
+        : [];
+    });
+  }
+
+  private getParseDependencies(scanId: string, path: string): ParseProduct["dependencies"] {
+    return (
+      this.database.exec(
+        "SELECT target_path, relation FROM parse_dependencies WHERE scan_id = ? AND path = ? ORDER BY target_path, relation",
+        [scanId, path]
+      )[0]?.values ?? []
+    ).flatMap((row) =>
+      typeof row[0] === "string" && typeof row[1] === "string"
+        ? [{ targetPath: row[0], relation: row[1] }]
+        : []
+    );
+  }
+
   saveNode(record: NodeRecord): void {
     this.database.run(
       "INSERT INTO nodes (id, scan_id, kind, source_note_id, label) VALUES (?, ?, ?, ?, ?)",
@@ -247,6 +333,53 @@ export class VaultStewardRepository {
       return [{ id, scanId, type, severity, status, evidenceJson, payloadJson }];
     });
     return findings;
+  }
+
+  listScanHistory(limit: number): ScanHistoryRecord[] {
+    const capped = Math.max(1, Math.min(limit, 100));
+    return (
+      this.database.exec(
+        "SELECT id, started_at, finished_at, status FROM scans ORDER BY started_at DESC LIMIT ?",
+        [capped]
+      )[0]?.values ?? []
+    ).flatMap((row) =>
+      typeof row[0] === "string" &&
+      typeof row[1] === "string" &&
+      typeof row[3] === "string" &&
+      (typeof row[2] === "string" || row[2] === null)
+        ? [{ id: row[0], startedAt: row[1], finishedAt: row[2], status: row[3] }]
+        : []
+    );
+  }
+
+  listFindingLifecycle(): FindingLifecycleRecord[] {
+    const latestCompletedScan = this.database.exec(
+      "SELECT MAX(started_at) FROM scans WHERE status = 'completed'"
+    )[0]?.values[0]?.[0];
+    return (
+      this.database.exec(
+        "SELECT f.type, f.evidence_json, MIN(s.started_at), MAX(s.started_at), COUNT(*), MAX(CASE WHEN f.status = 'stale' THEN 1 ELSE 0 END) FROM findings f JOIN scans s ON s.id = f.scan_id WHERE s.status = 'completed' GROUP BY f.type, f.evidence_json"
+      )[0]?.values ?? []
+    ).flatMap((row) =>
+      typeof row[0] === "string" &&
+      typeof row[1] === "string" &&
+      typeof row[2] === "string" &&
+      typeof row[3] === "string" &&
+      typeof row[4] === "number" &&
+      typeof row[5] === "number"
+        ? [
+            {
+              type: row[0],
+              evidenceJson: row[1],
+              firstSeen: row[2],
+              lastSeen: row[3],
+              occurrences: row[4],
+              resolved: typeof latestCompletedScan === "string" && row[3] < latestCompletedScan,
+              stale: row[5] === 1
+            }
+          ]
+        : []
+    );
   }
 
   saveProposal(record: ProposalRecord): void {

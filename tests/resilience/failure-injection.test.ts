@@ -2,6 +2,7 @@ import initSqlJs from "sql.js";
 import { describe, expect, it, vi } from "vitest";
 
 import { generateStructured } from "../../src/model-provider/structured.js";
+import { planIncrementalScan } from "../../src/indexing/plan.js";
 import {
   createLocalProvider,
   type LocalProvider
@@ -139,6 +140,16 @@ describe("failure injection", () => {
     reader.watchInvalidations();
     events.emitDuplicateModify();
     expect(reader.consumeInvalidatedPaths()).toEqual(["Home.md"]);
+    expect(
+      planIncrementalScan(
+        Array.from({ length: 51 }, () => ({
+          schemaVersion: 1 as const,
+          kind: "modify" as const,
+          path: "Home.md"
+        })),
+        { maxEvents: 50 }
+      )
+    ).toMatchObject({ mode: "full", reasons: ["event-overflow"] });
   });
 
   it("marks running scans failed for restart recovery", async () => {

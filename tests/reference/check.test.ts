@@ -56,4 +56,24 @@ describe("reference integrity", () => {
 
     expect(scanVaultFiles(files).id).not.toBe(scanVaultFiles(files).id);
   });
+
+  it("reuses a parsed note only when its normalized path and revision are unchanged", () => {
+    const cached = scanVaultFiles([
+      { path: "Notes\\Home.md", content: "# Cached", revision: "r1" }
+    ]);
+    const reusable = new Map(cached.notes.map((note) => [note.path, note]));
+
+    const reused = scanVaultFiles(
+      [{ path: "Notes/Home.md", content: "# Different source is ignored", revision: "r1" }],
+      reusable
+    );
+    const reparsed = scanVaultFiles(
+      [{ path: "Notes/Home.md", content: "# Changed", revision: "r2" }],
+      reusable
+    );
+
+    expect(reused.notes[0]).toBe(cached.notes[0]);
+    expect(reparsed.notes[0]).not.toBe(cached.notes[0]);
+    expect(reparsed.notes[0]?.content).toBe("# Changed");
+  });
 });

@@ -2,7 +2,11 @@ import type { Finding } from "../contracts/index.js";
 import { persistReviewQueue } from "../coordinator/normalize.js";
 import { ScanSnapshotRepository } from "../storage/scan-snapshots.js";
 import { applyMigrations } from "../storage/migrations.js";
-import { hydrateFinding, VaultStewardRepository } from "../storage/repositories.js";
+import {
+  hydrateFinding,
+  type ParseProduct,
+  VaultStewardRepository
+} from "../storage/repositories.js";
 import type { ModelTrace } from "../model-provider/structured.js";
 import { createSqliteRuntime, type SqliteRuntime } from "../storage/sqlite-runtime.js";
 import type { VaultFile } from "../vault-adapter/types.js";
@@ -24,10 +28,15 @@ export type PluginDatabase = {
     startedAt: string;
     finishedAt: string;
     files: readonly VaultFile[];
+    parseProducts: readonly ParseProduct[];
     findings: readonly Finding[];
     modelTraces: readonly ModelTrace[];
   }): void;
   loadFindings(): Finding[];
+  loadHistory(): {
+    scans: ReturnType<VaultStewardRepository["listScanHistory"]>;
+    lifecycle: ReturnType<VaultStewardRepository["listFindingLifecycle"]>;
+  };
   flush(): Promise<void>;
   close(): void;
 };
@@ -62,6 +71,7 @@ export async function openPluginDatabase(input: {
         parserVersion: scan.parserVersion,
         files: scan.files.map((file) => ({ path: file.path, revisionHash: file.revision ?? "" }))
       });
+      repository.saveParseProducts(scan.id, scan.parserVersion, scan.parseProducts);
       persistReviewQueue(repository, scan.findings);
       for (const [index, trace] of scan.modelTraces.entries()) {
         repository.saveModelTrace({
@@ -86,6 +96,10 @@ export async function openPluginDatabase(input: {
         const finding = hydrateFinding(record);
         return finding ? [finding] : [];
       }),
+    loadHistory: () => ({
+      scans: repository.listScanHistory(20),
+      lifecycle: repository.listFindingLifecycle()
+    }),
     flush: () => writeRuntime(input.adapter, input.databasePath, runtime),
     close: () => runtime.close()
   };

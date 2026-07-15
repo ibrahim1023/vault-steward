@@ -11,6 +11,8 @@ Vault Steward provides:
 - A read-only Obsidian vault adapter with normalized paths, revision hashes, cancellation, and invalidation events.
 - Deterministic Markdown reference-integrity checks and safe proposed repairs for broken internal references.
 - Local SQLite-compatible persistence through `sql.js`, forward-only migrations, immutable scan snapshots, and a persisted review queue.
+- Revision-bound parse metadata and dependency records for safe in-process parser reuse, with conservative full-scan fallback for ambiguous vault events.
+- Rename/delete impact analysis for links, embeds, aliases, task, decision, and policy dependencies, plus a local scan and finding-lifecycle history view that never renders stored evidence content.
 - Deterministic graph projection, bounded YAML policy parsing/evaluation, schema validation, task integrity checks, decision validation, and a persisted review queue.
 - Required local Ollama or llama.cpp-compatible model provider for bounded entity, contradiction, staleness, and ambiguous-decision analysis. Every candidate is JSON-validated, citation-checked against the active scan, and cannot mutate vault state.
 
