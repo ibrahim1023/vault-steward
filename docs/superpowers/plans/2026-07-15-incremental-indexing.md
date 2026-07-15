@@ -79,11 +79,11 @@
 
 **Interfaces:** `analyzeChangeImpact(change: VaultChange, snapshot: ScanSnapshot): ChangeImpact` returns inbound references, embeds, task/decision/policy dependents, and safe proposals. `proposeRenameRepair` returns a proposal only for an exact target match.
 
-- [ ] **Step 1: Write failing tests for inbound links, embeds, deletion impact, and an ambiguous alias with no proposal.**
-- [ ] **Step 2: Run `npx vitest run tests/indexing/impact.test.ts` and confirm failure.**
-- [ ] **Step 3: Build deterministic dependency traversal from scanner references and graph edges; reject non-vault and ambiguous target rewrites.**
-- [ ] **Step 4: Verify proposal revisions/ranges remain revision-bound and no impact analysis writes files.**
-- [ ] **Step 5: Run focused tests, integration workflow tests, and commit `feat: analyze vault change impact`.**
+- [x] **Step 1: Write failing tests for inbound links, embeds, deletion impact, and an ambiguous alias with no proposal.**
+- [x] **Step 2: Run `npx vitest run tests/indexing/impact.test.ts` and confirm failure.**
+- [x] **Step 3: Build deterministic dependency traversal from scanner references and graph edges; reject non-vault and ambiguous target rewrites.**
+- [x] **Step 4: Verify proposal revisions/ranges remain revision-bound and no impact analysis writes files.**
+- [x] **Step 5: Run focused tests, integration workflow tests, and commit `feat: analyze vault change impact`.**
 
 ## Task 4: Scan and Finding Lifecycle History
 
@@ -91,20 +91,20 @@
 
 **Interfaces:** `listScanHistory(limit: number): ScanHistoryRecord[]` and `listFindingLifecycle(findingKey: string): FindingLifecycleRecord[]`; UI shows first seen, last seen, resolved, stale, recurrence, scan timestamps, and counts only.
 
-- [ ] **Step 1: Write failing repository/UI tests for recurrence and resolved states without evidence excerpts or note bodies.**
-- [ ] **Step 2: Run `npx vitest run tests/ui/history-view.test.tsx tests/integration/incremental-indexing.test.ts` and confirm failure.**
-- [ ] **Step 3: Add typed query methods and a history view with native semantic lists, labelled controls, status/alert states, and narrow-pane-safe metadata.**
-- [ ] **Step 4: Ensure resolved means absent from a later completed scan; never delete audit history.**
-- [ ] **Step 5: Run unit/UI/E2E checks and commit `feat: add vault scan history`.**
+- [x] **Step 1: Write failing repository/UI tests for recurrence and resolved states without evidence excerpts or note bodies.**
+- [x] **Step 2: Run `npx vitest run tests/ui/history-view.test.tsx tests/integration/incremental-indexing.test.ts` and confirm failure.**
+- [x] **Step 3: Add typed query methods and a history view with native semantic lists, labelled controls, status/alert states, and narrow-pane-safe metadata.**
+- [x] **Step 4: Ensure resolved means absent from a later completed scan; never delete audit history.**
+- [x] **Step 5: Run unit/UI/E2E checks and commit `feat: add vault scan history`.**
 
 ## Task 5: Phase 8 Reliability and Performance Gate
 
 **Files:** Modify `tests/resilience/failure-injection.test.ts`, `scripts/run-performance.ts`, `scripts/run-operational-baseline.ts`, `docs/reliability.md`, `docs/testing-strategy.md`, `docs/progress.md`, `task.md`.
 
-- [ ] **Step 1: Add failing cancellation, event-overflow, restart, duplicate-event, and large-vault incremental tests.**
-- [ ] **Step 2: Run focused resilience/performance tests and confirm failure.**
-- [ ] **Step 3: Add queue-depth and incremental-reuse metrics; make regressions fail against versioned baselines.**
-- [ ] **Step 4: Run the complete Phase 8 gate: format, lint, typecheck, build, install smoke, unit/integration/E2E/acceptance, eval smoke/full/local-model, perf, ops, and security.**
+- [x] **Step 1: Add failing cancellation, event-overflow, restart, duplicate-event, and large-vault incremental tests.**
+- [x] **Step 2: Run focused resilience/performance tests and confirm failure.**
+- [x] **Step 3: Add queue-depth and incremental-reuse metrics; make regressions fail against versioned baselines.**
+- [x] **Step 4: Run the complete Phase 8 gate: format, lint, typecheck, build, install smoke, unit/integration/E2E/acceptance, eval smoke/full/local-model, perf, ops, and security.**
 - [ ] **Step 5: Tick Phase 8 tasks, update progress, commit `test: add incremental indexing release gate`, merge into `development`, and push.**
 
 ## Plan Self-Review

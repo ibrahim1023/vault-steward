@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 8 incremental indexing, change impact, and vault history is in verification.
+Phase 8 incremental indexing, change impact, and vault history is complete.
 
 ## Completed Work
 
@@ -49,7 +49,7 @@ Phase 8 incremental indexing, change impact, and vault history is in verificatio
 
 ## Current Work
 
-Phase 8 verification is underway on `feat/phase-8-incremental-indexing`.
+Phase 8 is complete on `feat/phase-8-incremental-indexing`; promotion to `development` is pending.
 
 ## Important Decisions
 
@@ -65,8 +65,8 @@ Phase 8 verification is underway on `feat/phase-8-incremental-indexing`.
 
 ## Verification Status
 
-The Phase 6 completion gate passed on 2026-07-14: formatting, linting, type checking, build, packaged install smoke, 71 unit/component tests, 13 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic evaluations, performance and operational baselines, privacy checks, and dependency audit. The Phase 7 completion gate passed on 2026-07-14: formatting, linting, type checking, build, packaged install smoke, 81 unit/component tests, 17 integration tests, 3 end-to-end tests, 3 acceptance tests, full deterministic evaluations, performance and operational baselines, production dependency audit, and a synthetic-only Ollama evaluation with schema/citation validity of 1.0. Git is initialized; completed work is committed in coherent increments.
+The Phase 6 completion gate passed on 2026-07-14: formatting, linting, type checking, build, packaged install smoke, 71 unit/component tests, 13 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic evaluations, performance and operational baselines, privacy checks, and dependency audit. The Phase 7 completion gate passed on 2026-07-14: formatting, linting, type checking, build, packaged install smoke, 81 unit/component tests, 17 integration tests, 3 end-to-end tests, 3 acceptance tests, full deterministic evaluations, performance and operational baselines, production dependency audit, and a synthetic-only Ollama evaluation with schema/citation validity of 1.0. The Phase 8 completion gate passed on 2026-07-15: formatting, linting, type checking, build, packaged install smoke, 89 unit/component tests, 19 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic evaluations, a live `llama3.1:8b` synthetic evaluation with schema/citation validity of 1.0, incremental performance and operational baselines, and a production dependency audit with no moderate-or-higher vulnerabilities. Git is initialized; completed work is committed in coherent increments.
 
 ## Next Recommended Task
 
-Run the Phase 8 completion gate, promote the verified branch to `development`, and push it to `origin`.
+Start Phase 9 policy studio and evidence-bounded local intelligence from a dedicated branch based on `development`.
