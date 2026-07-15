@@ -77,6 +77,20 @@ export type FindingQuery = {
   minimumConfidence?: number;
 };
 
+export type ScanHistoryRecord = {
+  id: string;
+  startedAt: string;
+  finishedAt: string | null;
+  status: string;
+};
+export type FindingLifecycleRecord = {
+  type: string;
+  evidenceJson: string;
+  firstSeen: string;
+  lastSeen: string;
+  occurrences: number;
+};
+
 export function hydrateFinding(record: FindingRecord): Finding | null {
   try {
     const evidence = JSON.parse(record.evidenceJson) as unknown;
@@ -296,6 +310,47 @@ export class VaultStewardRepository {
       return [{ id, scanId, type, severity, status, evidenceJson, payloadJson }];
     });
     return findings;
+  }
+
+  listScanHistory(limit: number): ScanHistoryRecord[] {
+    const capped = Math.max(1, Math.min(limit, 100));
+    return (
+      this.database.exec(
+        "SELECT id, started_at, finished_at, status FROM scans ORDER BY started_at DESC LIMIT ?",
+        [capped]
+      )[0]?.values ?? []
+    ).flatMap((row) =>
+      typeof row[0] === "string" &&
+      typeof row[1] === "string" &&
+      typeof row[3] === "string" &&
+      (typeof row[2] === "string" || row[2] === null)
+        ? [{ id: row[0], startedAt: row[1], finishedAt: row[2], status: row[3] }]
+        : []
+    );
+  }
+
+  listFindingLifecycle(): FindingLifecycleRecord[] {
+    return (
+      this.database.exec(
+        "SELECT f.type, f.evidence_json, MIN(s.started_at), MAX(s.started_at), COUNT(*) FROM findings f JOIN scans s ON s.id = f.scan_id GROUP BY f.type, f.evidence_json"
+      )[0]?.values ?? []
+    ).flatMap((row) =>
+      typeof row[0] === "string" &&
+      typeof row[1] === "string" &&
+      typeof row[2] === "string" &&
+      typeof row[3] === "string" &&
+      typeof row[4] === "number"
+        ? [
+            {
+              type: row[0],
+              evidenceJson: row[1],
+              firstSeen: row[2],
+              lastSeen: row[3],
+              occurrences: row[4]
+            }
+          ]
+        : []
+    );
   }
 
   saveProposal(record: ProposalRecord): void {
