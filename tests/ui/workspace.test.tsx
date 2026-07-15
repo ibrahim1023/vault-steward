@@ -69,6 +69,38 @@ describe("VaultStewardWorkspace", () => {
     expect(screen.queryByText("Vault access is unavailable")).not.toBeInTheDocument();
   });
 
+  it("selects the intended broken reference before preparing a repair", async () => {
+    const secondFinding = {
+      ...finding,
+      id: "second-finding",
+      evidence: [{ notePath: "Home.md", locator: "line:2", excerpt: "[[Old Target]]" }]
+    };
+    let selectedId: string | undefined;
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [finding, secondFinding] })}
+        loadFindings={() => [finding, secondFinding]}
+        createProposal={async (findingId) => {
+          selectedId = findingId;
+          throw new Error("stop after selection");
+        }}
+      />
+    );
+
+    await waitFor(() => expect(screen.getByLabelText("Reference finding")).toBeEnabled());
+    fireEvent.change(screen.getByLabelText("Reference finding"), {
+      target: { value: "second-finding" }
+    });
+    fireEvent.change(screen.getByLabelText("Reference target"), {
+      target: { value: "Vault Steward Test/Target" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Prepare reference repair" }));
+
+    await waitFor(() => expect(selectedId).toBe("second-finding"));
+    expect(screen.getByRole("alert")).toHaveTextContent("A safe proposal could not be created.");
+  });
+
   it("uses keyboard-native controls and announces scan state without exposing mutation", async () => {
     render(
       <VaultStewardWorkspace

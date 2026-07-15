@@ -39,13 +39,16 @@ export function VaultStewardWorkspace({
   const [status, setStatus] = useState<PluginStatus>("ready");
   const [findings, setFindings] = useState<Finding[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const [repairMessage, setRepairMessage] = useState<string | undefined>();
   const [target, setTarget] = useState("");
+  const [selectedFindingId, setSelectedFindingId] = useState<string | undefined>();
   const [review, setReview] = useState<{
     proposal: Proposal;
     sources: Record<string, string>;
     status: "pending" | "approved" | "dismissed" | "deferred" | "applied" | "stale";
   }>();
   const history = loadHistory?.();
+  const brokenReferences = findings.filter((item) => item.type === "broken-reference");
 
   useEffect(() => {
     if (!loadFindings) return;
@@ -54,9 +57,16 @@ export function VaultStewardWorkspace({
       .catch(() => setErrorMessage("The persisted review queue is unavailable."));
   }, [loadFindings]);
 
+  useEffect(() => {
+    if (!brokenReferences.some((finding) => finding.id === selectedFindingId)) {
+      setSelectedFindingId(brokenReferences[0]?.id);
+    }
+  }, [brokenReferences, selectedFindingId]);
+
   const runScan = async () => {
     setStatus("scanning");
     setErrorMessage(undefined);
+    setRepairMessage(undefined);
     try {
       const result = await scan();
       setFindings(loadFindings ? await loadFindings() : result.findings);
@@ -88,27 +98,53 @@ export function VaultStewardWorkspace({
         {...(errorMessage ? { errorMessage } : {})}
       />
       {createProposal ? (
-        <p>
+        <div>
+          <label>
+            Reference finding{" "}
+            <select
+              aria-label="Reference finding"
+              value={selectedFindingId ?? ""}
+              onChange={(event) => setSelectedFindingId(event.target.value || undefined)}
+              disabled={brokenReferences.length === 0}
+            >
+              {brokenReferences.length === 0 ? (
+                <option value="">Run a successful scan with a broken reference</option>
+              ) : (
+                brokenReferences.map((finding) => (
+                  <option key={finding.id} value={finding.id}>
+                    {referenceFindingLabel(finding)}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
           <label>
             Reference target{" "}
             <input value={target} onChange={(event) => setTarget(event.target.value)} />
           </label>
           <button
             type="button"
-            disabled={!target}
+            disabled={!target || !selectedFindingId}
             onClick={() => {
-              const finding = findings.find((item) => item.type === "broken-reference");
-              if (finding)
-                void createProposal(finding.id, target)
-                  .then(({ proposal, sources }) =>
-                    setReview({ proposal, sources, status: "pending" })
-                  )
-                  .catch(() => setErrorMessage("A safe proposal could not be created."));
+              const finding = brokenReferences.find((item) => item.id === selectedFindingId);
+              if (!finding) {
+                setRepairMessage(
+                  "Run a successful scan and select a broken-reference finding before preparing a repair."
+                );
+                return;
+              }
+              setRepairMessage(undefined);
+              void createProposal(finding.id, target)
+                .then(({ proposal, sources }) =>
+                  setReview({ proposal, sources, status: "pending" })
+                )
+                .catch(() => setRepairMessage("A safe proposal could not be created."));
             }}
           >
             Prepare reference repair
           </button>
-        </p>
+          {repairMessage ? <p role="alert">{repairMessage}</p> : null}
+        </div>
       ) : null}
       {review && reviewProposal && applyProposal ? (
         <ProposalReviewPanel
@@ -129,6 +165,11 @@ export function VaultStewardWorkspace({
       {history ? <HistoryView scans={history.scans} lifecycle={history.lifecycle} /> : null}
     </section>
   );
+}
+
+function referenceFindingLabel(finding: Finding): string {
+  const evidence = finding.evidence[0];
+  return evidence ? `${evidence.notePath} (${evidence.locator}): ${evidence.excerpt}` : finding.id;
 }
 
 function scanFailureMessage(error: unknown): string {
