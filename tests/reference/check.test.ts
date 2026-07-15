@@ -58,7 +58,9 @@ describe("reference integrity", () => {
   });
 
   it("reuses a parsed note only when its normalized path and revision are unchanged", () => {
-    const cached = scanVaultFiles([{ path: "Notes\\Home.md", content: "# Cached", revision: "r1" }]);
+    const cached = scanVaultFiles([
+      { path: "Notes\\Home.md", content: "# Cached", revision: "r1" }
+    ]);
     const reusable = new Map(cached.notes.map((note) => [note.path, note]));
 
     const reused = scanVaultFiles(

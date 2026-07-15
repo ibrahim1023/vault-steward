@@ -33,6 +33,7 @@ describe("change impact analysis", () => {
       { path: "Task.md", content: "---\nproject: Target\n---\n[[Target#Plan|the plan]]" },
       { path: "Decision.md", content: "---\nsupersedes: Target\n---\n" },
       { path: "Policy.md", content: "---\nappliesTo: Target\n---\n" },
+      { path: "Alias.md", content: "---\naliases: [Target]\n---\n" },
       { path: "Target.md", content: "---\naliases: [Legacy]\n---\nTarget" }
     ]);
     const impact = analyzeChangeImpact(
@@ -44,6 +45,7 @@ describe("change impact analysis", () => {
       taskDependents: ["Task.md"],
       decisionDependents: ["Decision.md"],
       policyDependents: ["Policy.md"],
+      aliasDependents: ["Alias.md"],
       safeRenameTargets: [{ sourcePath: "Task.md", replacement: "[[Renamed#Plan|the plan]]" }]
     });
   });

@@ -71,4 +71,4 @@ sequenceDiagram
 
 ## Scale and Bottlenecks
 
-The first release targets one desktop vault and batch scans. Expected bottlenecks are Markdown parsing, SQLite writes, and model inference. Process files incrementally, cache deterministic parse hashes, cap model concurrency at one by default, and bound per-agent context before considering background workers or a vector store.
+The first release targets one desktop vault and batch scans. Expected bottlenecks are Markdown parsing, SQLite writes, and model inference. The adapter normalizes vault events into a bounded plan and conservatively falls back to a full governed scan for create, rename, delete, invalid, or overflowed batches. Within a running plugin process, immutable parsed notes are reused only when normalized path and revision are exact; SQLite stores eligibility metadata and dependency edges without retaining note bodies. Model concurrency remains capped at one and per-agent context is bounded before considering background workers or a vector store.
