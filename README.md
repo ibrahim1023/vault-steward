@@ -6,8 +6,8 @@ Vault Steward is a local-first Obsidian plugin for auditing note vaults for inte
 
 Vault Steward provides:
 
-- Obsidian plugin lifecycle, settings, command registration, and a status view.
-- A status workspace that runs a governed local scan, shows progress and safe failures, and populates evidence-backed reference findings.
+- Obsidian plugin lifecycle, settings, command registration, a ribbon launcher, and a workspace view.
+- An actionable dashboard for the latest completed scan: health counts, severity-led next action, keyboard-accessible priority findings, selected evidence, and collapsed vault history.
 - A read-only Obsidian vault adapter with normalized paths, revision hashes, cancellation, and invalidation events.
 - Deterministic Markdown reference-integrity checks and safe proposed repairs for broken internal references.
 - Local SQLite-compatible persistence through `sql.js`, forward-only migrations, immutable scan snapshots, and a persisted review queue.
@@ -53,7 +53,7 @@ npm run ops:smoke
 npm run security:check
 ```
 
-`npm run build` writes `main.js` and `sql-wasm.wasm` at the project root. `npm run package:plugin` creates `dist/vault-steward/` with those assets, `manifest.json`, and a SHA-256 `release-manifest.json`. Install that directory as `vault-steward` under an Obsidian vault's `.obsidian/plugins/` directory.
+`npm run build` writes `main.js` and `sql-wasm.wasm` at the project root. `npm run package:plugin` creates `dist/vault-steward/` with those assets, `styles.css`, `manifest.json`, and a SHA-256 `release-manifest.json`. Install that directory as `vault-steward` under an Obsidian vault's `.obsidian/plugins/` directory.
 
 ## Repository Guide
 

@@ -46,6 +46,7 @@ Phase 8 incremental indexing, change impact, and vault history is complete.
 - Phase 7.2 governed scan pipeline implemented: frontmatter, deterministic task/schema/decision/policy checks, and bounded local-model candidates are derived from one immutable snapshot; a failed required model stage returns an incomplete result without completed findings.
 - Phase 7 review workspace implemented: governed scans persist normalized findings and metadata-only model traces, the workspace reloads SQLite-backed findings, and deterministic reference repairs require an explicit review action and confirmation before revision-safe apply.
 - Phase 8 adds versioned vault-event scan planning, revision-bound in-process parse reuse, persisted parse-product metadata and dependency records, exact-context local-model route reuse, conservative full-scan fallbacks, rename/delete impact analysis, and a local scan/finding lifecycle history view.
+- Phase 11 adds a severity-led actionable dashboard, selected finding detail, repair controls limited to eligible broken references, preserved last-successful results after scan failure, a ribbon launcher, and packaged responsive styling.
 
 ## Current Work
 

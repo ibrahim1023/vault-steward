@@ -42,6 +42,9 @@ export default class VaultStewardPlugin extends Plugin {
     this.addSettingTab(new VaultStewardSettingsTab(this.app, this));
     this.registerView(STATUS_VIEW_TYPE, (leaf) => new VaultStewardStatusItemView(leaf, this));
     registerPluginCommands(this, () => this.openStatusView());
+    this.addRibbonIcon("shield-check", "Open Vault Steward", () => {
+      void this.openStatusView();
+    });
     if (this.settings.autoScanOnLoad) {
       this.registerInterval(
         window.setTimeout(() => {
