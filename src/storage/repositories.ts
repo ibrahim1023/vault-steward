@@ -526,6 +526,42 @@ export class VaultStewardRepository {
     );
   }
 
+  getTraceInventory(): {
+    spans: number;
+    agentExecutions: number;
+    findingLineage: number;
+    retentionDays: number;
+  } {
+    const retention = this.database.exec(
+      "SELECT retention_days FROM telemetry_settings WHERE id = 1"
+    )[0]?.values[0]?.[0];
+    return {
+      spans: countRows(this.database, "trace_spans"),
+      agentExecutions: countRows(this.database, "agent_executions"),
+      findingLineage: countRows(this.database, "finding_lineage"),
+      retentionDays: typeof retention === "number" ? retention : 30
+    };
+  }
+
+  setTraceRetention(days: number, updatedAt: string): void {
+    if (!Number.isInteger(days) || days < 1 || days > 3650)
+      throw new Error("Trace retention is invalid.");
+    this.database.run(
+      "UPDATE telemetry_settings SET retention_days = ?, updated_at = ? WHERE id = 1",
+      [days, updatedAt]
+    );
+  }
+
+  deleteAllTraceData(deletedAt: string, id: string): void {
+    this.database.run("DELETE FROM agent_executions");
+    this.database.run("DELETE FROM trace_spans");
+    this.database.run("DELETE FROM finding_lineage");
+    this.database.run(
+      "INSERT INTO telemetry_deletions (id, deleted_at, category, scan_id) VALUES (?, ?, 'all-traces', NULL)",
+      [id, deletedAt]
+    );
+  }
+
   saveReviewerFeedback(record: ReviewerFeedbackRecord): void {
     this.database.run(
       "INSERT INTO reviewer_feedback (id, finding_id, proposal_id, verdict, label, created_at) VALUES (?, ?, ?, ?, ?, ?)",
