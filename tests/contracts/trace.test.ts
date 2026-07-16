@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { validateFindingLineage, validateTraceMetadata } from "../../src/contracts/trace.js";
+import {
+  validateFindingLineage,
+  validateTraceMetadata,
+  validateTracePreferences
+} from "../../src/contracts/trace.js";
 
 describe("trace contracts", () => {
   it("accepts bounded metadata and rejects content-like values", () => {
@@ -30,6 +34,35 @@ describe("trace contracts", () => {
         validatorId: "v",
         coordinatorDecisionId: "c",
         correlationId: "trace-1"
+      })
+    ).toBe(false);
+  });
+  it("requires bounded local-only trace preferences", () => {
+    expect(
+      validateTracePreferences({
+        retentionDays: 30,
+        storePromptSnapshots: false,
+        storeModelOutputSnapshots: false,
+        redactExcerpts: true,
+        excludedFolders: ["Private"]
+      })
+    ).toBe(true);
+    expect(
+      validateTracePreferences({
+        retentionDays: 30,
+        storePromptSnapshots: true,
+        storeModelOutputSnapshots: false,
+        redactExcerpts: false,
+        excludedFolders: []
+      })
+    ).toBe(false);
+    expect(
+      validateTracePreferences({
+        retentionDays: 30,
+        storePromptSnapshots: false,
+        storeModelOutputSnapshots: false,
+        redactExcerpts: true,
+        excludedFolders: ["../escape"]
       })
     ).toBe(false);
   });

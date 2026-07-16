@@ -36,6 +36,8 @@ import {
   nextScheduleState,
   type MaintenanceScheduleState
 } from "./maintenance/scheduler.js";
+import { configurationFingerprint } from "./observability/fingerprint.js";
+import type { TracePreferences } from "./contracts/trace.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 
@@ -113,6 +115,16 @@ export default class VaultStewardPlugin extends Plugin {
     const policySource = await this.loadPolicyDraft();
     const parsedPolicy = parsePolicy(policySource);
     if (!parsedPolicy.ok) throw new Error("The active policy file is invalid.");
+    const traceConfiguration = {
+      pluginVersion: this.manifest.version,
+      parser: "scanner-v1",
+      provider: this.settings.modelProvider.kind,
+      model: this.settings.modelProvider.model,
+      policyId: parsedPolicy.value.id,
+      policyVersion: parsedPolicy.value.version,
+      retrievalTopK: 0
+    };
+    const configHash = configurationFingerprint(traceConfiguration);
     const startedAt = new Date().toISOString();
     const result = await createGovernedIntegritySession([provider], this.agentResultCache).scan(
       files,
@@ -124,7 +136,7 @@ export default class VaultStewardPlugin extends Plugin {
     this.database.saveCompletedScan({
       id: result.scanId,
       vaultFingerprint: this.app.vault.getName(),
-      configHash: this.settings.modelProvider.model,
+      configHash,
       inputHash: files.map((file) => `${file.path}:${file.revision}`).join("|"),
       parserVersion: "scanner-v1",
       startedAt,
@@ -141,7 +153,8 @@ export default class VaultStewardPlugin extends Plugin {
         }))
       })),
       findings: result.findings,
-      modelTraces: result.modelTraces
+      modelTraces: result.modelTraces,
+      traceConfiguration: { fingerprint: configHash, values: traceConfiguration }
     });
     await this.database.flush();
     return result;
@@ -196,6 +209,80 @@ export default class VaultStewardPlugin extends Plugin {
 
   loadHistory() {
     return this.database?.loadHistory() ?? { scans: [], lifecycle: [] };
+  }
+
+  loadObservability(scanId?: string) {
+    return (
+      this.database?.loadObservability(scanId) ?? {
+        scanId: null,
+        timeline: [],
+        lineage: [],
+        configuration: null,
+        inventory: {
+          spans: 0,
+          agentExecutions: 0,
+          findingLineage: 0,
+          retentionDays: 30,
+          categories: {
+            promptSnapshots: { enabled: false, count: 0, bytes: 0 },
+            modelOutputSnapshots: { enabled: false, count: 0, bytes: 0 }
+          }
+        },
+        metrics: {
+          scanDurationMs: null,
+          agentDurationMs: 0,
+          p50ScanDurationMs: null,
+          p95ScanDurationMs: null,
+          parseFailures: 0,
+          indexFailures: 0,
+          retrievalFailures: 0,
+          validationFailures: 0,
+          cacheHitRate: null,
+          queueDepth: 0,
+          databaseBytes: 0,
+          modelLoadTimeMs: null,
+          tokenUsage: 0,
+          retries: 0,
+          incompleteRate: 0,
+          staleProposals: 0,
+          applyFailures: 0
+        }
+      }
+    );
+  }
+
+  getTracePreferences(): TracePreferences {
+    return (
+      this.database?.repository.getTracePreferences() ?? {
+        retentionDays: 30,
+        storePromptSnapshots: false,
+        storeModelOutputSnapshots: false,
+        redactExcerpts: true,
+        excludedFolders: []
+      }
+    );
+  }
+
+  async saveTracePreferences(preferences: TracePreferences): Promise<void> {
+    if (!this.database) throw new Error("Vault Steward database is unavailable.");
+    this.database.repository.setTracePreferences(preferences, new Date().toISOString());
+    await this.database.flush();
+  }
+
+  async deleteScanTrace(scanId: string): Promise<void> {
+    if (!this.database) throw new Error("Vault Steward database is unavailable.");
+    this.database.repository.deleteTraceForScan(
+      scanId,
+      new Date().toISOString(),
+      crypto.randomUUID()
+    );
+    await this.database.flush();
+  }
+
+  async deleteAllTraceData(): Promise<void> {
+    if (!this.database) throw new Error("Vault Steward database is unavailable.");
+    this.database.repository.deleteAllTraceData(new Date().toISOString(), crypto.randomUUID());
+    await this.database.flush();
   }
 
   async createReferenceProposal(findingId: string, target: string) {
@@ -357,6 +444,9 @@ class VaultStewardStatusItemView extends ItemView {
           scan: () => this.plugin.scanVault(),
           loadFindings: () => this.plugin.loadFindings(),
           loadHistory: () => this.plugin.loadHistory(),
+          loadObservability: (scanId) => this.plugin.loadObservability(scanId),
+          deleteScanTrace: (scanId) => this.plugin.deleteScanTrace(scanId),
+          deleteAllTraceData: () => this.plugin.deleteAllTraceData(),
           createProposal: (findingId, target) =>
             this.plugin.createReferenceProposal(findingId, target),
           reviewProposal: (proposalId, action) => this.plugin.reviewProposal(proposalId, action),
@@ -488,6 +578,65 @@ class VaultStewardSettingsTab extends PluginSettingTab {
               maintenanceSchedule: { ...this.plugin.settings.maintenanceSchedule, eventTriggered }
             });
           })
+      );
+
+    const tracePreferences = this.plugin.getTracePreferences();
+    new Setting(this.containerEl)
+      .setName("Trace retention (days)")
+      .setDesc("Keep local metadata-only scan traces for 1 to 3650 days.")
+      .addText((text) =>
+        text.setValue(String(tracePreferences.retentionDays)).onChange(async (value) => {
+          const retentionDays = Number(value);
+          if (!Number.isInteger(retentionDays) || retentionDays < 1 || retentionDays > 3650) return;
+          await this.plugin.saveTracePreferences({
+            ...this.plugin.getTracePreferences(),
+            retentionDays
+          });
+        })
+      );
+
+    new Setting(this.containerEl)
+      .setName("Store redacted prompt snapshots")
+      .setDesc("Disabled by default. Rejected content is never stored.")
+      .addToggle((toggle) =>
+        toggle.setValue(tracePreferences.storePromptSnapshots).onChange(async (enabled) => {
+          await this.plugin.saveTracePreferences({
+            ...this.plugin.getTracePreferences(),
+            storePromptSnapshots: enabled,
+            redactExcerpts: true
+          });
+        })
+      );
+
+    new Setting(this.containerEl)
+      .setName("Store redacted model-output snapshots")
+      .setDesc("Disabled by default. Only bounded, redacted structured snapshots can be retained.")
+      .addToggle((toggle) =>
+        toggle.setValue(tracePreferences.storeModelOutputSnapshots).onChange(async (enabled) => {
+          await this.plugin.saveTracePreferences({
+            ...this.plugin.getTracePreferences(),
+            storeModelOutputSnapshots: enabled,
+            redactExcerpts: true
+          });
+        })
+      );
+
+    new Setting(this.containerEl)
+      .setName("Excluded trace folders")
+      .setDesc(
+        "Comma-separated vault-relative folders. Folder contents are never stored as trace metadata."
+      )
+      .addText((text) =>
+        text.setValue(tracePreferences.excludedFolders.join(", ")).onChange(async (value) => {
+          const excludedFolders = value
+            .split(",")
+            .map((folder) => folder.trim())
+            .filter(Boolean);
+          await this.plugin.saveTracePreferences({
+            ...this.plugin.getTracePreferences(),
+            excludedFolders
+          });
+        })
       );
   }
 }

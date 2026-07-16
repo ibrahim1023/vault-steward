@@ -111,9 +111,67 @@
 
 .vault-steward-dashboard button:focus-visible,
 .vault-steward-dashboard input:focus-visible,
+.vault-steward-dashboard select:focus-visible,
 .vault-steward-dashboard summary:focus-visible {
   outline: 2px solid var(--interactive-accent);
   outline-offset: 2px;
+}
+
+.observability-view {
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 12px;
+}
+.observability-view > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.observability-content {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+.observability-content section {
+  border-left: 3px solid var(--interactive-accent);
+  padding-left: 10px;
+}
+.observability-content h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+.observability-timeline {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.observability-timeline li {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) auto auto auto;
+  gap: 8px;
+  align-items: baseline;
+  overflow-wrap: anywhere;
+}
+.observability-lineage,
+.observability-configuration {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) minmax(0, 1fr);
+  gap: 4px 8px;
+  margin: 0;
+}
+.observability-lineage dd,
+.observability-configuration dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.observability-configuration span {
+  display: contents;
+}
+
+@media (max-width: 480px) {
+  .observability-timeline li {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 480px) {

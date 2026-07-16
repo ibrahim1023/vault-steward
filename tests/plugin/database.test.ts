@@ -139,4 +139,46 @@ describe("plugin database lifecycle", () => {
     ]);
     database.close();
   });
+
+  it("records bounded stage spans and a configuration fingerprint for an inspectable scan", async () => {
+    const store = new MemoryBinaryStore();
+    const database = await openPluginDatabase({
+      adapter: store,
+      databasePath: ".obsidian/plugins/vault-steward/vault-steward.sqlite",
+      locateFile: (file) => `node_modules/sql.js/dist/${file}`
+    });
+    database.saveCompletedScan({
+      id: "scan-observable",
+      vaultFingerprint: "vault",
+      configHash: "a".repeat(64),
+      inputHash: "input",
+      parserVersion: "parser",
+      startedAt: "2026-07-16T00:00:00.000Z",
+      finishedAt: "2026-07-16T00:00:01.000Z",
+      files: [],
+      parseProducts: [],
+      findings: [],
+      modelTraces: [],
+      traceConfiguration: { fingerprint: "a".repeat(64), values: { model: "llama3.1:8b" } }
+    });
+
+    const snapshot = database.loadObservability("scan-observable");
+    expect(snapshot.timeline.map((span) => span.kind)).toEqual(
+      expect.arrayContaining([
+        "scanner",
+        "indexing",
+        "retrieval",
+        "agent",
+        "validation",
+        "policy",
+        "coordinator",
+        "finding"
+      ])
+    );
+    expect(snapshot.configuration).toEqual({
+      fingerprint: "a".repeat(64),
+      values: { model: "llama3.1:8b" }
+    });
+    database.close();
+  });
 });

@@ -4,6 +4,7 @@ import { ScanSnapshotRepository } from "../storage/scan-snapshots.js";
 import { applyMigrations } from "../storage/migrations.js";
 import {
   hydrateFinding,
+  type ObservabilitySnapshot,
   type ParseProduct,
   VaultStewardRepository
 } from "../storage/repositories.js";
@@ -32,12 +33,17 @@ export type PluginDatabase = {
     parseProducts: readonly ParseProduct[];
     findings: readonly Finding[];
     modelTraces: readonly ModelTrace[];
+    traceConfiguration?: {
+      fingerprint: string;
+      values: Record<string, string | number | boolean>;
+    };
   }): void;
   loadFindings(): Finding[];
   loadHistory(): {
     scans: ReturnType<VaultStewardRepository["listScanHistory"]>;
     lifecycle: ReturnType<VaultStewardRepository["listFindingLifecycle"]>;
   };
+  loadObservability(scanId?: string): ObservabilitySnapshot;
   flush(): Promise<void>;
   close(): void;
 };
@@ -58,6 +64,7 @@ export async function openPluginDatabase(input: {
   const repository = new VaultStewardRepository(runtime.database);
   const snapshots = new ScanSnapshotRepository(runtime.database);
   snapshots.recoverInterruptedScans(new Date().toISOString());
+  repository.pruneExpiredTraceData(new Date().toISOString());
   await writeRuntime(input.adapter, input.databasePath, runtime);
 
   return {
@@ -85,6 +92,13 @@ export async function openPluginDatabase(input: {
           correlationId,
           attributes: { fileCount: scan.files.length }
         });
+        recordStageSpans(repository, scan, correlationId);
+        if (scan.traceConfiguration)
+          repository.saveTraceConfiguration({
+            scanId: scan.id,
+            fingerprint: scan.traceConfiguration.fingerprint,
+            values: scan.traceConfiguration.values
+          });
         repository.saveParseProducts(scan.id, scan.parserVersion, scan.parseProducts);
         const findings = scan.findings.filter((finding) =>
           validateFindingLineage({
@@ -95,6 +109,10 @@ export async function openPluginDatabase(input: {
             parsedArtifactIds: finding.evidence.map((item) => `parse:${item.notePath}`),
             validatorId: "finding-normalization",
             coordinatorDecisionId: `coordinator:${scan.id}`,
+            retrievalMetadata: ["not-run"],
+            policyEvaluationId: finding.violatedPolicyId ?? "not-run",
+            proposalSourceId:
+              finding.suggestedFixes.length > 0 ? "deterministic-proposal" : "not-applicable",
             correlationId
           })
         );
@@ -136,10 +154,15 @@ export async function openPluginDatabase(input: {
             parsedArtifactIds: finding.evidence.map((item) => `parse:${item.notePath}`),
             validatorId: "finding-normalization",
             coordinatorDecisionId: `coordinator:${scan.id}`,
+            retrievalMetadata: ["not-run"],
+            policyEvaluationId: finding.violatedPolicyId ?? "not-run",
+            proposalSourceId:
+              finding.suggestedFixes.length > 0 ? "deterministic-proposal" : "not-applicable",
             correlationId
           });
         }
         snapshots.transition(scan.id, "completed", scan.finishedAt);
+        repository.pruneExpiredTraceData(scan.finishedAt);
       } catch (error) {
         snapshots.transition(scan.id, "failed", scan.finishedAt);
         throw error;
@@ -157,9 +180,50 @@ export async function openPluginDatabase(input: {
       scans: repository.listScanHistory(20),
       lifecycle: repository.listFindingLifecycle()
     }),
+    loadObservability: (scanId) => repository.getObservabilitySnapshot(scanId),
     flush: () => writeRuntime(input.adapter, input.databasePath, runtime),
     close: () => runtime.close()
   };
+}
+
+function recordStageSpans(
+  repository: VaultStewardRepository,
+  scan: Parameters<PluginDatabase["saveCompletedScan"]>[0],
+  correlationId: string
+): void {
+  const agentLatencyMs = scan.modelTraces.reduce((total, trace) => total + trace.latencyMs, 0);
+  const retryCount = scan.modelTraces.reduce((total, trace) => total + trace.retries, 0);
+  const stages: Array<{ kind: string; attributes: Record<string, string | number | boolean> }> = [
+    { kind: "scanner", attributes: { fileCount: scan.files.length } },
+    { kind: "indexing", attributes: { parseProductCount: scan.parseProducts.length } },
+    { kind: "retrieval", attributes: { notRun: true } },
+    {
+      kind: "agent",
+      attributes: {
+        modelCallCount: scan.modelTraces.length,
+        retryCount,
+        durationMs: agentLatencyMs
+      }
+    },
+    { kind: "validation", attributes: { candidateCount: scan.findings.length } },
+    { kind: "policy", attributes: { notRun: true } },
+    { kind: "coordinator", attributes: { findingCount: scan.findings.length } },
+    { kind: "finding", attributes: { findingCount: scan.findings.length } }
+  ];
+  for (const stage of stages) {
+    repository.saveTraceSpan({
+      schemaVersion: 1,
+      id: `${scan.id}:${stage.kind}`,
+      scanId: scan.id,
+      parentSpanId: `${scan.id}:root`,
+      kind: stage.kind,
+      startedAt: scan.startedAt,
+      completedAt: scan.finishedAt,
+      outcome: "success",
+      correlationId,
+      attributes: stage.attributes
+    });
+  }
 }
 
 async function writeRuntime(
