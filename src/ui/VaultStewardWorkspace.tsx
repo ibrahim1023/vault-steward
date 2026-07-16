@@ -21,6 +21,8 @@ import { PriorityFindings } from "./PriorityFindings.js";
 import { PolicyStudio } from "./PolicyStudio.js";
 import { ProposalReviewPanel } from "./ProposalReviewPanel.js";
 import { VaultHealthSummary } from "./VaultHealthSummary.js";
+import { ObservabilityView } from "./ObservabilityView.js";
+import type { ObservabilitySnapshot } from "../storage/repositories.js";
 
 export function VaultStewardWorkspace({
   vaultLabel,
@@ -35,7 +37,10 @@ export function VaultStewardWorkspace({
   checkModelReadiness,
   submitFeedback,
   maintenance,
-  inspectImpact
+  inspectImpact,
+  loadObservability,
+  deleteScanTrace,
+  deleteAllTraceData
 }: {
   vaultLabel: string;
   scan: () => Promise<{
@@ -75,6 +80,9 @@ export function VaultStewardWorkspace({
     setPaused: (paused: boolean) => Promise<void>;
   };
   inspectImpact?: (path: string) => import("../indexing/impact.js").ChangeImpact;
+  loadObservability?: (scanId?: string) => ObservabilitySnapshot;
+  deleteScanTrace?: (scanId: string) => Promise<void>;
+  deleteAllTraceData?: () => Promise<void>;
 }) {
   const [status, setStatus] = useState<PluginStatus>("ready");
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -212,6 +220,15 @@ export function VaultStewardWorkspace({
           <summary>History</summary>
           <HistoryView scans={history.scans} lifecycle={history.lifecycle} />
         </details>
+      ) : null}
+      {history && loadObservability ? (
+        <ObservabilityView
+          scans={history.scans}
+          loadObservability={loadObservability}
+          {...(selectedFinding ? { selectedFindingId: selectedFinding.id } : {})}
+          {...(deleteScanTrace ? { deleteScanTrace } : {})}
+          {...(deleteAllTraceData ? { deleteAllTraceData } : {})}
+        />
       ) : null}
     </section>
   );

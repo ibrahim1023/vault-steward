@@ -67,7 +67,14 @@ describe("observability repository", () => {
         fingerprint: "a".repeat(64),
         values: { model: "llama3.1:8b", parser: "scanner-v1" }
       },
-      lineage: [expect.objectContaining({ findingId: "finding-1", evidenceLocators: ["Tasks.md (line:3)"] })]
+      lineage: [
+        expect.objectContaining({ findingId: "finding-1", evidenceLocators: ["Tasks.md (line:3)"] })
+      ],
+      metrics: expect.objectContaining({
+        queueDepth: 1,
+        p50ScanDurationMs: 25,
+        p95ScanDurationMs: 25
+      })
     });
   });
 

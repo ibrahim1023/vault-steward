@@ -207,12 +207,33 @@ export type TraceInventory = {
   };
 };
 
+export type OperationalTraceMetrics = {
+  scanDurationMs: number | null;
+  agentDurationMs: number;
+  p50ScanDurationMs: number | null;
+  p95ScanDurationMs: number | null;
+  parseFailures: number;
+  indexFailures: number;
+  retrievalFailures: number;
+  validationFailures: number;
+  cacheHitRate: number | null;
+  queueDepth: number;
+  databaseBytes: number;
+  modelLoadTimeMs: number | null;
+  tokenUsage: number;
+  retries: number;
+  incompleteRate: number;
+  staleProposals: number;
+  applyFailures: number;
+};
+
 export type ObservabilitySnapshot = {
   scanId: string | null;
   timeline: TraceTimelineEntry[];
   lineage: FindingLineageView[];
   configuration: TraceConfigurationRecord | null;
   inventory: TraceInventory;
+  metrics: OperationalTraceMetrics;
 };
 
 export class VaultStewardRepository {
@@ -626,7 +647,14 @@ export class VaultStewardRepository {
       throw new Error("Trace snapshots are disabled.");
     this.database.run(
       "INSERT INTO trace_snapshots (id, scan_id, category, snapshot_json, byte_count, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-      [crypto.randomUUID(), scanId, category, snapshot, new TextEncoder().encode(snapshot).length, new Date().toISOString()]
+      [
+        crypto.randomUUID(),
+        scanId,
+        category,
+        snapshot,
+        new TextEncoder().encode(snapshot).length,
+        new Date().toISOString()
+      ]
     );
   }
 
@@ -639,7 +667,72 @@ export class VaultStewardRepository {
       timeline,
       lineage,
       configuration: selectedScanId ? this.getTraceConfiguration(selectedScanId) : null,
-      inventory: this.getTraceInventory()
+      inventory: this.getTraceInventory(),
+      metrics: this.getOperationalTraceMetrics(selectedScanId, timeline)
+    };
+  }
+
+  private getOperationalTraceMetrics(
+    scanId: string | null,
+    timeline: readonly TraceTimelineEntry[]
+  ): OperationalTraceMetrics {
+    const durations = timeline.flatMap((span) =>
+      span.durationMs === null ? [] : [span.durationMs]
+    );
+    const agentDurations =
+      this.database.exec("SELECT duration_ms FROM agent_executions WHERE scan_id = ?", [
+        scanId ?? ""
+      ])[0]?.values ?? [];
+    const tokens = this.database.exec(
+      "SELECT COALESCE(SUM(input_tokens + output_tokens), 0) FROM model_traces WHERE scan_id = ?",
+      [scanId ?? ""]
+    )[0]?.values[0]?.[0];
+    const retries = this.database.exec(
+      "SELECT COALESCE(SUM(retry_count), 0) FROM agent_executions WHERE scan_id = ?",
+      [scanId ?? ""]
+    )[0]?.values[0]?.[0];
+    const queueDepth = this.database.exec(
+      "SELECT COUNT(*) FROM findings WHERE scan_id = ? AND status = 'open'",
+      [scanId ?? ""]
+    )[0]?.values[0]?.[0];
+    const staleProposals = this.database.exec(
+      "SELECT COUNT(*) FROM proposals WHERE status = 'stale'"
+    )[0]?.values[0]?.[0];
+    const applyFailures = this.database.exec(
+      "SELECT COUNT(*) FROM proposals WHERE status IN ('apply-failed', 'recovery-required')"
+    )[0]?.values[0]?.[0];
+    const completedScans = this.database.exec(
+      "SELECT COUNT(*) FROM scans WHERE status = 'completed'"
+    )[0]?.values[0]?.[0];
+    const incompleteScans = this.database.exec(
+      "SELECT COUNT(*) FROM scans WHERE status <> 'completed'"
+    )[0]?.values[0]?.[0];
+    const failures = (kind: string) =>
+      timeline.filter((span) => span.kind === kind && span.outcome === "failure").length;
+    return {
+      scanDurationMs: calculateLocalPercentile(durations, 1),
+      agentDurationMs: agentDurations.reduce(
+        (total, row) => total + (typeof row[0] === "number" ? row[0] : 0),
+        0
+      ),
+      p50ScanDurationMs: calculateLocalPercentile(durations, 0.5),
+      p95ScanDurationMs: calculateLocalPercentile(durations, 0.95),
+      parseFailures: failures("scanner"),
+      indexFailures: failures("indexing"),
+      retrievalFailures: failures("retrieval"),
+      validationFailures: failures("validation"),
+      cacheHitRate: null,
+      queueDepth: typeof queueDepth === "number" ? queueDepth : 0,
+      databaseBytes: this.database.export().byteLength,
+      modelLoadTimeMs: null,
+      tokenUsage: typeof tokens === "number" ? tokens : 0,
+      retries: typeof retries === "number" ? retries : 0,
+      incompleteRate:
+        typeof completedScans === "number" && typeof incompleteScans === "number"
+          ? incompleteScans / Math.max(1, completedScans + incompleteScans)
+          : 0,
+      staleProposals: typeof staleProposals === "number" ? staleProposals : 0,
+      applyFailures: typeof applyFailures === "number" ? applyFailures : 0
     };
   }
 
@@ -721,6 +814,8 @@ export class VaultStewardRepository {
     this.database.run("DELETE FROM agent_executions WHERE scan_id = ?", [scanId]);
     this.database.run("DELETE FROM trace_spans WHERE scan_id = ?", [scanId]);
     this.database.run("DELETE FROM finding_lineage WHERE scan_id = ?", [scanId]);
+    this.database.run("DELETE FROM trace_configurations WHERE scan_id = ?", [scanId]);
+    this.database.run("DELETE FROM trace_snapshots WHERE scan_id = ?", [scanId]);
     this.database.run(
       "INSERT INTO telemetry_deletions (id, deleted_at, category, scan_id) VALUES (?, ?, 'scan-traces', ?)",
       [id, deletedAt, scanId]
@@ -842,7 +937,8 @@ function defaultTracePreferences(): TracePreferences {
 function safeStringArray(value: string): string[] {
   try {
     const parsed = JSON.parse(value) as unknown;
-    return Array.isArray(parsed) && parsed.every((item) => typeof item === "string" && validateTraceMetadata(item))
+    return Array.isArray(parsed) &&
+      parsed.every((item) => typeof item === "string" && validateTraceMetadata(item))
       ? parsed
       : [];
   } catch {
@@ -870,7 +966,10 @@ function durationBetween(startedAt: string, completedAt: string | null): number 
   return Number.isFinite(duration) && duration >= 0 ? duration : null;
 }
 
-function numericAttribute(attributes: Record<string, string | number | boolean>, key: string): number {
+function numericAttribute(
+  attributes: Record<string, string | number | boolean>,
+  key: string
+): number {
   const value = attributes[key];
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
 }
@@ -889,6 +988,12 @@ function stringAttribute(
 ): string | null {
   const value = attributes[key];
   return typeof value === "string" && validateTraceMetadata(value) ? value : null;
+}
+
+function calculateLocalPercentile(values: readonly number[], percentile: number): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((left, right) => left - right);
+  return sorted[Math.min(sorted.length - 1, Math.ceil(percentile * sorted.length) - 1)] ?? null;
 }
 
 export type RecordCounts = {
