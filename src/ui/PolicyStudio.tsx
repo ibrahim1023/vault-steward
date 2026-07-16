@@ -26,10 +26,15 @@ export function PolicyStudio({
 
   const validate = async (): Promise<PolicyPreview | undefined> => {
     setMessage(undefined);
-    const result = await previewDraft(source);
-    setPreview(result);
-    setDiagnostics(result.ok ? [] : result.diagnostics);
-    return result;
+    try {
+      const result = await previewDraft(source);
+      setPreview(result);
+      setDiagnostics(result.ok ? [] : result.diagnostics);
+      return result;
+    } catch {
+      setMessage("Run a completed scan before previewing this policy.");
+      return undefined;
+    }
   };
 
   if (loading) return <p role="status">Loading active policy...</p>;

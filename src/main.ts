@@ -89,10 +89,14 @@ export default class VaultStewardPlugin extends Plugin {
     this.vaultReader.consumeInvalidatedEvents();
     const files = await this.vaultReader.listFiles();
     const snapshot = scanVaultFiles(files, this.parsedNotes);
+    const policySource = await this.loadPolicyDraft();
+    const parsedPolicy = parsePolicy(policySource);
+    if (!parsedPolicy.ok) throw new Error("The active policy file is invalid.");
     const startedAt = new Date().toISOString();
     const result = await createGovernedIntegritySession([provider], this.agentResultCache).scan(
       files,
-      snapshot
+      snapshot,
+      [parsedPolicy.value]
     );
     this.parsedNotes.clear();
     for (const note of snapshot.notes) this.parsedNotes.set(note.path, note);
@@ -176,6 +180,9 @@ export default class VaultStewardPlugin extends Plugin {
   }
 
   async previewPolicyDraft(source: string) {
+    if (this.parsedNotes.size === 0) {
+      throw new Error("Run a completed scan before previewing a policy.");
+    }
     return previewPolicyDraft(
       source,
       [...this.parsedNotes.values()].map((note) => ({

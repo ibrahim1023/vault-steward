@@ -7,6 +7,7 @@ import { runGovernedScan, type GovernedScanResult } from "../core/governed-scan.
 import type { LocalProvider } from "../model-provider/local-provider.js";
 import { checkReferenceIntegrity } from "../reference/check.js";
 import { scanVaultFiles, type ScanSnapshot } from "../scanner/scan.js";
+import type { Policy } from "../policy/parse.js";
 import type { VaultFile } from "../vault-adapter/types.js";
 
 export type ReferenceIntegrityResult = {
@@ -31,12 +32,17 @@ export function createGovernedIntegritySession(
   providers: readonly LocalProvider[],
   cache?: AgentResultCache
 ): {
-  scan(files: readonly VaultFile[], snapshot?: ScanSnapshot): Promise<GovernedIntegrityResult>;
+  scan(
+    files: readonly VaultFile[],
+    snapshot?: ScanSnapshot,
+    policies?: readonly Policy[]
+  ): Promise<GovernedIntegrityResult>;
 } {
   return {
-    async scan(files, snapshot) {
+    async scan(files, snapshot, policies) {
       const result = await runGovernedScan(files, providers, new Date().toISOString(), {
         ...(snapshot ? { snapshot } : {}),
+        ...(policies ? { policies } : {}),
         ...(cache ? { coordinator: new LocalAgentCoordinator(providers, cache) } : {})
       });
       if (!result.completed)

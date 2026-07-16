@@ -203,5 +203,7 @@ function scanFailureMessage(error: unknown): string {
   if (message.includes("Vault reader") || message.includes("vault read"))
     return "The active vault could not be read.";
   if (message.includes("database")) return "The local Vault Steward database is unavailable.";
+  if (message.includes("active policy"))
+    return "The active policy file is invalid. Fix it in Policy Studio.";
   return "The scan could not complete.";
 }
