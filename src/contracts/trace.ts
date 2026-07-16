@@ -31,6 +31,9 @@ export type FindingLineage = {
   validatorId: string;
   coordinatorDecisionId: string;
   agentExecutionId?: string;
+  retrievalMetadata?: readonly string[];
+  policyEvaluationId?: string;
+  proposalSourceId?: string;
   correlationId: string;
 };
 

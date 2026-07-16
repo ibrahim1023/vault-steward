@@ -189,6 +189,9 @@ export type FindingLineageView = {
   validatorId: string;
   coordinatorDecisionId: string;
   agentExecutionId: string | null;
+  retrievalMetadata: string[];
+  policyEvaluationId: string | null;
+  proposalSourceId: string | null;
 };
 
 export type TraceConfigurationRecord = {
@@ -574,7 +577,7 @@ export class VaultStewardRepository {
 
   saveFindingLineage(lineage: FindingLineage): void {
     this.database.run(
-      "INSERT INTO finding_lineage (finding_id, scan_id, evidence_locators_json, parsed_artifact_ids_json, validator_id, coordinator_decision_id, agent_execution_id, correlation_id, schema_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO finding_lineage (finding_id, scan_id, evidence_locators_json, parsed_artifact_ids_json, validator_id, coordinator_decision_id, agent_execution_id, retrieval_metadata_json, policy_evaluation_id, proposal_source_id, correlation_id, schema_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         lineage.findingId,
         lineage.scanId,
@@ -583,6 +586,9 @@ export class VaultStewardRepository {
         lineage.validatorId,
         lineage.coordinatorDecisionId,
         lineage.agentExecutionId ?? null,
+        JSON.stringify(lineage.retrievalMetadata ?? []),
+        lineage.policyEvaluationId ?? null,
+        lineage.proposalSourceId ?? null,
         lineage.correlationId,
         lineage.schemaVersion
       ]
@@ -773,12 +779,13 @@ export class VaultStewardRepository {
   private listFindingLineage(scanId: string): FindingLineageView[] {
     return (
       this.database.exec(
-        "SELECT finding_id, evidence_locators_json, parsed_artifact_ids_json, validator_id, coordinator_decision_id, agent_execution_id FROM finding_lineage WHERE scan_id = ? ORDER BY finding_id",
+        "SELECT finding_id, evidence_locators_json, parsed_artifact_ids_json, validator_id, coordinator_decision_id, agent_execution_id, retrieval_metadata_json, policy_evaluation_id, proposal_source_id FROM finding_lineage WHERE scan_id = ? ORDER BY finding_id",
         [scanId]
       )[0]?.values ?? []
     ).flatMap((row) => {
       const evidenceLocators = typeof row[1] === "string" ? safeStringArray(row[1]) : [];
       const parsedArtifactIds = typeof row[2] === "string" ? safeStringArray(row[2]) : [];
+      const retrievalMetadata = typeof row[6] === "string" ? safeStringArray(row[6]) : [];
       return typeof row[0] === "string" &&
         evidenceLocators.length > 0 &&
         parsedArtifactIds.length > 0 &&
@@ -792,7 +799,10 @@ export class VaultStewardRepository {
               parsedArtifactIds,
               validatorId: row[3],
               coordinatorDecisionId: row[4],
-              agentExecutionId: row[5]
+              agentExecutionId: row[5],
+              retrievalMetadata,
+              policyEvaluationId: typeof row[7] === "string" ? row[7] : null,
+              proposalSourceId: typeof row[8] === "string" ? row[8] : null
             }
           ]
         : [];
@@ -853,6 +863,21 @@ export class VaultStewardRepository {
 
   setTraceRetention(days: number, updatedAt: string): void {
     this.setTracePreferences({ ...this.getTracePreferences(), retentionDays: days }, updatedAt);
+  }
+
+  pruneExpiredTraceData(now: string): number {
+    const timestamp = Date.parse(now);
+    if (!Number.isFinite(timestamp)) throw new Error("Trace retention timestamp is invalid.");
+    const cutoff = new Date(
+      timestamp - this.getTracePreferences().retentionDays * 24 * 60 * 60 * 1_000
+    ).toISOString();
+    const scanIds = (
+      this.database.exec("SELECT id FROM scans WHERE started_at < ? ORDER BY started_at", [
+        cutoff
+      ])[0]?.values ?? []
+    ).flatMap((row) => (typeof row[0] === "string" ? [row[0]] : []));
+    for (const scanId of scanIds) this.deleteTraceForScan(scanId, now, crypto.randomUUID());
+    return scanIds.length;
   }
 
   deleteAllTraceData(deletedAt: string, id: string): void {

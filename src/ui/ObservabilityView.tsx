@@ -99,10 +99,18 @@ export function ObservabilityView({
                   <dd>{item.evidenceLocators.join(", ")}</dd>
                   <dt>Parsed artifacts</dt>
                   <dd>{item.parsedArtifactIds.join(", ")}</dd>
+                  <dt>Retrieval</dt>
+                  <dd>{item.retrievalMetadata.join(", ") || "not run"}</dd>
+                  <dt>Agent execution</dt>
+                  <dd>{item.agentExecutionId ?? "not run"}</dd>
                   <dt>Validation</dt>
                   <dd>{item.validatorId}</dd>
+                  <dt>Policy</dt>
+                  <dd>{item.policyEvaluationId ?? "not run"}</dd>
                   <dt>Coordinator</dt>
                   <dd>{item.coordinatorDecisionId}</dd>
+                  <dt>Proposal source</dt>
+                  <dd>{item.proposalSourceId ?? "not applicable"}</dd>
                 </dl>
               ))
             )}

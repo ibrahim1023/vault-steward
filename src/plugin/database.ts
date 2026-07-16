@@ -64,6 +64,7 @@ export async function openPluginDatabase(input: {
   const repository = new VaultStewardRepository(runtime.database);
   const snapshots = new ScanSnapshotRepository(runtime.database);
   snapshots.recoverInterruptedScans(new Date().toISOString());
+  repository.pruneExpiredTraceData(new Date().toISOString());
   await writeRuntime(input.adapter, input.databasePath, runtime);
 
   return {
@@ -92,11 +93,12 @@ export async function openPluginDatabase(input: {
           attributes: { fileCount: scan.files.length }
         });
         recordStageSpans(repository, scan, correlationId);
-        if (scan.traceConfiguration) repository.saveTraceConfiguration({
-          scanId: scan.id,
-          fingerprint: scan.traceConfiguration.fingerprint,
-          values: scan.traceConfiguration.values
-        });
+        if (scan.traceConfiguration)
+          repository.saveTraceConfiguration({
+            scanId: scan.id,
+            fingerprint: scan.traceConfiguration.fingerprint,
+            values: scan.traceConfiguration.values
+          });
         repository.saveParseProducts(scan.id, scan.parserVersion, scan.parseProducts);
         const findings = scan.findings.filter((finding) =>
           validateFindingLineage({
@@ -107,6 +109,10 @@ export async function openPluginDatabase(input: {
             parsedArtifactIds: finding.evidence.map((item) => `parse:${item.notePath}`),
             validatorId: "finding-normalization",
             coordinatorDecisionId: `coordinator:${scan.id}`,
+            retrievalMetadata: ["not-run"],
+            policyEvaluationId: finding.violatedPolicyId ?? "not-run",
+            proposalSourceId:
+              finding.suggestedFixes.length > 0 ? "deterministic-proposal" : "not-applicable",
             correlationId
           })
         );
@@ -148,10 +154,15 @@ export async function openPluginDatabase(input: {
             parsedArtifactIds: finding.evidence.map((item) => `parse:${item.notePath}`),
             validatorId: "finding-normalization",
             coordinatorDecisionId: `coordinator:${scan.id}`,
+            retrievalMetadata: ["not-run"],
+            policyEvaluationId: finding.violatedPolicyId ?? "not-run",
+            proposalSourceId:
+              finding.suggestedFixes.length > 0 ? "deterministic-proposal" : "not-applicable",
             correlationId
           });
         }
         snapshots.transition(scan.id, "completed", scan.finishedAt);
+        repository.pruneExpiredTraceData(scan.finishedAt);
       } catch (error) {
         snapshots.transition(scan.id, "failed", scan.finishedAt);
         throw error;
@@ -186,7 +197,14 @@ function recordStageSpans(
     { kind: "scanner", attributes: { fileCount: scan.files.length } },
     { kind: "indexing", attributes: { parseProductCount: scan.parseProducts.length } },
     { kind: "retrieval", attributes: { notRun: true } },
-    { kind: "agent", attributes: { modelCallCount: scan.modelTraces.length, retryCount, durationMs: agentLatencyMs } },
+    {
+      kind: "agent",
+      attributes: {
+        modelCallCount: scan.modelTraces.length,
+        retryCount,
+        durationMs: agentLatencyMs
+      }
+    },
     { kind: "validation", attributes: { candidateCount: scan.findings.length } },
     { kind: "policy", attributes: { notRun: true } },
     { kind: "coordinator", attributes: { findingCount: scan.findings.length } },

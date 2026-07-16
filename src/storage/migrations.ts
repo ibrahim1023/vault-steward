@@ -183,6 +183,14 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX trace_spans_scan_started_idx ON trace_spans (scan_id, started_at);
       CREATE INDEX trace_snapshots_scan_category_idx ON trace_snapshots (scan_id, category);
     `
+  },
+  {
+    version: 9,
+    sql: `
+      ALTER TABLE finding_lineage ADD COLUMN retrieval_metadata_json TEXT NOT NULL DEFAULT '[]';
+      ALTER TABLE finding_lineage ADD COLUMN policy_evaluation_id TEXT;
+      ALTER TABLE finding_lineage ADD COLUMN proposal_source_id TEXT;
+    `
   }
 ];
 

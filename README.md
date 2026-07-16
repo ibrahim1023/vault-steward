@@ -16,6 +16,7 @@ Vault Steward provides:
 - Deterministic graph projection, bounded YAML policy parsing/evaluation, schema validation, task integrity checks, decision validation, and a persisted review queue.
 - Required local Ollama or llama.cpp-compatible model provider for bounded entity, contradiction, staleness, and ambiguous-decision analysis. Every candidate is JSON-validated, citation-checked against the active scan, and cannot mutate vault state.
 - A fixed-path local Policy Studio with deterministic draft validation and preview, evidence-bounded selected-finding explanations, local model readiness checks, and metadata-only reviewer feedback.
+- A collapsed local Observability inspector with metadata-only scan timelines, finding lineage, configuration fingerprints, operational metrics, trace retention, opt-in redacted snapshot preferences, and explicit trace deletion controls.
 
 The repository README is kept current as product capabilities change. Architecture decisions, interfaces, operational constraints, and detailed engineering progress are maintained in `docs/`.
 
@@ -26,6 +27,7 @@ The repository README is kept current as product capabilities change. Architectu
 - The deterministic core owns parsing, policy evaluation, evidence validation, finding normalization, and persistence.
 - A loopback-only local model is required for a completed governed scan. Provider absence or model-output exhaustion leaves the scan incomplete; it cannot silently fall back to a deterministic-only completion.
 - Any note mutation must be explicitly approved and revalidated against the current source revision.
+- Trace metadata excludes note bodies, excerpts, prompts, model outputs, absolute vault paths, URLs, and secrets by default. Optional snapshot categories are disabled unless explicitly enabled.
 
 ## Requirements
 

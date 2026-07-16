@@ -22,12 +22,14 @@
 ### Task 1: Trace Contracts and Configuration Fingerprint
 
 **Files:**
+
 - Modify: `src/contracts/trace.ts`
 - Create: `src/observability/fingerprint.ts`
 - Test: `tests/contracts/trace.test.ts`
 - Create: `tests/observability/fingerprint.test.ts`
 
 **Interfaces:**
+
 - Produces `TraceKind`, `TraceTimelineEntry`, `FindingLineageView`, `TracePreferences`, `validateTracePreferences`, and `configurationFingerprint(input)`.
 - Consumed by repository persistence, plugin database facade, and observability React view.
 
@@ -37,9 +39,7 @@
 expect(configurationFingerprint({ model: "a", policy: "v1" })).toBe(
   configurationFingerprint({ policy: "v1", model: "a" })
 );
-expect(configurationFingerprint({ model: "a" })).not.toBe(
-  configurationFingerprint({ model: "b" })
-);
+expect(configurationFingerprint({ model: "a" })).not.toBe(configurationFingerprint({ model: "b" }));
 expect(validateTracePreferences({ retentionDays: 30, storePromptSnapshots: false })).toBe(true);
 ```
 
@@ -51,7 +51,9 @@ Run: `npx vitest run tests/contracts/trace.test.ts tests/observability/fingerpri
 
 ```ts
 export function configurationFingerprint(input: ConfigurationFingerprintInput): string {
-  return createHash("sha256").update(JSON.stringify(canonicalize(input))).digest("hex");
+  return createHash("sha256")
+    .update(JSON.stringify(canonicalize(input)))
+    .digest("hex");
 }
 ```
 
@@ -66,6 +68,7 @@ Commit: `git commit -m "feat: add observability trace contracts"`
 ### Task 2: SQLite Trace Read Models, Preferences, and Inventory
 
 **Files:**
+
 - Modify: `src/storage/migrations.ts`
 - Modify: `src/storage/repositories.ts`
 - Modify: `src/plugin/database.ts`
@@ -73,6 +76,7 @@ Commit: `git commit -m "feat: add observability trace contracts"`
 - Create: `tests/storage/observability-repository.test.ts`
 
 **Interfaces:**
+
 - Consumes Task 1 contracts.
 - Produces `getObservabilitySnapshot(scanId?)`, `setTracePreferences`, `deleteTraceForScan`, `deleteAllTraceData`, and `pruneExpiredTraceData` through `PluginDatabase`.
 
@@ -104,6 +108,7 @@ Commit: `git commit -m "feat: add observability storage queries"`
 ### Task 3: Governed Scan Instrumentation and Metrics
 
 **Files:**
+
 - Modify: `src/plugin/database.ts`
 - Modify: `src/main.ts`
 - Create: `src/observability/metrics.ts`
@@ -111,6 +116,7 @@ Commit: `git commit -m "feat: add observability storage queries"`
 - Create: `tests/observability/metrics.test.ts`
 
 **Interfaces:**
+
 - Consumes repository APIs from Task 2 and fingerprint from Task 1.
 - Produces root/child scan spans for scanner, indexing, retrieval, agent, validation, policy, coordinator, and finding stages plus content-free metric summaries.
 
@@ -118,7 +124,15 @@ Commit: `git commit -m "feat: add observability storage queries"`
 
 ```ts
 expect(snapshot.timeline.map((span) => span.kind)).toEqual(
-  expect.arrayContaining(["scanner", "indexing", "agent", "validation", "policy", "coordinator", "finding"])
+  expect.arrayContaining([
+    "scanner",
+    "indexing",
+    "agent",
+    "validation",
+    "policy",
+    "coordinator",
+    "finding"
+  ])
 );
 expect(calculatePercentile([10, 20, 30], 0.95)).toBe(30);
 ```
@@ -140,6 +154,7 @@ Commit: `git commit -m "feat: record scan observability metrics"`
 ### Task 4: Compact Workspace Inspector and Settings Controls
 
 **Files:**
+
 - Create: `src/ui/ObservabilityView.tsx`
 - Modify: `src/ui/VaultStewardWorkspace.tsx`
 - Modify: `src/main.ts`
@@ -150,6 +165,7 @@ Commit: `git commit -m "feat: record scan observability metrics"`
 - Modify: `tests/plugin/settings.test.ts`
 
 **Interfaces:**
+
 - Consumes `PluginDatabase.loadObservability`, `TracePreferences`, and repository read models.
 - Produces a closed-by-default, keyboard-native Observability disclosure and settings controls for optional snapshot preference, exclusions, and retention.
 
@@ -179,12 +195,14 @@ Commit: `git commit -m "feat: add local trace inspector"`
 ### Task 5: Phase Completion, Documentation, and Explanation
 
 **Files:**
+
 - Modify: `task.md` (ignored local task record)
 - Modify: `docs/progress.md`
 - Modify: `README.md` only if implemented behavior changes a documented capability
 - Create: `/tmp/2026-07-16-explanation-phase-13-observability.html`
 
 **Interfaces:**
+
 - Consumes all Phase 13 contracts, storage, instrumentation, and UI behavior.
 - Produces verified phase documentation and a self-contained interactive diff explanation outside the repository.
 

@@ -25,7 +25,10 @@ const snapshot = {
       parsedArtifactIds: ["parse:Tasks.md"],
       validatorId: "finding-normalization",
       coordinatorDecisionId: "coordinator:scan-1",
-      agentExecutionId: null
+      agentExecutionId: null,
+      retrievalMetadata: ["not-run"],
+      policyEvaluationId: "not-run",
+      proposalSourceId: "not-applicable"
     }
   ],
   configuration: { fingerprint: "a".repeat(64), values: { model: "llama3.1:8b" } },
