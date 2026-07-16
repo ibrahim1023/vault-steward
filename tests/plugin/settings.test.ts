@@ -15,7 +15,8 @@ describe("plugin settings", () => {
       {
         vaultLabel: "Personal notes",
         autoScanOnLoad: true,
-        modelProvider: DEFAULT_PLUGIN_SETTINGS.modelProvider
+        modelProvider: DEFAULT_PLUGIN_SETTINGS.modelProvider,
+        maintenanceSchedule: DEFAULT_PLUGIN_SETTINGS.maintenanceSchedule
       }
     );
   });
