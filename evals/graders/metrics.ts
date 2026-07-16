@@ -15,7 +15,6 @@ export function gradeExpectedFindings(
   actual: readonly GradedFinding[]
 ) {
   const expectedKeys = new Set(expected.map(key));
-  const actualKeys = new Set(actual.map(key));
   const matches = actual.filter((finding) => expectedKeys.has(key(finding)));
   const truePositive = matches.length;
   const falsePositive = actual.length - truePositive;
