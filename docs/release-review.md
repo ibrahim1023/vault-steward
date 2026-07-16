@@ -1,5 +1,9 @@
 # MVP Release Review
 
+## Phase 10 Addendum
+
+The post-MVP review confirms local scheduler guards, deterministic maintenance grouping/impact inspection, redacted portability contracts, release artifact checks, and the desktop accessibility protocol. Automated evidence passes; the documented desktop protocol remains required before wider distribution.
+
 ## Decision
 
 **Conditional internal MVP release approved.** The package, deterministic core, local-model boundary, safety controls, and automated Phase 6 gates are ready for local developer installation. Broader distribution is blocked on a manual Obsidian desktop check and on wiring semantic findings and proposal actions into the live workspace.
