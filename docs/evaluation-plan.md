@@ -20,6 +20,8 @@ Thresholds are starting gates to calibrate against expert review before a genera
 
 The initial deterministic `reference-integrity` baseline records evidence validity, precision, and recall of 1.0 against the synthetic fixture dataset. It runs through `npm run eval:smoke` and `npm run eval:full`.
 
+The `model-quality` report grades the split model-assisted fixtures with deterministic candidate, citation, schema, severity, false-positive/negative, precision, recall, F1, and unsupported-claim metrics. Reports contain only case IDs, aggregate metrics, versions, and split labels; they never contain note bodies, prompt text, or raw model output.
+
 ## Dataset and Infrastructure Layout
 
 ```text
