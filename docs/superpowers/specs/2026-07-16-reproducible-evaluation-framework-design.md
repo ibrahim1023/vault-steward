@@ -73,16 +73,20 @@ remain reviewable together.
 
 ```ts
 type EvaluationSplit =
-  | "development"
-  | "ci-regression"
-  | "held-out"
-  | "adversarial"
-  | "human-review";
+  "development" | "ci-regression" | "held-out" | "adversarial" | "human-review";
 
 type EvaluationCase = {
   schemaVersion: 1;
   id: string;
-  family: "reference" | "entity" | "contradiction" | "staleness" | "task" | "schema" | "policy" | "decision";
+  family:
+    | "reference"
+    | "entity"
+    | "contradiction"
+    | "staleness"
+    | "task"
+    | "schema"
+    | "policy"
+    | "decision";
   split: EvaluationSplit;
   agent?: string;
   fixturePath: string;
@@ -104,8 +108,23 @@ type EvaluationReport = {
   schemaVersion: 1;
   reportId: string;
   createdAt: string;
-  selection: { suite: string; caseIds: string[]; split: EvaluationSplit[]; agent?: string; modelProfile?: string };
-  provenance: { pluginVersion: string; parserVersion: string; promptVersions: string[]; policyVersions: string[]; graderVersion: string; fixtureManifestHash: string; configurationFingerprint: string; hardware: HardwareProfile };
+  selection: {
+    suite: string;
+    caseIds: string[];
+    split: EvaluationSplit[];
+    agent?: string;
+    modelProfile?: string;
+  };
+  provenance: {
+    pluginVersion: string;
+    parserVersion: string;
+    promptVersions: string[];
+    policyVersions: string[];
+    graderVersion: string;
+    fixtureManifestHash: string;
+    configurationFingerprint: string;
+    hardware: HardwareProfile;
+  };
   metrics: EvaluationMetrics;
   cases: RedactedCaseResult[];
 };

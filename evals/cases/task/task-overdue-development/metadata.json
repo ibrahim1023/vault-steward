@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "task-overdue-development",
+  "family": "task",
+  "split": "development",
+  "fixturePath": "evals/cases/task/task-overdue-development/vault",
+  "contamination": { "developmentVisible": true, "reason": "task baseline" }
+}

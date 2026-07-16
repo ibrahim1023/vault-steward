@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "contradiction-supported-ci",
+  "family": "contradiction",
+  "split": "ci-regression",
+  "agent": "contradiction",
+  "fixturePath": "evals/cases/contradiction/contradiction-supported-ci/vault",
+  "contamination": { "developmentVisible": true, "reason": "fixed contradiction coverage" }
+}

@@ -21,12 +21,14 @@
 ### Task 1: Evaluation Contracts and Fixture Loader
 
 **Files:**
+
 - Create: `evals/contracts.ts`
 - Create: `evals/fixtures.ts`
 - Create: `tests/evals/contracts.test.ts`
 - Create: `tests/evals/fixtures.test.ts`
 
 **Interfaces:**
+
 - Produces `EvaluationCase`, `EvaluationReport`, `validateEvaluationCase`, `validateEvaluationReport`, and `loadEvaluationCases`.
 
 - [ ] **Step 1: Write failing validation and fixture tests**
@@ -44,8 +46,15 @@ Run: `npx vitest run tests/evals/contracts.test.ts tests/evals/fixtures.test.ts`
 - [ ] **Step 3: Implement bounded contracts and repository-relative fixture loading**
 
 ```ts
-export function validateEvaluationCase(value: unknown): value is EvaluationCase { /* exact split/path/content checks */ }
-export async function loadEvaluationCases(root: string, selection: Selection): Promise<EvaluationCase[]> { /* manifest + metadata + expected */ }
+export function validateEvaluationCase(value: unknown): value is EvaluationCase {
+  /* exact split/path/content checks */
+}
+export async function loadEvaluationCases(
+  root: string,
+  selection: Selection
+): Promise<EvaluationCase[]> {
+  /* manifest + metadata + expected */
+}
 ```
 
 - [ ] **Step 4: Run focused tests and commit**
@@ -57,6 +66,7 @@ Commit: `git commit -m "feat: add evaluation case contracts"`
 ### Task 2: Shared Metrics and Deterministic Family Fixtures
 
 **Files:**
+
 - Create: `evals/graders/metrics.ts`
 - Modify: `evals/graders/model-quality.ts`
 - Create: `evals/cases/` fixture directories and `evals/manifests/*.json`
@@ -64,13 +74,18 @@ Commit: `git commit -m "feat: add evaluation case contracts"`
 - Modify: `tests/evals/model-quality.test.ts`
 
 **Interfaces:**
+
 - Consumes Task 1 cases.
 - Produces `gradeExpectedFindings`, `EvaluationMetrics`, and manifests covering reference, entity, contradiction, staleness, task, schema, policy, and decision families.
 
 - [ ] **Step 1: Write failing grading tests**
 
 ```ts
-expect(gradeExpectedFindings(expected, actual)).toMatchObject({ precision: 1, recall: 1, sourceRangeAccuracy: 1 });
+expect(gradeExpectedFindings(expected, actual)).toMatchObject({
+  precision: 1,
+  recall: 1,
+  sourceRangeAccuracy: 1
+});
 expect(gradeExpectedFindings([], [])).toMatchObject({ precision: null, recall: null });
 ```
 
@@ -91,12 +106,14 @@ Commit: `git commit -m "feat: add deterministic evaluation metrics"`
 ### Task 3: Selection CLI and Redacted Report Writer
 
 **Files:**
+
 - Create: `evals/runner.ts`
 - Modify: `scripts/run-evals.ts`
 - Modify: `package.json`
 - Create: `tests/evals/runner.test.ts`
 
 **Interfaces:**
+
 - Consumes Task 1 loader and Task 2 graders.
 - Produces `parseEvaluationSelection`, `runEvaluation`, and `writeEvaluationReport` with suite/agent/model-profile/case/split/manifest filters.
 
@@ -125,6 +142,7 @@ Commit: `git commit -m "feat: add filtered evaluation reports"`
 ### Task 4: Baseline Comparison and Dataset Governance
 
 **Files:**
+
 - Create: `evals/regression.ts`
 - Create: `evals/baselines/evaluation-main.json`
 - Create: `evals/baselines/evaluation-main.rationale.json`
@@ -132,6 +150,7 @@ Commit: `git commit -m "feat: add filtered evaluation reports"`
 - Modify: `.github/workflows/verify.yml`
 
 **Interfaces:**
+
 - Consumes Task 3 reports.
 - Produces `compareEvaluationReports` and `assertDatasetGovernance`.
 
@@ -159,6 +178,7 @@ Commit: `feat: add evaluation regression gates`
 ### Task 5: Completion and Promotion
 
 **Files:**
+
 - Modify: `task.md` (ignored local tracker)
 - Modify: `docs/progress.md`
 - Modify: `README.md` when public behavior changes

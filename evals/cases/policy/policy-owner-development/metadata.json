@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "policy-owner-development",
+  "family": "policy",
+  "split": "development",
+  "fixturePath": "evals/cases/policy/policy-owner-development/vault",
+  "contamination": { "developmentVisible": true, "reason": "policy baseline" }
+}

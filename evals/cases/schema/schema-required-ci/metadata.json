@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "schema-required-ci",
+  "family": "schema",
+  "split": "ci-regression",
+  "fixturePath": "evals/cases/schema/schema-required-ci/vault",
+  "contamination": { "developmentVisible": true, "reason": "schema baseline" }
+}

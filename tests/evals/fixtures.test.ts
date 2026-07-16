@@ -12,6 +12,25 @@ describe("evaluation fixture loader", () => {
     ).resolves.toMatchObject([{ id: "reference-missing-ci", family: "reference" }]);
   });
   it("rejects traversal-like manifests", async () => {
-    await expect(loadEvaluationCases(root, "../outside.json")).rejects.toThrow("Evaluation path is invalid.");
+    await expect(loadEvaluationCases(root, "../outside.json")).rejects.toThrow(
+      "Evaluation path is invalid."
+    );
+  });
+  it("loads every supported finding family from canonical fixture directories", async () => {
+    const cases = await loadEvaluationCases(root, "evals/manifests/all-families.json", {
+      splits: ["development", "ci-regression", "adversarial", "human-review"]
+    });
+    expect(new Set(cases.map((item) => item.family))).toEqual(
+      new Set([
+        "reference",
+        "entity",
+        "contradiction",
+        "staleness",
+        "task",
+        "schema",
+        "policy",
+        "decision"
+      ])
+    );
   });
 });

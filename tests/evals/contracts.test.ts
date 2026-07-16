@@ -40,8 +40,19 @@ describe("evaluation contracts", () => {
         schemaVersion: 1,
         reportId: "report-1",
         createdAt: "2026-07-16T00:00:00.000Z",
-        selection: { suite: "reference", caseIds: ["reference-missing-dev"], splits: ["development"] },
-        provenance: { pluginVersion: "0.1.0", parserVersion: "scanner-v1", graderVersion: "v1", fixtureManifestHash: "a".repeat(64), configurationFingerprint: "b".repeat(64), hardware: { platform: "darwin", architecture: "arm64", memoryBytes: 1, runtime: "node" } },
+        selection: {
+          suite: "reference",
+          caseIds: ["reference-missing-dev"],
+          splits: ["development"]
+        },
+        provenance: {
+          pluginVersion: "0.1.0",
+          parserVersion: "scanner-v1",
+          graderVersion: "v1",
+          fixtureManifestHash: "a".repeat(64),
+          configurationFingerprint: "b".repeat(64),
+          hardware: { platform: "darwin", architecture: "arm64", memoryBytes: 1, runtime: "node" }
+        },
         metrics: { precision: 1, recall: 1, f1: 1, falsePositives: 0, falseNegatives: 0 },
         cases: [{ id: "reference-missing-dev", outcome: "passed", durationMs: 1, errorCode: null }]
       })
@@ -51,8 +62,19 @@ describe("evaluation contracts", () => {
         schemaVersion: 1,
         reportId: "report-1",
         createdAt: "2026-07-16T00:00:00.000Z",
-        selection: { suite: "reference", caseIds: ["reference-missing-dev"], splits: ["development"] },
-        provenance: { pluginVersion: "note body content", parserVersion: "scanner-v1", graderVersion: "v1", fixtureManifestHash: "a".repeat(64), configurationFingerprint: "b".repeat(64), hardware: { platform: "darwin", architecture: "arm64", memoryBytes: 1, runtime: "node" } },
+        selection: {
+          suite: "reference",
+          caseIds: ["reference-missing-dev"],
+          splits: ["development"]
+        },
+        provenance: {
+          pluginVersion: "note body content",
+          parserVersion: "scanner-v1",
+          graderVersion: "v1",
+          fixtureManifestHash: "a".repeat(64),
+          configurationFingerprint: "b".repeat(64),
+          hardware: { platform: "darwin", architecture: "arm64", memoryBytes: 1, runtime: "node" }
+        },
         metrics: { precision: 1, recall: 1, f1: 1, falsePositives: 0, falseNegatives: 0 },
         cases: []
       })

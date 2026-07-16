@@ -1,0 +1,10 @@
+[
+  {
+    "id": "owner",
+    "type": "policy",
+    "notePath": "Project.md",
+    "locator": "frontmatter",
+    "severity": "medium",
+    "safeFix": "not-applicable"
+  }
+]

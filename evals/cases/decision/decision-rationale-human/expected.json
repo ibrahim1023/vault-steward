@@ -1,0 +1,10 @@
+[
+  {
+    "id": "rationale",
+    "type": "decision",
+    "notePath": "Decision.md",
+    "locator": "line:1",
+    "severity": "low",
+    "safeFix": "not-applicable"
+  }
+]

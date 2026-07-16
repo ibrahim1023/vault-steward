@@ -1,0 +1,10 @@
+[
+  {
+    "id": "missing-owner",
+    "type": "schema",
+    "notePath": "Project.md",
+    "locator": "frontmatter",
+    "severity": "medium",
+    "safeFix": "not-applicable"
+  }
+]
