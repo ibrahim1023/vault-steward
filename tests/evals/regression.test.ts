@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { EvaluationReport } from "../../evals/contracts.js";
 import { compareEvaluationReports } from "../../evals/regression.js";
 
-const report = (precision: number) => ({
+const report = (precision: number): EvaluationReport => ({
   schemaVersion: 1 as const,
   reportId: "r",
   createdAt: "2026-07-16T00:00:00.000Z",
@@ -10,6 +11,10 @@ const report = (precision: number) => ({
     pluginVersion: "0.1.0",
     parserVersion: "p",
     graderVersion: "g",
+    promptVersions: ["none"],
+    policyVersions: ["policy-v1"],
+    schemaVersions: ["finding-v1"],
+    modelProfile: "fixture",
     fixtureManifestHash: "a".repeat(64),
     configurationFingerprint: "b".repeat(64),
     hardware: { platform: "darwin", architecture: "arm64", memoryBytes: 1, runtime: "node" }
@@ -41,4 +46,11 @@ describe("evaluation regression gates", () => {
         reviewReason: "fixture correction"
       })
     ).toEqual([]));
+  it("fails performance growth without a recorded rationale", () => {
+    const baseline = report(1);
+    baseline.metrics.p95LatencyMs = 100;
+    const candidate = report(1);
+    candidate.metrics.p95LatencyMs = 130;
+    expect(compareEvaluationReports(baseline, candidate)).toContain("p95 latency increased");
+  });
 });

@@ -33,4 +33,12 @@ describe("evaluation fixture loader", () => {
       ])
     );
   });
+  it("keeps held-out cases out of development manifests", async () => {
+    await expect(
+      loadEvaluationCases(root, "evals/manifests/held-out.json", { splits: ["held-out"] })
+    ).resolves.toMatchObject([{ id: "contradiction-held-out", split: "held-out" }]);
+    await expect(
+      loadEvaluationCases(root, "evals/manifests/development.json", { splits: ["held-out"] })
+    ).resolves.toEqual([]);
+  });
 });

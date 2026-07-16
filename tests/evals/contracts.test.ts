@@ -49,6 +49,10 @@ describe("evaluation contracts", () => {
           pluginVersion: "0.1.0",
           parserVersion: "scanner-v1",
           graderVersion: "v1",
+          promptVersions: ["none"],
+          policyVersions: ["policy-v1"],
+          schemaVersions: ["finding-v1"],
+          modelProfile: "deterministic-fixture",
           fixtureManifestHash: "a".repeat(64),
           configurationFingerprint: "b".repeat(64),
           hardware: { platform: "darwin", architecture: "arm64", memoryBytes: 1, runtime: "node" }
@@ -71,6 +75,10 @@ describe("evaluation contracts", () => {
           pluginVersion: "note body content",
           parserVersion: "scanner-v1",
           graderVersion: "v1",
+          promptVersions: ["none"],
+          policyVersions: ["policy-v1"],
+          schemaVersions: ["finding-v1"],
+          modelProfile: "deterministic-fixture",
           fixtureManifestHash: "a".repeat(64),
           configurationFingerprint: "b".repeat(64),
           hardware: { platform: "darwin", architecture: "arm64", memoryBytes: 1, runtime: "node" }

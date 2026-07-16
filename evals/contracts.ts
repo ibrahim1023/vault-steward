@@ -52,6 +52,10 @@ export type EvaluationReport = {
     pluginVersion: string;
     parserVersion: string;
     graderVersion: string;
+    promptVersions: string[];
+    policyVersions: string[];
+    schemaVersions: string[];
+    modelProfile: string;
     fixtureManifestHash: string;
     configurationFingerprint: string;
     hardware: { platform: string; architecture: string; memoryBytes: number; runtime: string };
@@ -137,6 +141,13 @@ export function validateEvaluationReport(value: unknown): value is EvaluationRep
     bounded(provenance.pluginVersion) &&
     bounded(provenance.parserVersion) &&
     bounded(provenance.graderVersion) &&
+    Array.isArray(provenance.promptVersions) &&
+    provenance.promptVersions.every(bounded) &&
+    Array.isArray(provenance.policyVersions) &&
+    provenance.policyVersions.every(bounded) &&
+    Array.isArray(provenance.schemaVersions) &&
+    provenance.schemaVersions.every(bounded) &&
+    bounded(provenance.modelProfile) &&
     hash(provenance.fixtureManifestHash) &&
     hash(provenance.configurationFingerprint) &&
     isObject(provenance.hardware) &&

@@ -11,7 +11,11 @@
     "pluginVersion": "0.1.0",
     "parserVersion": "scanner-v1",
     "graderVersion": "phase-14-v1",
-    "fixtureManifestHash": "8eeeb80a8ac817e4abee45c92ed40ea2fb00e1f85295cb3ea269b9e80eb16862",
+    "promptVersions": ["none"],
+    "policyVersions": ["fixture-policy-v1"],
+    "schemaVersions": ["evaluation-case-v1", "finding-v1"],
+    "modelProfile": "deterministic-fixture",
+    "fixtureManifestHash": "b5afaab6867f728e25ae4de8f16c396572948cad5613b3ec415316958fb46ac5",
     "configurationFingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
     "hardware": {
       "platform": "baseline",
@@ -30,7 +34,10 @@
     "schemaValidity": 1,
     "routingCompliance": 1,
     "terminationCompliance": 1,
-    "unsupportedClaimRate": 0
+    "unsupportedClaimRate": 0,
+    "parseSuccess": 1,
+    "p95LatencyMs": 0,
+    "peakMemoryBytes": 0
   },
   "cases": [
     { "id": "reference-missing-ci", "outcome": "passed", "durationMs": 0, "errorCode": null }

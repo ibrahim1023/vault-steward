@@ -20,6 +20,7 @@ export function compareEvaluationReports(
   const metrics = candidate.metrics;
   for (const key of [
     "evidenceValidity",
+    "parseSuccess",
     "schemaValidity",
     "routingCompliance",
     "terminationCompliance"
@@ -35,12 +36,31 @@ export function compareEvaluationReports(
     const before = baseline.metrics[key];
     const after = candidate.metrics[key];
     if (
+      before !== undefined &&
       before !== null &&
+      after !== undefined &&
       after !== null &&
       before - after > limit &&
       !validRationale(rationale, key)
     )
       failures.push(`${label} dropped`);
+  }
+  for (const [key, label] of [
+    ["p95LatencyMs", "p95 latency"],
+    ["peakMemoryBytes", "peak memory"]
+  ] as const) {
+    const before = baseline.metrics[key];
+    const after = candidate.metrics[key];
+    if (
+      before !== undefined &&
+      before !== null &&
+      after !== undefined &&
+      after !== null &&
+      before > 0 &&
+      after > before * 1.2 &&
+      !validRationale(rationale, key)
+    )
+      failures.push(`${label} increased`);
   }
   return failures;
 }
