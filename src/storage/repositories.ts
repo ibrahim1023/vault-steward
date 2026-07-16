@@ -153,6 +153,15 @@ export type ModelTraceRecord = {
   outcome: string;
 };
 
+export type ReviewerFeedbackRecord = {
+  id: string;
+  findingId: string;
+  proposalId: string | null;
+  verdict: "false-positive" | "useful" | "needs-review";
+  label: string | null;
+  createdAt: string;
+};
+
 export class VaultStewardRepository {
   constructor(private readonly database: Database) {}
 
@@ -453,6 +462,47 @@ export class VaultStewardRepository {
     );
   }
 
+  saveReviewerFeedback(record: ReviewerFeedbackRecord): void {
+    this.database.run(
+      "INSERT INTO reviewer_feedback (id, finding_id, proposal_id, verdict, label, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        record.id,
+        record.findingId,
+        record.proposalId,
+        record.verdict,
+        record.label,
+        record.createdAt
+      ]
+    );
+  }
+
+  listReviewerFeedback(): ReviewerFeedbackRecord[] {
+    return (
+      this.database.exec(
+        "SELECT id, finding_id, proposal_id, verdict, label, created_at FROM reviewer_feedback ORDER BY created_at, id"
+      )[0]?.values ?? []
+    ).flatMap((row) =>
+      typeof row[0] === "string" &&
+      typeof row[1] === "string" &&
+      typeof row[3] === "string" &&
+      typeof row[5] === "string" &&
+      (typeof row[2] === "string" || row[2] === null) &&
+      (typeof row[4] === "string" || row[4] === null) &&
+      ["false-positive", "useful", "needs-review"].includes(row[3])
+        ? [
+            {
+              id: row[0],
+              findingId: row[1],
+              proposalId: row[2],
+              verdict: row[3] as ReviewerFeedbackRecord["verdict"],
+              label: row[4],
+              createdAt: row[5]
+            }
+          ]
+        : []
+    );
+  }
+
   getRecordCounts(): RecordCounts {
     return {
       approvals: countRows(this.database, "approvals"),
@@ -463,6 +513,7 @@ export class VaultStewardRepository {
       notes: countRows(this.database, "notes"),
       policies: countRows(this.database, "policies"),
       proposals: countRows(this.database, "proposals"),
+      reviewerFeedback: countRows(this.database, "reviewer_feedback"),
       scans: countRows(this.database, "scans")
     };
   }
@@ -477,6 +528,7 @@ export type RecordCounts = {
   notes: number;
   policies: number;
   proposals: number;
+  reviewerFeedback: number;
   scans: number;
 };
 

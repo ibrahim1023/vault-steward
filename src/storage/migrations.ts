@@ -133,6 +133,20 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX parse_dependencies_target_idx
         ON parse_dependencies (target_path);
     `
+  },
+  {
+    version: 6,
+    sql: `
+      CREATE TABLE reviewer_feedback (
+        id TEXT PRIMARY KEY,
+        finding_id TEXT NOT NULL REFERENCES findings(id),
+        proposal_id TEXT,
+        verdict TEXT NOT NULL CHECK (verdict IN ('false-positive', 'useful', 'needs-review')),
+        label TEXT,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX reviewer_feedback_finding_idx ON reviewer_feedback (finding_id);
+    `
   }
 ];
 

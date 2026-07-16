@@ -30,6 +30,7 @@ describe("SQLite migrations and repositories", () => {
         "notes",
         "policies",
         "proposals",
+        "reviewer_feedback",
         "scans",
         "schema_migrations"
       ])
@@ -173,6 +174,7 @@ describe("SQLite migrations and repositories", () => {
       notes: 1,
       policies: 1,
       proposals: 1,
+      reviewerFeedback: 0,
       scans: 1
     });
   });

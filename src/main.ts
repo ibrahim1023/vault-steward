@@ -29,6 +29,7 @@ import { parsePolicy } from "./policy/parse.js";
 import { explainFinding, type FindingExplanation } from "./agents/finding-explanation.js";
 import { checkModelReadiness } from "./model-provider/readiness.js";
 import type { Finding } from "./contracts/index.js";
+import { validateReviewerFeedback, type FeedbackVerdict } from "./feedback/review.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 
@@ -202,6 +203,25 @@ export default class VaultStewardPlugin extends Plugin {
     return checkModelReadiness(createLocalProvider(this.settings.modelProvider));
   }
 
+  async submitFeedback(finding: Finding, verdict: FeedbackVerdict, label: string): Promise<void> {
+    if (!this.database) throw new Error("Vault Steward database is unavailable.");
+    const diagnostic = validateReviewerFeedback({
+      findingId: finding.id,
+      verdict,
+      ...(label ? { label } : {})
+    });
+    if (diagnostic) throw new Error(diagnostic);
+    this.database.repository.saveReviewerFeedback({
+      id: crypto.randomUUID(),
+      findingId: finding.id,
+      proposalId: null,
+      verdict,
+      label: label || null,
+      createdAt: new Date().toISOString()
+    });
+    await this.database.flush();
+  }
+
   async applyProposal(proposalId: string) {
     const record = this.database?.repository.findProposal(proposalId);
     if (!record || !this.database) throw new Error("Proposal is unavailable.");
@@ -276,7 +296,9 @@ class VaultStewardStatusItemView extends ItemView {
             saveDraft: (source) => this.plugin.savePolicyDraft(source)
           },
           explainFinding: (finding) => this.plugin.explainFinding(finding),
-          checkModelReadiness: () => this.plugin.checkModelReadiness()
+          checkModelReadiness: () => this.plugin.checkModelReadiness(),
+          submitFeedback: (finding, verdict, label) =>
+            this.plugin.submitFeedback(finding, verdict, label)
         })
       )
     );

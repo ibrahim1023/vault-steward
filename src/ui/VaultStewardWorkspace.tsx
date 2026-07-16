@@ -10,6 +10,7 @@ import {
 } from "./dashboard.js";
 import { FindingDetail } from "./FindingDetail.js";
 import { FindingExplanation } from "./FindingExplanation.js";
+import { FindingFeedback } from "./FindingFeedback.js";
 import { HistoryView } from "./HistoryView.js";
 import { NextBestAction } from "./NextBestAction.js";
 import { PluginStatusView, type PluginStatus } from "./PluginStatusView.js";
@@ -29,7 +30,8 @@ export function VaultStewardWorkspace({
   loadHistory,
   policyStudio,
   explainFinding,
-  checkModelReadiness
+  checkModelReadiness,
+  submitFeedback
 }: {
   vaultLabel: string;
   scan: () => Promise<{
@@ -58,6 +60,11 @@ export function VaultStewardWorkspace({
     finding: Finding
   ) => Promise<import("../agents/finding-explanation.js").FindingExplanation>;
   checkModelReadiness?: () => Promise<import("../model-provider/readiness.js").ModelReadiness>;
+  submitFeedback?: (
+    finding: Finding,
+    verdict: import("../feedback/review.js").FeedbackVerdict,
+    label: string
+  ) => Promise<void>;
 }) {
   const [status, setStatus] = useState<PluginStatus>("ready");
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -156,6 +163,9 @@ export function VaultStewardWorkspace({
         {repairControls}
         {selectedFinding && explainFinding ? (
           <FindingExplanation finding={selectedFinding} explain={explainFinding} />
+        ) : null}
+        {selectedFinding && submitFeedback ? (
+          <FindingFeedback finding={selectedFinding} submit={submitFeedback} />
         ) : null}
       </FindingDetail>
       {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
