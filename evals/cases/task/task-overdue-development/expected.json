@@ -1,0 +1,10 @@
+[
+  {
+    "id": "overdue",
+    "type": "task",
+    "notePath": "Tasks.md",
+    "locator": "line:1",
+    "severity": "medium",
+    "safeFix": "not-applicable"
+  }
+]

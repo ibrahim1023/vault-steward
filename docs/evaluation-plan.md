@@ -44,6 +44,16 @@ A case declares `id`, `split`, fixture reference, task, expected evidence, expec
 - Adversarial: injection, conflicting metadata, malformed output, large context, tool failure, and loop-pressure cases.
 - Human review: ambiguous contradiction/staleness and proposal usefulness samples with agreement tracking.
 
+## Reproducible Fixture Runner
+
+`npm run evals` runs the versioned fixture-vault cases under `evals/cases/`. Each case declares a bounded expected finding, source locator, severity, fix applicability, family, split, and contamination metadata. Fixtures cover references, entities, contradictions, staleness, tasks, schemas, policies, and decisions.
+
+The runner supports `--suite`, `--agent`, `--case`, `--split`, `--model-profile`, `--manifest`, and `--compare`. Reports are written locally to ignored `evals/reports/framework.json`. They record only identifiers, aggregate metrics, configuration fingerprints, plugin/parser/grader versions, prompt/policy/schema version labels, model profile, fixture manifest hash, and hardware metadata.
+
+CI uses the fixed `ci-regression` manifest and baseline comparison. It fails critical fixture cases, invalid evidence/schema/routing/termination results, unsupported claims, unapproved precision/recall/F1 regressions, and unapproved p95 latency or peak-memory growth. A metric exception requires a recorded author, date, rationale, and named metric.
+
+Held-out and human-review cases are rejected if marked development-visible. Human labels are summarized only as aggregate independently-reviewed sample counts, agreement, and unresolved counts. Model-assisted assessment can inform usefulness review but cannot satisfy the deterministic evidence, schema, routing, or termination safety gates on its own.
+
 ## Runtime Efficiency Metrics
 
 Report input/output tokens, token per valid finding, repeated-context ratio, retrieved-context utilization, model latency, tool calls, retries, and incomplete-rate. Default budgets from `docs/ai-system.md` are hard limits; a 20% increase in p95 token use or latency versus baseline is an investigation gate.

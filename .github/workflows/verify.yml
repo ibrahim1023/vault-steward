@@ -21,5 +21,6 @@ jobs:
       - run: npm run test:integration
       - run: npm run test:e2e
       - run: npm run eval:smoke
+      - run: npm run evals -- --manifest evals/manifests/ci-regression.json --compare evals/baselines/evaluation-main.json
       - run: npm run build
       - run: npm run security:check

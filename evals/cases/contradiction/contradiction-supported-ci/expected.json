@@ -1,0 +1,10 @@
+[
+  {
+    "id": "conflict",
+    "type": "contradiction",
+    "notePath": "Status.md",
+    "locator": "line:2",
+    "severity": "medium",
+    "safeFix": "not-applicable"
+  }
+]

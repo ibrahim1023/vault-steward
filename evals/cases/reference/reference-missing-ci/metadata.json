@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "reference-missing-ci",
+  "family": "reference",
+  "split": "ci-regression",
+  "fixturePath": "evals/cases/reference/reference-missing-ci/vault",
+  "contamination": { "developmentVisible": true, "reason": "fixed deterministic CI coverage" }
+}

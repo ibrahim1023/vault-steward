@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "entity-alias-development",
+  "family": "entity",
+  "split": "development",
+  "agent": "entity",
+  "fixturePath": "evals/cases/entity/entity-alias-development/vault",
+  "contamination": { "developmentVisible": true, "reason": "visible alias baseline" }
+}

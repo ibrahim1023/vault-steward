@@ -17,6 +17,7 @@ Vault Steward provides:
 - Required local Ollama or llama.cpp-compatible model provider for bounded entity, contradiction, staleness, and ambiguous-decision analysis. Every candidate is JSON-validated, citation-checked against the active scan, and cannot mutate vault state.
 - A fixed-path local Policy Studio with deterministic draft validation and preview, evidence-bounded selected-finding explanations, local model readiness checks, and metadata-only reviewer feedback.
 - A collapsed local Observability inspector with metadata-only scan timelines, finding lineage, configuration fingerprints, operational metrics, trace retention, opt-in redacted snapshot preferences, and explicit trace deletion controls.
+- A local evaluation framework with versioned fixture vaults across all finding families, protected development/CI/held-out/adversarial/human-review splits, deterministic evidence grading, regression baselines, and redacted local reports.
 
 The repository README is kept current as product capabilities change. Architecture decisions, interfaces, operational constraints, and detailed engineering progress are maintained in `docs/`.
 
@@ -51,6 +52,7 @@ npm run test:integration
 npm run test:e2e
 npm run test:acceptance
 npm run eval:smoke
+npm run evals -- --manifest evals/manifests/ci-regression.json --compare evals/baselines/evaluation-main.json
 npm run perf:smoke
 npm run ops:smoke
 npm run security:check
@@ -77,20 +79,21 @@ See [local runbooks](docs/runbooks.md) for recovery procedures and diagnostic ha
 
 ## Commands
 
-| Command                       | Purpose                                                            |
-| ----------------------------- | ------------------------------------------------------------------ |
-| `npm run format:check`        | Check Prettier formatting.                                         |
-| `npm run lint`                | Run ESLint.                                                        |
-| `npm run typecheck`           | Run strict TypeScript checking.                                    |
-| `npm run build`               | Build the Obsidian plugin bundle and SQLite WebAssembly asset.     |
-| `npm run package:plugin`      | Produce a versioned desktop-plugin release directory.              |
-| `npm run test:plugin-install` | Run the packaged install/uninstall smoke harness.                  |
-| `npm run test:unit`           | Run deterministic unit and component tests.                        |
-| `npm run test:integration`    | Run SQLite migration, snapshot, and coordinator integration tests. |
-| `npm run test:e2e`            | Run the current end-to-end reference-finding test.                 |
-| `npm run test:acceptance`     | Run the synthetic MVP vault acceptance suite.                      |
-| `npm run eval:smoke`          | Run the deterministic reference-integrity evaluation.              |
-| `npm run eval:full`           | Run all registered evaluations.                                    |
-| `npm run perf:smoke`          | Run the fixed large-vault and incremental-scan performance gate.   |
-| `npm run ops:smoke`           | Run metadata-only MVP operational baseline checks.                 |
-| `npm run security:check`      | Audit production dependencies.                                     |
+| Command                                                                                                         | Purpose                                                               |
+| --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `npm run format:check`                                                                                          | Check Prettier formatting.                                            |
+| `npm run lint`                                                                                                  | Run ESLint.                                                           |
+| `npm run typecheck`                                                                                             | Run strict TypeScript checking.                                       |
+| `npm run build`                                                                                                 | Build the Obsidian plugin bundle and SQLite WebAssembly asset.        |
+| `npm run package:plugin`                                                                                        | Produce a versioned desktop-plugin release directory.                 |
+| `npm run test:plugin-install`                                                                                   | Run the packaged install/uninstall smoke harness.                     |
+| `npm run test:unit`                                                                                             | Run deterministic unit and component tests.                           |
+| `npm run test:integration`                                                                                      | Run SQLite migration, snapshot, and coordinator integration tests.    |
+| `npm run test:e2e`                                                                                              | Run the current end-to-end reference-finding test.                    |
+| `npm run test:acceptance`                                                                                       | Run the synthetic MVP vault acceptance suite.                         |
+| `npm run eval:smoke`                                                                                            | Run the deterministic reference-integrity evaluation.                 |
+| `npm run eval:full`                                                                                             | Run all registered evaluations.                                       |
+| `npm run evals -- --manifest evals/manifests/ci-regression.json --compare evals/baselines/evaluation-main.json` | Run fixture evaluation and enforce the committed regression baseline. |
+| `npm run perf:smoke`                                                                                            | Run the fixed large-vault and incremental-scan performance gate.      |
+| `npm run ops:smoke`                                                                                             | Run metadata-only MVP operational baseline checks.                    |
+| `npm run security:check`                                                                                        | Audit production dependencies.                                        |

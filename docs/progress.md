@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 13 local trace inspector and agent observability is complete.
+Phase 14 reproducible evaluation and regression framework is complete.
 
 ## Completed Work
 
@@ -50,10 +50,11 @@ Phase 13 local trace inspector and agent observability is complete.
 - Phase 9 adds a fixed-path Policy Studio with deterministic draft validation and preview, explicit policy save and scan integration, evidence-bounded selected-finding explanations, local-model readiness checks, metadata-only reviewer feedback, and deterministic model-quality reports.
 - Phase 12 adds metadata-only trace contracts, persisted scan spans and finding lineage, invalid-lineage rejection before review, and retention/deletion inventory controls.
 - Phase 13 adds a collapsed metadata-only observability inspector with scan timelines, complete finding-lineage hops, deterministic configuration fingerprints, local privacy/retention controls, automatic retention cleanup, stored-data inventory, and operational scan metrics.
+- Phase 14 adds versioned fixture vaults and manifests across all supported finding families, deterministic source/evidence graders, redacted configuration-rich reports, CI regression gates, protected held-out/adversarial/human-review splits, and local human-review agreement summaries.
 
 ## Current Work
 
-Phase 13 is complete on `feat/phase-13-observability`; verification, promotion to `development`, and push are pending.
+Phase 14 is complete on `feat/phase-14-evaluation-framework`; full verification, promotion to `development`, and push are pending.
 
 ## Important Decisions
 
@@ -69,8 +70,8 @@ Phase 13 is complete on `feat/phase-13-observability`; verification, promotion t
 
 ## Verification Status
 
-The Phase 13 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, and a production dependency audit with no moderate-or-higher vulnerabilities. Git is initialized; completed work is committed in coherent increments.
+The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities.
 
 ## Next Recommended Task
 
-Start Phase 14 reproducible evaluation and regression framework from a dedicated branch based on `development`.
+Start Phase 15 replay, comparative analysis, and model quality from a dedicated branch based on `development`.

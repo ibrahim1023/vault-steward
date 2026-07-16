@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "contradiction-held-out",
+  "family": "contradiction",
+  "split": "held-out",
+  "agent": "contradiction",
+  "fixturePath": "evals/cases/contradiction/contradiction-held-out/vault",
+  "contamination": {
+    "developmentVisible": false,
+    "reason": "excluded from implementation development"
+  }
+}
