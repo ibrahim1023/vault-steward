@@ -45,8 +45,12 @@ export function createGovernedIntegritySession(
         ...(policies ? { policies } : {}),
         ...(cache ? { coordinator: new LocalAgentCoordinator(providers, cache) } : {})
       });
-      if (!result.completed)
-        throw new Error("required local model semantic analysis did not complete");
+      if (!result.completed) {
+        if (result.limitations.includes("local-model-output-unavailable")) {
+          throw new Error("required local model output could not be validated");
+        }
+        throw new Error("required local model provider is unavailable");
+      }
       return result;
     }
   };
