@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "reportId": "baseline-phase-14",
+  "createdAt": "2026-07-16T00:00:00.000Z",
+  "selection": { "suite": "fixture", "caseIds": ["reference-missing-ci"], "splits": ["ci-regression"] },
+  "provenance": {
+    "pluginVersion": "0.1.0",
+    "parserVersion": "scanner-v1",
+    "graderVersion": "phase-14-v1",
+    "fixtureManifestHash": "8eeeb80a8ac817e4abee45c92ed40ea2fb00e1f85295cb3ea269b9e80eb16862",
+    "configurationFingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+    "hardware": { "platform": "baseline", "architecture": "baseline", "memoryBytes": 0, "runtime": "node" }
+  },
+  "metrics": { "precision": 1, "recall": 1, "f1": 1, "falsePositives": 0, "falseNegatives": 0, "evidenceValidity": 1, "schemaValidity": 1, "routingCompliance": 1, "terminationCompliance": 1, "unsupportedClaimRate": 0 },
+  "cases": [{ "id": "reference-missing-ci", "outcome": "passed", "durationMs": 0, "errorCode": null }]
+}

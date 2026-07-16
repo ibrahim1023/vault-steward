@@ -1,0 +1,6 @@
+{
+  "author": "Vault Steward maintainers",
+  "date": "2026-07-16",
+  "affectedMetrics": ["precision", "recall", "f1"],
+  "reviewReason": "Initial deterministic Phase 14 baseline."
+}
