@@ -136,4 +136,23 @@ describe("VaultStewardWorkspace", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Ready to scan");
     expect(screen.queryByRole("button", { name: /approve|apply|dismiss|defer/i })).toBeNull();
   });
+
+  it("keeps optional finding actions collapsed and explains when no automatic fix is safe", async () => {
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [{ ...finding, type: "task" }] })}
+        loadFindings={() => [{ ...finding, type: "task" }]}
+        explainFinding={async () => ({ ok: true, text: "Evidence", latencyMs: 1 })}
+        submitFeedback={async () => undefined}
+      />
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByText("No safe automatic fix is available for this finding.")
+      ).toBeInTheDocument()
+    );
+    expect(screen.getByText("Explain evidence").closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByText("Review feedback").closest("details")).not.toHaveAttribute("open");
+  });
 });

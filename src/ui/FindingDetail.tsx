@@ -11,15 +11,24 @@ export function FindingDetail({
 }) {
   if (!finding) return null;
   return (
-    <section aria-label="Finding detail">
+    <section className="finding-detail" aria-label="Finding detail">
       <h2>Finding detail</h2>
-      <p>
-        <strong>{finding.severity}</strong>
-      </p>
-      <p>{finding.explanation}</p>
-      <p>{finding.evidence.map((item) => `${item.notePath} (${item.locator})`).join(", ")}</p>
-      <p>Affected notes: {finding.affectedNoteIds.join(", ")}</p>
-      <p>Confidence: {finding.confidence}</p>
+      <p className={`finding-severity finding-severity-${finding.severity}`}>{finding.severity}</p>
+      <p className="finding-summary">{finding.explanation}</p>
+      <dl className="finding-facts">
+        <div>
+          <dt>Source</dt>
+          <dd>{finding.evidence.map((item) => `${item.notePath} (${item.locator})`).join(", ")}</dd>
+        </div>
+        <div>
+          <dt>Affected notes</dt>
+          <dd>{finding.affectedNoteIds.join(", ")}</dd>
+        </div>
+        <div>
+          <dt>Confidence</dt>
+          <dd>{finding.confidence}</dd>
+        </div>
+      </dl>
       {children}
     </section>
   );

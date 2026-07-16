@@ -171,11 +171,20 @@ export function VaultStewardWorkspace({
       />
       <FindingDetail finding={selectedFinding}>
         {repairControls}
+        {selectedFinding && selectedFinding.type !== "broken-reference" ? (
+          <p className="no-safe-fix">No safe automatic fix is available for this finding.</p>
+        ) : null}
         {selectedFinding && explainFinding ? (
-          <FindingExplanation finding={selectedFinding} explain={explainFinding} />
+          <details className="finding-disclosure">
+            <summary>Explain evidence</summary>
+            <FindingExplanation finding={selectedFinding} explain={explainFinding} />
+          </details>
         ) : null}
         {selectedFinding && submitFeedback ? (
-          <FindingFeedback finding={selectedFinding} submit={submitFeedback} />
+          <details className="finding-disclosure">
+            <summary>Review feedback</summary>
+            <FindingFeedback finding={selectedFinding} submit={submitFeedback} />
+          </details>
         ) : null}
       </FindingDetail>
       {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
