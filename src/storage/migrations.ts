@@ -158,6 +158,31 @@ export const MIGRATIONS: readonly Migration[] = [
       INSERT INTO telemetry_settings (id, retention_days, updated_at) VALUES (1, 30, CURRENT_TIMESTAMP);
       CREATE TABLE telemetry_deletions (id TEXT PRIMARY KEY, deleted_at TEXT NOT NULL, category TEXT NOT NULL, scan_id TEXT);
     `
+  },
+  {
+    version: 8,
+    sql: `
+      ALTER TABLE telemetry_settings ADD COLUMN store_prompt_snapshots INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE telemetry_settings ADD COLUMN store_model_output_snapshots INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE telemetry_settings ADD COLUMN redact_excerpts INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE telemetry_settings ADD COLUMN excluded_folders_json TEXT NOT NULL DEFAULT '[]';
+      CREATE TABLE trace_configurations (
+        scan_id TEXT PRIMARY KEY REFERENCES scans(id),
+        fingerprint TEXT NOT NULL,
+        values_json TEXT NOT NULL,
+        schema_version INTEGER NOT NULL
+      );
+      CREATE TABLE trace_snapshots (
+        id TEXT PRIMARY KEY,
+        scan_id TEXT NOT NULL REFERENCES scans(id),
+        category TEXT NOT NULL CHECK (category IN ('prompt', 'model-output')),
+        snapshot_json TEXT NOT NULL,
+        byte_count INTEGER NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX trace_spans_scan_started_idx ON trace_spans (scan_id, started_at);
+      CREATE INDEX trace_snapshots_scan_category_idx ON trace_snapshots (scan_id, category);
+    `
   }
 ];
 

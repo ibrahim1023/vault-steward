@@ -6,7 +6,14 @@ import type {
   FindingStatus,
   FindingType
 } from "../contracts/index.js";
-import type { AgentExecutionTrace, FindingLineage, TraceSpan } from "../contracts/trace.js";
+import {
+  type AgentExecutionTrace,
+  type FindingLineage,
+  type TracePreferences,
+  type TraceSpan,
+  validateTraceMetadata,
+  validateTracePreferences
+} from "../contracts/trace.js";
 
 export type ScanRecord = {
   id: string;
@@ -161,6 +168,51 @@ export type ReviewerFeedbackRecord = {
   verdict: "false-positive" | "useful" | "needs-review";
   label: string | null;
   createdAt: string;
+};
+
+export type TraceTimelineEntry = {
+  id: string;
+  kind: string;
+  startedAt: string;
+  completedAt: string | null;
+  outcome: "success" | "failure";
+  durationMs: number | null;
+  retryCount: number;
+  fileCount: number | null;
+  errorCode: string | null;
+};
+
+export type FindingLineageView = {
+  findingId: string;
+  evidenceLocators: string[];
+  parsedArtifactIds: string[];
+  validatorId: string;
+  coordinatorDecisionId: string;
+  agentExecutionId: string | null;
+};
+
+export type TraceConfigurationRecord = {
+  fingerprint: string;
+  values: Record<string, string | number | boolean>;
+};
+
+export type TraceInventory = {
+  spans: number;
+  agentExecutions: number;
+  findingLineage: number;
+  retentionDays: number;
+  categories: {
+    promptSnapshots: { enabled: boolean; count: number; bytes: number };
+    modelOutputSnapshots: { enabled: boolean; count: number; bytes: number };
+  };
+};
+
+export type ObservabilitySnapshot = {
+  scanId: string | null;
+  timeline: TraceTimelineEntry[];
+  lineage: FindingLineageView[];
+  configuration: TraceConfigurationRecord | null;
+  inventory: TraceInventory;
 };
 
 export class VaultStewardRepository {
@@ -516,6 +568,155 @@ export class VaultStewardRepository {
     );
   }
 
+  saveTraceConfiguration(input: {
+    scanId: string;
+    fingerprint: string;
+    values: Record<string, string | number | boolean>;
+  }): void {
+    if (
+      input.fingerprint.length !== 64 ||
+      !/^[a-f0-9]+$/i.test(input.fingerprint) ||
+      !validateTraceMetadata(input.values)
+    )
+      throw new Error("Trace configuration is invalid.");
+    this.database.run(
+      "INSERT INTO trace_configurations (scan_id, fingerprint, values_json, schema_version) VALUES (?, ?, ?, 1)",
+      [input.scanId, input.fingerprint, JSON.stringify(input.values)]
+    );
+  }
+
+  getTracePreferences(): TracePreferences {
+    const row = this.database.exec(
+      "SELECT retention_days, store_prompt_snapshots, store_model_output_snapshots, redact_excerpts, excluded_folders_json FROM telemetry_settings WHERE id = 1"
+    )[0]?.values[0];
+    const excludedFolders = typeof row?.[4] === "string" ? safeStringArray(row[4]) : [];
+    const candidate: TracePreferences = {
+      retentionDays: typeof row?.[0] === "number" ? row[0] : 30,
+      storePromptSnapshots: row?.[1] === 1,
+      storeModelOutputSnapshots: row?.[2] === 1,
+      redactExcerpts: row?.[3] !== 0,
+      excludedFolders
+    };
+    return validateTracePreferences(candidate) ? candidate : defaultTracePreferences();
+  }
+
+  setTracePreferences(preferences: TracePreferences, updatedAt: string): void {
+    if (!validateTracePreferences(preferences)) throw new Error("Trace preferences are invalid.");
+    this.database.run(
+      "UPDATE telemetry_settings SET retention_days = ?, store_prompt_snapshots = ?, store_model_output_snapshots = ?, redact_excerpts = ?, excluded_folders_json = ?, updated_at = ? WHERE id = 1",
+      [
+        preferences.retentionDays,
+        Number(preferences.storePromptSnapshots),
+        Number(preferences.storeModelOutputSnapshots),
+        Number(preferences.redactExcerpts),
+        JSON.stringify(preferences.excludedFolders),
+        updatedAt
+      ]
+    );
+  }
+
+  saveTraceSnapshot(scanId: string, category: "prompt" | "model-output", snapshot: string): void {
+    if (snapshot.length === 0 || snapshot.length > 4_096 || !validateTraceMetadata(snapshot))
+      throw new Error("Trace snapshot is invalid.");
+    const preferences = this.getTracePreferences();
+    if (
+      (category === "prompt" && !preferences.storePromptSnapshots) ||
+      (category === "model-output" && !preferences.storeModelOutputSnapshots)
+    )
+      throw new Error("Trace snapshots are disabled.");
+    this.database.run(
+      "INSERT INTO trace_snapshots (id, scan_id, category, snapshot_json, byte_count, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+      [crypto.randomUUID(), scanId, category, snapshot, new TextEncoder().encode(snapshot).length, new Date().toISOString()]
+    );
+  }
+
+  getObservabilitySnapshot(scanId?: string): ObservabilitySnapshot {
+    const selectedScanId = scanId ?? this.latestCompletedScanId();
+    const timeline = selectedScanId ? this.listTraceTimeline(selectedScanId) : [];
+    const lineage = selectedScanId ? this.listFindingLineage(selectedScanId) : [];
+    return {
+      scanId: selectedScanId,
+      timeline,
+      lineage,
+      configuration: selectedScanId ? this.getTraceConfiguration(selectedScanId) : null,
+      inventory: this.getTraceInventory()
+    };
+  }
+
+  private listTraceTimeline(scanId: string): TraceTimelineEntry[] {
+    return (
+      this.database.exec(
+        "SELECT id, kind, started_at, completed_at, outcome, attributes_json FROM trace_spans WHERE scan_id = ? ORDER BY started_at, id",
+        [scanId]
+      )[0]?.values ?? []
+    ).flatMap((row) => {
+      const [id, kind, startedAt, completedAt, outcome, attributesJson] = row;
+      const attributes = typeof attributesJson === "string" ? safeMetadata(attributesJson) : null;
+      if (
+        typeof id !== "string" ||
+        typeof kind !== "string" ||
+        typeof startedAt !== "string" ||
+        (typeof completedAt !== "string" && completedAt !== null) ||
+        (outcome !== "success" && outcome !== "failure") ||
+        attributes === null
+      )
+        return [];
+      return [
+        {
+          id,
+          kind,
+          startedAt,
+          completedAt,
+          outcome,
+          durationMs: durationBetween(startedAt, completedAt),
+          retryCount: numericAttribute(attributes, "retryCount"),
+          fileCount: nullableNumericAttribute(attributes, "fileCount"),
+          errorCode: stringAttribute(attributes, "errorCode")
+        }
+      ];
+    });
+  }
+
+  private listFindingLineage(scanId: string): FindingLineageView[] {
+    return (
+      this.database.exec(
+        "SELECT finding_id, evidence_locators_json, parsed_artifact_ids_json, validator_id, coordinator_decision_id, agent_execution_id FROM finding_lineage WHERE scan_id = ? ORDER BY finding_id",
+        [scanId]
+      )[0]?.values ?? []
+    ).flatMap((row) => {
+      const evidenceLocators = typeof row[1] === "string" ? safeStringArray(row[1]) : [];
+      const parsedArtifactIds = typeof row[2] === "string" ? safeStringArray(row[2]) : [];
+      return typeof row[0] === "string" &&
+        evidenceLocators.length > 0 &&
+        parsedArtifactIds.length > 0 &&
+        typeof row[3] === "string" &&
+        typeof row[4] === "string" &&
+        (typeof row[5] === "string" || row[5] === null)
+        ? [
+            {
+              findingId: row[0],
+              evidenceLocators,
+              parsedArtifactIds,
+              validatorId: row[3],
+              coordinatorDecisionId: row[4],
+              agentExecutionId: row[5]
+            }
+          ]
+        : [];
+    });
+  }
+
+  private getTraceConfiguration(scanId: string): TraceConfigurationRecord | null {
+    const row = this.database.exec(
+      "SELECT fingerprint, values_json FROM trace_configurations WHERE scan_id = ?",
+      [scanId]
+    )[0]?.values[0];
+    const values = typeof row?.[1] === "string" ? safeMetadata(row[1]) : null;
+    return typeof row?.[0] === "string" && values !== null
+      ? { fingerprint: row[0], values: values as Record<string, string | number | boolean> }
+      : null;
+  }
+
   deleteTraceForScan(scanId: string, deletedAt: string, id: string): void {
     this.database.run("DELETE FROM agent_executions WHERE scan_id = ?", [scanId]);
     this.database.run("DELETE FROM trace_spans WHERE scan_id = ?", [scanId]);
@@ -526,36 +727,45 @@ export class VaultStewardRepository {
     );
   }
 
-  getTraceInventory(): {
-    spans: number;
-    agentExecutions: number;
-    findingLineage: number;
-    retentionDays: number;
-  } {
-    const retention = this.database.exec(
-      "SELECT retention_days FROM telemetry_settings WHERE id = 1"
-    )[0]?.values[0]?.[0];
+  getTraceInventory(): TraceInventory {
+    const preferences = this.getTracePreferences();
     return {
       spans: countRows(this.database, "trace_spans"),
       agentExecutions: countRows(this.database, "agent_executions"),
       findingLineage: countRows(this.database, "finding_lineage"),
-      retentionDays: typeof retention === "number" ? retention : 30
+      retentionDays: preferences.retentionDays,
+      categories: {
+        promptSnapshots: this.snapshotInventory("prompt", preferences.storePromptSnapshots),
+        modelOutputSnapshots: this.snapshotInventory(
+          "model-output",
+          preferences.storeModelOutputSnapshots
+        )
+      }
+    };
+  }
+
+  private snapshotInventory(category: "prompt" | "model-output", enabled: boolean) {
+    const row = this.database.exec(
+      "SELECT COUNT(*), COALESCE(SUM(byte_count), 0) FROM trace_snapshots WHERE category = ?",
+      [category]
+    )[0]?.values[0];
+    return {
+      enabled,
+      count: typeof row?.[0] === "number" ? row[0] : 0,
+      bytes: typeof row?.[1] === "number" ? row[1] : 0
     };
   }
 
   setTraceRetention(days: number, updatedAt: string): void {
-    if (!Number.isInteger(days) || days < 1 || days > 3650)
-      throw new Error("Trace retention is invalid.");
-    this.database.run(
-      "UPDATE telemetry_settings SET retention_days = ?, updated_at = ? WHERE id = 1",
-      [days, updatedAt]
-    );
+    this.setTracePreferences({ ...this.getTracePreferences(), retentionDays: days }, updatedAt);
   }
 
   deleteAllTraceData(deletedAt: string, id: string): void {
     this.database.run("DELETE FROM agent_executions");
     this.database.run("DELETE FROM trace_spans");
     this.database.run("DELETE FROM finding_lineage");
+    this.database.run("DELETE FROM trace_configurations");
+    this.database.run("DELETE FROM trace_snapshots");
     this.database.run(
       "INSERT INTO telemetry_deletions (id, deleted_at, category, scan_id) VALUES (?, ?, 'all-traces', NULL)",
       [id, deletedAt]
@@ -617,6 +827,68 @@ export class VaultStewardRepository {
       scans: countRows(this.database, "scans")
     };
   }
+}
+
+function defaultTracePreferences(): TracePreferences {
+  return {
+    retentionDays: 30,
+    storePromptSnapshots: false,
+    storeModelOutputSnapshots: false,
+    redactExcerpts: true,
+    excludedFolders: []
+  };
+}
+
+function safeStringArray(value: string): string[] {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return Array.isArray(parsed) && parsed.every((item) => typeof item === "string" && validateTraceMetadata(item))
+      ? parsed
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function safeMetadata(value: string): Record<string, string | number | boolean> | null {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed &&
+      typeof parsed === "object" &&
+      !Array.isArray(parsed) &&
+      validateTraceMetadata(parsed)
+      ? (parsed as Record<string, string | number | boolean>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function durationBetween(startedAt: string, completedAt: string | null): number | null {
+  if (!completedAt) return null;
+  const duration = Date.parse(completedAt) - Date.parse(startedAt);
+  return Number.isFinite(duration) && duration >= 0 ? duration : null;
+}
+
+function numericAttribute(attributes: Record<string, string | number | boolean>, key: string): number {
+  const value = attributes[key];
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+function nullableNumericAttribute(
+  attributes: Record<string, string | number | boolean>,
+  key: string
+): number | null {
+  const value = attributes[key];
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+function stringAttribute(
+  attributes: Record<string, string | number | boolean>,
+  key: string
+): string | null {
+  const value = attributes[key];
+  return typeof value === "string" && validateTraceMetadata(value) ? value : null;
 }
 
 export type RecordCounts = {

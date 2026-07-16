@@ -14,4 +14,5 @@ describe("trace retention", () =>
     expect(repo.getTraceInventory().retentionDays).toBe(14);
     repo.deleteAllTraceData("now", "delete-1");
     expect(repo.getRecordCounts().approvals).toBe(0);
-  }));
+  })
+);
