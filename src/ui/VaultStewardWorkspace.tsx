@@ -13,6 +13,7 @@ import { HistoryView } from "./HistoryView.js";
 import { NextBestAction } from "./NextBestAction.js";
 import { PluginStatusView, type PluginStatus } from "./PluginStatusView.js";
 import { PriorityFindings } from "./PriorityFindings.js";
+import { PolicyStudio } from "./PolicyStudio.js";
 import { ProposalReviewPanel } from "./ProposalReviewPanel.js";
 import { VaultHealthSummary } from "./VaultHealthSummary.js";
 
@@ -23,7 +24,8 @@ export function VaultStewardWorkspace({
   createProposal,
   reviewProposal,
   applyProposal,
-  loadHistory
+  loadHistory,
+  policyStudio
 }: {
   vaultLabel: string;
   scan: () => Promise<{
@@ -43,6 +45,11 @@ export function VaultStewardWorkspace({
   ) => Promise<void>;
   applyProposal?: (proposalId: string) => Promise<{ ok: true } | { ok: false; reason: string }>;
   loadHistory?: () => { scans: ScanHistoryRecord[]; lifecycle: FindingLifecycleRecord[] };
+  policyStudio?: {
+    loadDraft: () => Promise<string>;
+    previewDraft: (source: string) => Promise<import("../policy/studio.js").PolicyPreview>;
+    saveDraft: (source: string) => Promise<void>;
+  };
 }) {
   const [status, setStatus] = useState<PluginStatus>("ready");
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -138,6 +145,7 @@ export function VaultStewardWorkspace({
         onSelect={setSelectedFindingId}
       />
       <FindingDetail finding={selectedFinding}>{repairControls}</FindingDetail>
+      {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
       {review && reviewProposal && applyProposal ? (
         <ProposalReviewPanel
           proposal={review.proposal}

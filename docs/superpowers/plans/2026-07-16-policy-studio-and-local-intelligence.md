@@ -21,10 +21,12 @@
 ### Task 1: Policy Studio Contracts and Deterministic Preview
 
 **Files:**
+
 - Create: `src/policy/studio.ts`, `tests/policy/studio.test.ts`
 - Modify: `src/policy/parse.ts`, `src/policy/evaluate.ts`
 
 **Interfaces:**
+
 - Produces `POLICY_STUDIO_PATH`, `validatePolicyPath(path)`, `createPolicyDraft(source)`, and `previewPolicyDraft(source, facts)`.
 - `previewPolicyDraft` returns either parse diagnostics or `PolicyViolation[]`; it performs no I/O.
 
@@ -33,10 +35,12 @@ Steps: write failing tests for missing/invalid/valid drafts, the fixed path, and
 ### Task 2: Policy File Adapter, Plugin Callbacks, and UI
 
 **Files:**
+
 - Create: `src/ui/PolicyStudio.tsx`, `tests/ui/policy-studio.test.tsx`
 - Modify: `src/main.ts`, `src/ui/VaultStewardWorkspace.tsx`, `styles.css`, `tests/ui/workspace.test.tsx`
 
 **Interfaces:**
+
 - Plugin callbacks: `loadPolicyDraft(): Promise<string>`, `previewPolicy(source): Promise<PolicyPreview>`, and `savePolicy(source): Promise<void>`.
 - UI receives the callbacks, tracks the in-memory draft, and exposes explicit Preview and Save controls.
 
@@ -45,10 +49,12 @@ Steps: write component tests for validation, save gating, preview, missing snaps
 ### Task 3: Evidence-Bounded Explanation and Model Readiness
 
 **Files:**
+
 - Create: `src/agents/finding-explanation.ts`, `src/model-provider/readiness.ts`, `tests/agents/finding-explanation.test.ts`, `tests/model-provider/readiness.test.ts`, `src/ui/FindingExplanation.tsx`, `tests/ui/finding-explanation.test.tsx`
 - Modify: `src/main.ts`, `src/plugin/settings.ts`, `src/ui/FindingDetail.tsx`, `src/ui/VaultStewardWorkspace.tsx`, `tests/plugin/settings.test.ts`
 
 **Interfaces:**
+
 - `buildFindingExplanationRequest(finding)` returns a capped prompt generated from cited evidence only.
 - `explainFinding(provider, finding)` returns a redacted result or failure code.
 - `checkModelReadiness(provider)` returns provider/model identity, limits, measured latency, structured-output state, and redacted failure code.
@@ -58,10 +64,12 @@ Steps: write tests proving unrelated note data cannot enter explanation requests
 ### Task 4: Feedback Storage and Quality Reports
 
 **Files:**
+
 - Modify: `src/storage/migrations.ts`, `src/storage/repositories.ts`, `src/main.ts`, `src/ui/FindingDetail.tsx`, `src/ui/VaultStewardWorkspace.tsx`
 - Create: `src/feedback/review.ts`, `src/feedback/report.ts`, `tests/feedback/review.test.ts`, `tests/feedback/report.test.ts`, `tests/integration/feedback-storage.test.ts`, `tests/ui/finding-feedback.test.tsx`
 
 **Interfaces:**
+
 - `validateReviewerFeedback(input)` accepts a known finding ID, optional proposal ID, verdict, and bounded label.
 - Repository methods save and aggregate metadata-only feedback.
 - `summarizeReviewerFeedback(records)` returns counts and policy-tuning hints without changing any policy.
@@ -71,10 +79,12 @@ Steps: write migration and validation tests first; add a forward-only table and 
 ### Task 5: Model-Assisted Evaluation Expansion
 
 **Files:**
+
 - Create: `evals/graders/model-quality.ts`, `evals/datasets/model-quality.jsonl`, `tests/evals/model-quality.test.ts`
 - Modify: `evals/graders/model-assisted.ts`, `scripts/run-evals.ts`, `docs/evaluation-plan.md`, `README.md`
 
 **Interfaces:**
+
 - `gradeModelQuality(cases, results)` returns precision, recall, F1, false-positive/negative counts, citation and schema validity, severity agreement, unsupported-claim rate, and redacted metadata.
 - CLI supports `--suite model-quality` and fails when deterministic citation/schema gates or configured thresholds fail.
 
@@ -83,6 +93,7 @@ Steps: add held-out and human-review metadata fixtures with no note text in outp
 ### Task 6: Phase Completion and Promotion
 
 **Files:**
+
 - Modify: `README.md`, `docs/progress.md`, `docs/upgrade-notes.md`, `task.md` (ignored local tracker)
 
 Steps: run `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm run build`, `npm run test:unit`, `npm run test:integration`, `npm run test:e2e`, `npm run test:acceptance`, `npm run eval:smoke`, `npm run eval:full`, `npm run test:plugin-install`, and `npm run security:check`; manually exercise policy draft/save/preview, explanation, readiness failure/recovery, and feedback in Obsidian; tick Phase 9 tasks; merge `feat/phase-9-policy-studio` into `development`; push and package.
