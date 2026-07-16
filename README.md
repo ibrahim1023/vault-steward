@@ -15,6 +15,7 @@ Vault Steward provides:
 - Rename/delete impact analysis for links, embeds, aliases, task, decision, and policy dependencies, plus a local scan and finding-lifecycle history view that never renders stored evidence content.
 - Deterministic graph projection, bounded YAML policy parsing/evaluation, schema validation, task integrity checks, decision validation, and a persisted review queue.
 - Required local Ollama or llama.cpp-compatible model provider for bounded entity, contradiction, staleness, and ambiguous-decision analysis. Every candidate is JSON-validated, citation-checked against the active scan, and cannot mutate vault state.
+- A fixed-path local Policy Studio with deterministic draft validation and preview, evidence-bounded selected-finding explanations, local model readiness checks, and metadata-only reviewer feedback.
 
 The repository README is kept current as product capabilities change. Architecture decisions, interfaces, operational constraints, and detailed engineering progress are maintained in `docs/`.
 

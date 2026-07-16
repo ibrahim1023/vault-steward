@@ -9,10 +9,14 @@ import {
   selectNextBestAction
 } from "./dashboard.js";
 import { FindingDetail } from "./FindingDetail.js";
+import { FindingExplanation } from "./FindingExplanation.js";
+import { FindingFeedback } from "./FindingFeedback.js";
 import { HistoryView } from "./HistoryView.js";
 import { NextBestAction } from "./NextBestAction.js";
 import { PluginStatusView, type PluginStatus } from "./PluginStatusView.js";
+import { ModelReadinessView } from "./ModelReadinessView.js";
 import { PriorityFindings } from "./PriorityFindings.js";
+import { PolicyStudio } from "./PolicyStudio.js";
 import { ProposalReviewPanel } from "./ProposalReviewPanel.js";
 import { VaultHealthSummary } from "./VaultHealthSummary.js";
 
@@ -23,7 +27,11 @@ export function VaultStewardWorkspace({
   createProposal,
   reviewProposal,
   applyProposal,
-  loadHistory
+  loadHistory,
+  policyStudio,
+  explainFinding,
+  checkModelReadiness,
+  submitFeedback
 }: {
   vaultLabel: string;
   scan: () => Promise<{
@@ -43,6 +51,20 @@ export function VaultStewardWorkspace({
   ) => Promise<void>;
   applyProposal?: (proposalId: string) => Promise<{ ok: true } | { ok: false; reason: string }>;
   loadHistory?: () => { scans: ScanHistoryRecord[]; lifecycle: FindingLifecycleRecord[] };
+  policyStudio?: {
+    loadDraft: () => Promise<string>;
+    previewDraft: (source: string) => Promise<import("../policy/studio.js").PolicyPreview>;
+    saveDraft: (source: string) => Promise<void>;
+  };
+  explainFinding?: (
+    finding: Finding
+  ) => Promise<import("../agents/finding-explanation.js").FindingExplanation>;
+  checkModelReadiness?: () => Promise<import("../model-provider/readiness.js").ModelReadiness>;
+  submitFeedback?: (
+    finding: Finding,
+    verdict: import("../feedback/review.js").FeedbackVerdict,
+    label: string
+  ) => Promise<void>;
 }) {
   const [status, setStatus] = useState<PluginStatus>("ready");
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -137,7 +159,17 @@ export function VaultStewardWorkspace({
         selectedFindingId={selectedFinding?.id}
         onSelect={setSelectedFindingId}
       />
-      <FindingDetail finding={selectedFinding}>{repairControls}</FindingDetail>
+      <FindingDetail finding={selectedFinding}>
+        {repairControls}
+        {selectedFinding && explainFinding ? (
+          <FindingExplanation finding={selectedFinding} explain={explainFinding} />
+        ) : null}
+        {selectedFinding && submitFeedback ? (
+          <FindingFeedback finding={selectedFinding} submit={submitFeedback} />
+        ) : null}
+      </FindingDetail>
+      {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
+      {checkModelReadiness ? <ModelReadinessView checkReadiness={checkModelReadiness} /> : null}
       {review && reviewProposal && applyProposal ? (
         <ProposalReviewPanel
           proposal={review.proposal}
@@ -171,5 +203,7 @@ function scanFailureMessage(error: unknown): string {
   if (message.includes("Vault reader") || message.includes("vault read"))
     return "The active vault could not be read.";
   if (message.includes("database")) return "The local Vault Steward database is unavailable.";
+  if (message.includes("active policy"))
+    return "The active policy file is invalid. Fix it in Policy Studio.";
   return "The scan could not complete.";
 }

@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 8 incremental indexing, change impact, and vault history is complete.
+Phase 9 policy studio and evidence-bounded local intelligence is complete.
 
 ## Completed Work
 
@@ -47,10 +47,11 @@ Phase 8 incremental indexing, change impact, and vault history is complete.
 - Phase 7 review workspace implemented: governed scans persist normalized findings and metadata-only model traces, the workspace reloads SQLite-backed findings, and deterministic reference repairs require an explicit review action and confirmation before revision-safe apply.
 - Phase 8 adds versioned vault-event scan planning, revision-bound in-process parse reuse, persisted parse-product metadata and dependency records, exact-context local-model route reuse, conservative full-scan fallbacks, rename/delete impact analysis, and a local scan/finding lifecycle history view.
 - Phase 11 adds a severity-led actionable dashboard, selected finding detail, repair controls limited to eligible broken references, preserved last-successful results after scan failure, a ribbon launcher, and packaged responsive styling.
+- Phase 9 adds a fixed-path Policy Studio with deterministic draft validation and preview, explicit policy save and scan integration, evidence-bounded selected-finding explanations, local-model readiness checks, metadata-only reviewer feedback, and deterministic model-quality reports.
 
 ## Current Work
 
-Phase 8 is complete on `feat/phase-8-incremental-indexing`; promotion to `development` is pending.
+Phase 9 is complete on `feat/phase-9-policy-studio`; promotion to `development` is pending.
 
 ## Important Decisions
 
@@ -66,8 +67,8 @@ Phase 8 is complete on `feat/phase-8-incremental-indexing`; promotion to `develo
 
 ## Verification Status
 
-The Phase 6 completion gate passed on 2026-07-14: formatting, linting, type checking, build, packaged install smoke, 71 unit/component tests, 13 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic evaluations, performance and operational baselines, privacy checks, and dependency audit. The Phase 7 completion gate passed on 2026-07-14: formatting, linting, type checking, build, packaged install smoke, 81 unit/component tests, 17 integration tests, 3 end-to-end tests, 3 acceptance tests, full deterministic evaluations, performance and operational baselines, production dependency audit, and a synthetic-only Ollama evaluation with schema/citation validity of 1.0. The Phase 8 completion gate passed on 2026-07-15: formatting, linting, type checking, build, packaged install smoke, 89 unit/component tests, 19 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic evaluations, a live `llama3.1:8b` synthetic evaluation with schema/citation validity of 1.0, incremental performance and operational baselines, and a production dependency audit with no moderate-or-higher vulnerabilities. Git is initialized; completed work is committed in coherent increments.
+The Phase 9 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 111 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic evaluations including model-quality gates, and a production dependency audit with no moderate-or-higher vulnerabilities. Git is initialized; completed work is committed in coherent increments.
 
 ## Next Recommended Task
 
-Start Phase 9 policy studio and evidence-bounded local intelligence from a dedicated branch based on `development`.
+Start Phase 10 proactive maintenance and release quality from a dedicated branch based on `development`.

@@ -19,6 +19,17 @@ import { ReviewWorkflow, type ReviewAction } from "./review/workflow.js";
 import { getPluginDatabasePath } from "./storage/sqlite-runtime.js";
 import { VaultStewardWorkspace } from "./ui/VaultStewardWorkspace.js";
 import { scanVaultFiles, type ScannedNote } from "./scanner/scan.js";
+import {
+  DEFAULT_POLICY_DRAFT,
+  POLICY_STUDIO_PATH,
+  previewPolicyDraft,
+  validatePolicyStudioPath
+} from "./policy/studio.js";
+import { parsePolicy } from "./policy/parse.js";
+import { explainFinding, type FindingExplanation } from "./agents/finding-explanation.js";
+import { checkModelReadiness } from "./model-provider/readiness.js";
+import type { Finding } from "./contracts/index.js";
+import { validateReviewerFeedback, type FeedbackVerdict } from "./feedback/review.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 
@@ -78,10 +89,14 @@ export default class VaultStewardPlugin extends Plugin {
     this.vaultReader.consumeInvalidatedEvents();
     const files = await this.vaultReader.listFiles();
     const snapshot = scanVaultFiles(files, this.parsedNotes);
+    const policySource = await this.loadPolicyDraft();
+    const parsedPolicy = parsePolicy(policySource);
+    if (!parsedPolicy.ok) throw new Error("The active policy file is invalid.");
     const startedAt = new Date().toISOString();
     const result = await createGovernedIntegritySession([provider], this.agentResultCache).scan(
       files,
-      snapshot
+      snapshot,
+      [parsedPolicy.value]
     );
     this.parsedNotes.clear();
     for (const note of snapshot.notes) this.parsedNotes.set(note.path, note);
@@ -156,6 +171,64 @@ export default class VaultStewardPlugin extends Plugin {
     await this.database.flush();
   }
 
+  async loadPolicyDraft(): Promise<string> {
+    try {
+      return await this.app.vault.adapter.read(POLICY_STUDIO_PATH);
+    } catch {
+      return DEFAULT_POLICY_DRAFT;
+    }
+  }
+
+  async previewPolicyDraft(source: string) {
+    if (this.parsedNotes.size === 0) {
+      throw new Error("Run a completed scan before previewing a policy.");
+    }
+    return previewPolicyDraft(
+      source,
+      [...this.parsedNotes.values()].map((note) => ({
+        path: note.path,
+        frontmatter: note.frontmatter
+      }))
+    );
+  }
+
+  async savePolicyDraft(source: string): Promise<void> {
+    const path = validatePolicyStudioPath(POLICY_STUDIO_PATH);
+    if (!path.ok) throw new Error(path.diagnostic);
+    if (!parsePolicy(source).ok) throw new Error("Policy draft is invalid.");
+    if (!(await this.app.vault.adapter.exists(".vault-steward"))) {
+      await this.app.vault.adapter.mkdir(".vault-steward");
+    }
+    await this.app.vault.adapter.write(POLICY_STUDIO_PATH, source);
+  }
+
+  async explainFinding(finding: Finding): Promise<FindingExplanation> {
+    return explainFinding(createLocalProvider(this.settings.modelProvider), finding);
+  }
+
+  async checkModelReadiness() {
+    return checkModelReadiness(createLocalProvider(this.settings.modelProvider));
+  }
+
+  async submitFeedback(finding: Finding, verdict: FeedbackVerdict, label: string): Promise<void> {
+    if (!this.database) throw new Error("Vault Steward database is unavailable.");
+    const diagnostic = validateReviewerFeedback({
+      findingId: finding.id,
+      verdict,
+      ...(label ? { label } : {})
+    });
+    if (diagnostic) throw new Error(diagnostic);
+    this.database.repository.saveReviewerFeedback({
+      id: crypto.randomUUID(),
+      findingId: finding.id,
+      proposalId: null,
+      verdict,
+      label: label || null,
+      createdAt: new Date().toISOString()
+    });
+    await this.database.flush();
+  }
+
   async applyProposal(proposalId: string) {
     const record = this.database?.repository.findProposal(proposalId);
     if (!record || !this.database) throw new Error("Proposal is unavailable.");
@@ -223,7 +296,16 @@ class VaultStewardStatusItemView extends ItemView {
           createProposal: (findingId, target) =>
             this.plugin.createReferenceProposal(findingId, target),
           reviewProposal: (proposalId, action) => this.plugin.reviewProposal(proposalId, action),
-          applyProposal: (proposalId) => this.plugin.applyProposal(proposalId)
+          applyProposal: (proposalId) => this.plugin.applyProposal(proposalId),
+          policyStudio: {
+            loadDraft: () => this.plugin.loadPolicyDraft(),
+            previewDraft: (source) => this.plugin.previewPolicyDraft(source),
+            saveDraft: (source) => this.plugin.savePolicyDraft(source)
+          },
+          explainFinding: (finding) => this.plugin.explainFinding(finding),
+          checkModelReadiness: () => this.plugin.checkModelReadiness(),
+          submitFeedback: (finding, verdict, label) =>
+            this.plugin.submitFeedback(finding, verdict, label)
         })
       )
     );
