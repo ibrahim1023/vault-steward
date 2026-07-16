@@ -15,6 +15,8 @@ import { HistoryView } from "./HistoryView.js";
 import { NextBestAction } from "./NextBestAction.js";
 import { PluginStatusView, type PluginStatus } from "./PluginStatusView.js";
 import { ModelReadinessView } from "./ModelReadinessView.js";
+import { MaintenanceScheduleView } from "./MaintenanceScheduleView.js";
+import { MaintenanceView } from "./MaintenanceView.js";
 import { PriorityFindings } from "./PriorityFindings.js";
 import { PolicyStudio } from "./PolicyStudio.js";
 import { ProposalReviewPanel } from "./ProposalReviewPanel.js";
@@ -31,7 +33,9 @@ export function VaultStewardWorkspace({
   policyStudio,
   explainFinding,
   checkModelReadiness,
-  submitFeedback
+  submitFeedback,
+  maintenance,
+  inspectImpact
 }: {
   vaultLabel: string;
   scan: () => Promise<{
@@ -65,6 +69,12 @@ export function VaultStewardWorkspace({
     verdict: import("../feedback/review.js").FeedbackVerdict,
     label: string
   ) => Promise<void>;
+  maintenance?: {
+    schedule: import("../maintenance/scheduler.js").MaintenanceSchedule;
+    state: import("../maintenance/scheduler.js").MaintenanceScheduleState;
+    setPaused: (paused: boolean) => Promise<void>;
+  };
+  inspectImpact?: (path: string) => import("../indexing/impact.js").ChangeImpact;
 }) {
   const [status, setStatus] = useState<PluginStatus>("ready");
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -170,6 +180,8 @@ export function VaultStewardWorkspace({
       </FindingDetail>
       {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
       {checkModelReadiness ? <ModelReadinessView checkReadiness={checkModelReadiness} /> : null}
+      {maintenance ? <MaintenanceScheduleView {...maintenance} /> : null}
+      {inspectImpact ? <MaintenanceView findings={findings} inspectImpact={inspectImpact} /> : null}
       {review && reviewProposal && applyProposal ? (
         <ProposalReviewPanel
           proposal={review.proposal}

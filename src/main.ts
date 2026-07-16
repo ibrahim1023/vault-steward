@@ -30,6 +30,12 @@ import { explainFinding, type FindingExplanation } from "./agents/finding-explan
 import { checkModelReadiness } from "./model-provider/readiness.js";
 import type { Finding } from "./contracts/index.js";
 import { validateReviewerFeedback, type FeedbackVerdict } from "./feedback/review.js";
+import { analyzeChangeImpact, type ChangeImpact } from "./indexing/impact.js";
+import {
+  decideMaintenanceRun,
+  nextScheduleState,
+  type MaintenanceScheduleState
+} from "./maintenance/scheduler.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 
@@ -39,6 +45,8 @@ export default class VaultStewardPlugin extends Plugin {
   private database: PluginDatabase | undefined;
   private readonly parsedNotes = new Map<string, ScannedNote>();
   private readonly agentResultCache = new AgentResultCache();
+  private maintenanceState: MaintenanceScheduleState = { runsInWindow: 0, scanInProgress: false };
+  private activeScan = false;
 
   async onload(): Promise<void> {
     this.settings = parsePluginSettings(await this.loadData());
@@ -50,6 +58,8 @@ export default class VaultStewardPlugin extends Plugin {
         this.app.vault.adapter.getResourcePath(`${this.pluginDirectory()}/${file}`)
     });
     this.register(this.vaultReader.watchInvalidations());
+    this.registerEvent(this.app.vault.on("modify", () => this.recordMaintenanceEvent()));
+    this.registerInterval(window.setInterval(() => void this.runMaintenanceTick(), 60_000));
     this.addSettingTab(new VaultStewardSettingsTab(this.app, this));
     this.registerView(STATUS_VIEW_TYPE, (leaf) => new VaultStewardStatusItemView(leaf, this));
     registerPluginCommands(this, () => this.openStatusView());
@@ -81,6 +91,17 @@ export default class VaultStewardPlugin extends Plugin {
   }
 
   async scanVault(): Promise<GovernedIntegrityResult> {
+    if (this.activeScan) throw new Error("A vault scan is already running.");
+    this.activeScan = true;
+    try {
+      return await this.scanVaultInternal();
+    } finally {
+      this.activeScan = false;
+      this.maintenanceState = { ...this.maintenanceState, scanInProgress: false };
+    }
+  }
+
+  private async scanVaultInternal(): Promise<GovernedIntegrityResult> {
     if (!this.vaultReader) throw new Error("Vault reader is unavailable.");
     if (!this.database) throw new Error("Vault Steward database is unavailable.");
     const provider = createLocalProvider(this.settings.modelProvider);
@@ -124,6 +145,49 @@ export default class VaultStewardPlugin extends Plugin {
     });
     await this.database.flush();
     return result;
+  }
+
+  getMaintenanceState(): MaintenanceScheduleState {
+    return { ...this.maintenanceState, scanInProgress: this.activeScan };
+  }
+
+  inspectImpact(path: string): ChangeImpact {
+    return analyzeChangeImpact(
+      { kind: "delete", path },
+      { id: "active", notes: [...this.parsedNotes.values()] }
+    );
+  }
+
+  async setMaintenancePaused(paused: boolean): Promise<void> {
+    await this.saveSettings({
+      ...this.settings,
+      maintenanceSchedule: { ...this.settings.maintenanceSchedule, paused }
+    });
+  }
+
+  private recordMaintenanceEvent(): void {
+    if (!this.settings.maintenanceSchedule.eventTriggered) return;
+    this.maintenanceState = nextScheduleState(
+      this.settings.maintenanceSchedule,
+      this.maintenanceState,
+      Date.now(),
+      false
+    );
+  }
+
+  private async runMaintenanceTick(): Promise<void> {
+    const now = Date.now();
+    const state = { ...this.maintenanceState, scanInProgress: this.activeScan };
+    const decision = decideMaintenanceRun(this.settings.maintenanceSchedule, state, now);
+    if (!decision.run) return;
+    this.maintenanceState = nextScheduleState(this.settings.maintenanceSchedule, state, now, true);
+    try {
+      await this.scanVault();
+    } catch {
+      // A scheduled run exposes its failure through the next workspace refresh, not a tight retry loop.
+    } finally {
+      this.maintenanceState = { ...this.maintenanceState, scanInProgress: false };
+    }
   }
 
   loadFindings() {
@@ -305,7 +369,13 @@ class VaultStewardStatusItemView extends ItemView {
           explainFinding: (finding) => this.plugin.explainFinding(finding),
           checkModelReadiness: () => this.plugin.checkModelReadiness(),
           submitFeedback: (finding, verdict, label) =>
-            this.plugin.submitFeedback(finding, verdict, label)
+            this.plugin.submitFeedback(finding, verdict, label),
+          maintenance: {
+            schedule: this.plugin.settings.maintenanceSchedule,
+            state: this.plugin.getMaintenanceState(),
+            setPaused: (paused) => this.plugin.setMaintenancePaused(paused)
+          },
+          inspectImpact: (path) => this.plugin.inspectImpact(path)
         })
       )
     );
