@@ -57,6 +57,58 @@
   padding: 12px;
 }
 
+.finding-detail > h2,
+.vault-steward-dashboard [aria-label="Policy Studio"] > h2 {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+}
+
+.finding-severity {
+  margin: 0 0 8px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.finding-summary {
+  margin: 0 0 12px;
+}
+.finding-facts {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.finding-facts div {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 8px;
+}
+.finding-facts dt {
+  color: var(--text-muted);
+}
+.finding-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.no-safe-fix {
+  margin: 14px 0 0;
+  color: var(--text-muted);
+}
+.finding-disclosure {
+  margin-top: 12px;
+}
+.finding-disclosure summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.finding-optional {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+}
+.vault-steward-dashboard [aria-label="Policy Studio"] {
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 16px;
+}
+
 .vault-steward-dashboard button:focus-visible,
 .vault-steward-dashboard input:focus-visible,
 .vault-steward-dashboard summary:focus-visible {

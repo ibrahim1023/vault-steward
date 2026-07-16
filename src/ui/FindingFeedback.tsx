@@ -18,10 +18,10 @@ export function FindingFeedback({
       .catch(() => setMessage("Feedback could not be recorded."));
   };
   return (
-    <section aria-label="Finding feedback">
-      <h3>Review feedback</h3>
+    <section className="finding-optional" aria-label="Finding feedback">
       <input
         aria-label="Feedback label"
+        placeholder="Optional label"
         maxLength={120}
         value={label}
         onChange={(event) => setLabel(event.target.value)}

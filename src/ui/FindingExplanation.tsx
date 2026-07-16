@@ -19,8 +19,7 @@ export function FindingExplanation({
   }, [finding.id]);
 
   return (
-    <section aria-label="Evidence explanation">
-      <h3>Evidence explanation</h3>
+    <section className="finding-optional" aria-label="Evidence explanation">
       <button
         type="button"
         disabled={loading}
