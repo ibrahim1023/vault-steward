@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 10 proactive maintenance and release quality is complete.
+Phase 12 privacy-preserving trace and finding-lineage foundation is complete.
 
 ## Completed Work
 
@@ -48,10 +48,11 @@ Phase 10 proactive maintenance and release quality is complete.
 - Phase 8 adds versioned vault-event scan planning, revision-bound in-process parse reuse, persisted parse-product metadata and dependency records, exact-context local-model route reuse, conservative full-scan fallbacks, rename/delete impact analysis, and a local scan/finding lifecycle history view.
 - Phase 11 adds a severity-led actionable dashboard, selected finding detail, repair controls limited to eligible broken references, preserved last-successful results after scan failure, a ribbon launcher, and packaged responsive styling.
 - Phase 9 adds a fixed-path Policy Studio with deterministic draft validation and preview, explicit policy save and scan integration, evidence-bounded selected-finding explanations, local-model readiness checks, metadata-only reviewer feedback, and deterministic model-quality reports.
+- Phase 12 adds metadata-only trace contracts, persisted scan spans and finding lineage, invalid-lineage rejection before review, and retention/deletion inventory controls.
 
 ## Current Work
 
-Phase 9 is complete on `feat/phase-9-policy-studio`; promotion to `development` is pending.
+Phase 12 is complete on `feat/phase-12-trace-lineage`; promotion to `development` is pending.
 
 ## Important Decisions
 
@@ -67,8 +68,8 @@ Phase 9 is complete on `feat/phase-9-policy-studio`; promotion to `development` 
 
 ## Verification Status
 
-The Phase 10 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 112 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic evaluations including model-quality gates, and a production dependency audit with no moderate-or-higher vulnerabilities. Git is initialized; completed work is committed in coherent increments.
+The Phase 12 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 117 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic evaluations including model-quality gates, and a production dependency audit with no moderate-or-higher vulnerabilities. Git is initialized; completed work is committed in coherent increments.
 
 ## Next Recommended Task
 
-Start Phase 12 privacy-preserving trace and finding-lineage foundation from a dedicated branch based on `development`.
+Start Phase 13 local trace inspector and agent observability from a dedicated branch based on `development`.

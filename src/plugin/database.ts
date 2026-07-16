@@ -10,6 +10,7 @@ import {
 import type { ModelTrace } from "../model-provider/structured.js";
 import { createSqliteRuntime, type SqliteRuntime } from "../storage/sqlite-runtime.js";
 import type { VaultFile } from "../vault-adapter/types.js";
+import { validateFindingLineage } from "../contracts/trace.js";
 
 export type PluginDatabaseAdapter = {
   exists(path: string): Promise<boolean>;
@@ -72,8 +73,32 @@ export async function openPluginDatabase(input: {
         files: scan.files.map((file) => ({ path: file.path, revisionHash: file.revision ?? "" }))
       });
       try {
+        const correlationId = `scan-${scan.id}`;
+        repository.saveTraceSpan({
+          schemaVersion: 1,
+          id: `${scan.id}:root`,
+          scanId: scan.id,
+          kind: "governed-scan",
+          startedAt: scan.startedAt,
+          completedAt: scan.finishedAt,
+          outcome: "success",
+          correlationId,
+          attributes: { fileCount: scan.files.length }
+        });
         repository.saveParseProducts(scan.id, scan.parserVersion, scan.parseProducts);
-        persistReviewQueue(repository, scan.findings);
+        const findings = scan.findings.filter((finding) =>
+          validateFindingLineage({
+            schemaVersion: 1,
+            findingId: finding.id,
+            scanId: scan.id,
+            evidenceLocators: finding.evidence.map((item) => item.locator),
+            parsedArtifactIds: finding.evidence.map((item) => `parse:${item.notePath}`),
+            validatorId: "finding-normalization",
+            coordinatorDecisionId: `coordinator:${scan.id}`,
+            correlationId
+          })
+        );
+        persistReviewQueue(repository, findings);
         for (const [index, trace] of scan.modelTraces.entries()) {
           repository.saveModelTrace({
             id: `${scan.id}:trace:${index}`,
@@ -88,6 +113,30 @@ export async function openPluginDatabase(input: {
             inputTokens: 0,
             outputTokens: 0,
             outcome: trace.outcome
+          });
+          repository.saveAgentExecution({
+            schemaVersion: 1,
+            id: `${scan.id}:agent:${index}`,
+            scanId: scan.id,
+            spanId: `${scan.id}:root`,
+            agent: "local-coordinator",
+            model: trace.model,
+            durationMs: trace.latencyMs,
+            retryCount: trace.retries,
+            validation: trace.outcome === "success" ? "passed" : "failed",
+            correlationId
+          });
+        }
+        for (const finding of findings) {
+          repository.saveFindingLineage({
+            schemaVersion: 1,
+            findingId: finding.id,
+            scanId: scan.id,
+            evidenceLocators: finding.evidence.map((item) => item.locator),
+            parsedArtifactIds: finding.evidence.map((item) => `parse:${item.notePath}`),
+            validatorId: "finding-normalization",
+            coordinatorDecisionId: `coordinator:${scan.id}`,
+            correlationId
           });
         }
         snapshots.transition(scan.id, "completed", scan.finishedAt);

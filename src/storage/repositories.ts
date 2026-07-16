@@ -6,6 +6,7 @@ import type {
   FindingStatus,
   FindingType
 } from "../contracts/index.js";
+import type { AgentExecutionTrace, FindingLineage, TraceSpan } from "../contracts/trace.js";
 
 export type ScanRecord = {
   id: string;
@@ -459,6 +460,105 @@ export class VaultStewardRepository {
         record.outputTokens,
         record.outcome
       ]
+    );
+  }
+
+  saveTraceSpan(span: TraceSpan): void {
+    this.database.run(
+      "INSERT INTO trace_spans (id, scan_id, parent_span_id, kind, started_at, completed_at, outcome, correlation_id, attributes_json, schema_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        span.id,
+        span.scanId,
+        span.parentSpanId ?? null,
+        span.kind,
+        span.startedAt,
+        span.completedAt ?? null,
+        span.outcome,
+        span.correlationId,
+        JSON.stringify(span.attributes),
+        span.schemaVersion
+      ]
+    );
+  }
+
+  saveAgentExecution(execution: AgentExecutionTrace): void {
+    this.database.run(
+      "INSERT INTO agent_executions (id, scan_id, span_id, agent, model, duration_ms, retry_count, validation, correlation_id, schema_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        execution.id,
+        execution.scanId,
+        execution.spanId,
+        execution.agent,
+        execution.model,
+        execution.durationMs,
+        execution.retryCount,
+        execution.validation,
+        execution.correlationId,
+        execution.schemaVersion
+      ]
+    );
+  }
+
+  saveFindingLineage(lineage: FindingLineage): void {
+    this.database.run(
+      "INSERT INTO finding_lineage (finding_id, scan_id, evidence_locators_json, parsed_artifact_ids_json, validator_id, coordinator_decision_id, agent_execution_id, correlation_id, schema_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        lineage.findingId,
+        lineage.scanId,
+        JSON.stringify(lineage.evidenceLocators),
+        JSON.stringify(lineage.parsedArtifactIds),
+        lineage.validatorId,
+        lineage.coordinatorDecisionId,
+        lineage.agentExecutionId ?? null,
+        lineage.correlationId,
+        lineage.schemaVersion
+      ]
+    );
+  }
+
+  deleteTraceForScan(scanId: string, deletedAt: string, id: string): void {
+    this.database.run("DELETE FROM agent_executions WHERE scan_id = ?", [scanId]);
+    this.database.run("DELETE FROM trace_spans WHERE scan_id = ?", [scanId]);
+    this.database.run("DELETE FROM finding_lineage WHERE scan_id = ?", [scanId]);
+    this.database.run(
+      "INSERT INTO telemetry_deletions (id, deleted_at, category, scan_id) VALUES (?, ?, 'scan-traces', ?)",
+      [id, deletedAt, scanId]
+    );
+  }
+
+  getTraceInventory(): {
+    spans: number;
+    agentExecutions: number;
+    findingLineage: number;
+    retentionDays: number;
+  } {
+    const retention = this.database.exec(
+      "SELECT retention_days FROM telemetry_settings WHERE id = 1"
+    )[0]?.values[0]?.[0];
+    return {
+      spans: countRows(this.database, "trace_spans"),
+      agentExecutions: countRows(this.database, "agent_executions"),
+      findingLineage: countRows(this.database, "finding_lineage"),
+      retentionDays: typeof retention === "number" ? retention : 30
+    };
+  }
+
+  setTraceRetention(days: number, updatedAt: string): void {
+    if (!Number.isInteger(days) || days < 1 || days > 3650)
+      throw new Error("Trace retention is invalid.");
+    this.database.run(
+      "UPDATE telemetry_settings SET retention_days = ?, updated_at = ? WHERE id = 1",
+      [days, updatedAt]
+    );
+  }
+
+  deleteAllTraceData(deletedAt: string, id: string): void {
+    this.database.run("DELETE FROM agent_executions");
+    this.database.run("DELETE FROM trace_spans");
+    this.database.run("DELETE FROM finding_lineage");
+    this.database.run(
+      "INSERT INTO telemetry_deletions (id, deleted_at, category, scan_id) VALUES (?, ?, 'all-traces', NULL)",
+      [id, deletedAt]
     );
   }
 
