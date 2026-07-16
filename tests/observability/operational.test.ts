@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  calculatePercentile,
   evaluateOperationalBaseline,
   summarizeOperationalMetrics
 } from "../../src/observability/operational.js";
@@ -20,6 +21,11 @@ const baseline = {
 };
 
 describe("operational baselines", () => {
+  it("reports an observed percentile only when samples exist", () => {
+    expect(calculatePercentile([], 0.95)).toBeNull();
+    expect(calculatePercentile([10, 20, 30], 0.5)).toBe(20);
+    expect(calculatePercentile([10, 20, 30], 0.95)).toBe(30);
+  });
   it("summarizes redacted operational measurements and accepts the baseline", () => {
     const metrics = summarizeOperationalMetrics([
       {

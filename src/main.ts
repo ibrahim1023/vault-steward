@@ -36,6 +36,7 @@ import {
   nextScheduleState,
   type MaintenanceScheduleState
 } from "./maintenance/scheduler.js";
+import { configurationFingerprint } from "./observability/fingerprint.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 
@@ -113,6 +114,16 @@ export default class VaultStewardPlugin extends Plugin {
     const policySource = await this.loadPolicyDraft();
     const parsedPolicy = parsePolicy(policySource);
     if (!parsedPolicy.ok) throw new Error("The active policy file is invalid.");
+    const traceConfiguration = {
+      pluginVersion: this.manifest.version,
+      parser: "scanner-v1",
+      provider: this.settings.modelProvider.kind,
+      model: this.settings.modelProvider.model,
+      policyId: parsedPolicy.value.id,
+      policyVersion: parsedPolicy.value.version,
+      retrievalTopK: 0
+    };
+    const configHash = configurationFingerprint(traceConfiguration);
     const startedAt = new Date().toISOString();
     const result = await createGovernedIntegritySession([provider], this.agentResultCache).scan(
       files,
@@ -124,7 +135,7 @@ export default class VaultStewardPlugin extends Plugin {
     this.database.saveCompletedScan({
       id: result.scanId,
       vaultFingerprint: this.app.vault.getName(),
-      configHash: this.settings.modelProvider.model,
+      configHash,
       inputHash: files.map((file) => `${file.path}:${file.revision}`).join("|"),
       parserVersion: "scanner-v1",
       startedAt,
@@ -141,7 +152,8 @@ export default class VaultStewardPlugin extends Plugin {
         }))
       })),
       findings: result.findings,
-      modelTraces: result.modelTraces
+      modelTraces: result.modelTraces,
+      traceConfiguration: { fingerprint: configHash, values: traceConfiguration }
     });
     await this.database.flush();
     return result;
