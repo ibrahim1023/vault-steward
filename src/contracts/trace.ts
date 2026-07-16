@@ -34,6 +34,14 @@ export type FindingLineage = {
   correlationId: string;
 };
 
+export type TracePreferences = {
+  retentionDays: number;
+  storePromptSnapshots: boolean;
+  storeModelOutputSnapshots: boolean;
+  redactExcerpts: boolean;
+  excludedFolders: readonly string[];
+};
+
 const FORBIDDEN = [/\n/, /\r/, /https?:\/\//i, /\/Users\//, /prompt/i, /secret/i];
 
 export function validateTraceMetadata(value: unknown): boolean {
@@ -58,5 +66,38 @@ export function validateFindingLineage(lineage: FindingLineage): boolean {
     lineage.validatorId.length > 0 &&
     lineage.coordinatorDecisionId.length > 0 &&
     validateTraceMetadata(lineage)
+  );
+}
+
+export function validateTracePreferences(value: unknown): value is TracePreferences {
+  if (value === null || typeof value !== "object") return false;
+  const candidate = value as Partial<TracePreferences>;
+  if (
+    !Number.isInteger(candidate.retentionDays) ||
+    candidate.retentionDays === undefined ||
+    candidate.retentionDays < 1 ||
+    candidate.retentionDays > 3650 ||
+    typeof candidate.storePromptSnapshots !== "boolean" ||
+    typeof candidate.storeModelOutputSnapshots !== "boolean" ||
+    typeof candidate.redactExcerpts !== "boolean" ||
+    !Array.isArray(candidate.excludedFolders) ||
+    candidate.excludedFolders.length > 100
+  )
+    return false;
+
+  if (
+    (candidate.storePromptSnapshots || candidate.storeModelOutputSnapshots) &&
+    !candidate.redactExcerpts
+  )
+    return false;
+
+  return candidate.excludedFolders.every(
+    (folder) =>
+      typeof folder === "string" &&
+      folder.length > 0 &&
+      folder.length <= 240 &&
+      !folder.includes("\\") &&
+      !folder.split("/").some((segment) => segment === "" || segment === "." || segment === "..") &&
+      !FORBIDDEN.some((pattern) => pattern.test(folder))
   );
 }
