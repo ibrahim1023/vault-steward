@@ -26,6 +26,9 @@ import {
   validatePolicyStudioPath
 } from "./policy/studio.js";
 import { parsePolicy } from "./policy/parse.js";
+import { explainFinding, type FindingExplanation } from "./agents/finding-explanation.js";
+import { checkModelReadiness } from "./model-provider/readiness.js";
+import type { Finding } from "./contracts/index.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 
@@ -191,6 +194,14 @@ export default class VaultStewardPlugin extends Plugin {
     await this.app.vault.adapter.write(POLICY_STUDIO_PATH, source);
   }
 
+  async explainFinding(finding: Finding): Promise<FindingExplanation> {
+    return explainFinding(createLocalProvider(this.settings.modelProvider), finding);
+  }
+
+  async checkModelReadiness() {
+    return checkModelReadiness(createLocalProvider(this.settings.modelProvider));
+  }
+
   async applyProposal(proposalId: string) {
     const record = this.database?.repository.findProposal(proposalId);
     if (!record || !this.database) throw new Error("Proposal is unavailable.");
@@ -263,7 +274,9 @@ class VaultStewardStatusItemView extends ItemView {
             loadDraft: () => this.plugin.loadPolicyDraft(),
             previewDraft: (source) => this.plugin.previewPolicyDraft(source),
             saveDraft: (source) => this.plugin.savePolicyDraft(source)
-          }
+          },
+          explainFinding: (finding) => this.plugin.explainFinding(finding),
+          checkModelReadiness: () => this.plugin.checkModelReadiness()
         })
       )
     );

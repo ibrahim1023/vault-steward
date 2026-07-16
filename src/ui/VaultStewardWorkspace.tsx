@@ -9,9 +9,11 @@ import {
   selectNextBestAction
 } from "./dashboard.js";
 import { FindingDetail } from "./FindingDetail.js";
+import { FindingExplanation } from "./FindingExplanation.js";
 import { HistoryView } from "./HistoryView.js";
 import { NextBestAction } from "./NextBestAction.js";
 import { PluginStatusView, type PluginStatus } from "./PluginStatusView.js";
+import { ModelReadinessView } from "./ModelReadinessView.js";
 import { PriorityFindings } from "./PriorityFindings.js";
 import { PolicyStudio } from "./PolicyStudio.js";
 import { ProposalReviewPanel } from "./ProposalReviewPanel.js";
@@ -25,7 +27,9 @@ export function VaultStewardWorkspace({
   reviewProposal,
   applyProposal,
   loadHistory,
-  policyStudio
+  policyStudio,
+  explainFinding,
+  checkModelReadiness
 }: {
   vaultLabel: string;
   scan: () => Promise<{
@@ -50,6 +54,10 @@ export function VaultStewardWorkspace({
     previewDraft: (source: string) => Promise<import("../policy/studio.js").PolicyPreview>;
     saveDraft: (source: string) => Promise<void>;
   };
+  explainFinding?: (
+    finding: Finding
+  ) => Promise<import("../agents/finding-explanation.js").FindingExplanation>;
+  checkModelReadiness?: () => Promise<import("../model-provider/readiness.js").ModelReadiness>;
 }) {
   const [status, setStatus] = useState<PluginStatus>("ready");
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -144,8 +152,14 @@ export function VaultStewardWorkspace({
         selectedFindingId={selectedFinding?.id}
         onSelect={setSelectedFindingId}
       />
-      <FindingDetail finding={selectedFinding}>{repairControls}</FindingDetail>
+      <FindingDetail finding={selectedFinding}>
+        {repairControls}
+        {selectedFinding && explainFinding ? (
+          <FindingExplanation finding={selectedFinding} explain={explainFinding} />
+        ) : null}
+      </FindingDetail>
       {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
+      {checkModelReadiness ? <ModelReadinessView checkReadiness={checkModelReadiness} /> : null}
       {review && reviewProposal && applyProposal ? (
         <ProposalReviewPanel
           proposal={review.proposal}
