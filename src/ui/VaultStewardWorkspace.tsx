@@ -120,7 +120,6 @@ export function VaultStewardWorkspace({
         status={status}
         {...(errorMessage ? { errorMessage } : {})}
       />
-      {status === "error" && errorMessage ? <p role="alert">{errorMessage}</p> : null}
       <button type="button" onClick={runScan} disabled={status === "scanning"}>
         Run scan
       </button>

@@ -66,10 +66,11 @@ describe("VaultStewardWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Run scan" }));
 
     await waitFor(() =>
-      expect(screen.getByRole("status")).toHaveTextContent(
+      expect(screen.getByRole("alert")).toHaveTextContent(
         "Local model analysis did not complete. Check Ollama and the configured model."
       )
     );
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
     expect(screen.queryByText("Vault access is unavailable")).not.toBeInTheDocument();
   });
 

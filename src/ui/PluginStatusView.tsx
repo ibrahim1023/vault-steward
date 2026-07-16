@@ -13,7 +13,7 @@ export function PluginStatusView({
     <section aria-label="Vault Steward status">
       <h2>Vault Steward</h2>
       <p>Current vault: {vaultLabel}</p>
-      <p role="status" aria-live="polite">
+      <p role={status === "error" ? "alert" : "status"} aria-live="polite">
         {status === "error" && errorMessage ? errorMessage : statusMessage(status)}
       </p>
     </section>
