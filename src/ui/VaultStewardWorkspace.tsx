@@ -210,7 +210,9 @@ export function VaultStewardWorkspace({
 
 function scanFailureMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
-  if (message.includes("local model semantic analysis"))
+  if (message.includes("local model output"))
+    return "Local model output could not be validated. Try the scan again or check model readiness.";
+  if (message.includes("local model provider"))
     return "Local model analysis did not complete. Check Ollama and the configured model.";
   if (message.includes("Vault reader") || message.includes("vault read"))
     return "The active vault could not be read.";

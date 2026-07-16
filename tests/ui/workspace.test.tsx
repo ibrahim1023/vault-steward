@@ -57,9 +57,7 @@ describe("VaultStewardWorkspace", () => {
     render(
       <VaultStewardWorkspace
         vaultLabel="Test vault"
-        scan={async () =>
-          Promise.reject(new Error("required local model semantic analysis did not complete"))
-        }
+        scan={async () => Promise.reject(new Error("required local model provider is unavailable"))}
       />
     );
 
@@ -72,6 +70,23 @@ describe("VaultStewardWorkspace", () => {
     );
     expect(screen.getAllByRole("alert")).toHaveLength(1);
     expect(screen.queryByText("Vault access is unavailable")).not.toBeInTheDocument();
+  });
+
+  it("distinguishes a structured-output failure from an unavailable provider", async () => {
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () =>
+          Promise.reject(new Error("required local model output could not be validated"))
+        }
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Run scan" }));
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Local model output could not be validated"
+      )
+    );
   });
 
   it("selects the intended broken reference before preparing a repair", async () => {

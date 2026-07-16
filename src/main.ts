@@ -440,5 +440,54 @@ class VaultStewardSettingsTab extends PluginSettingTab {
           });
         })
       );
+
+    new Setting(this.containerEl)
+      .setName("Scheduled maintenance")
+      .setDesc("Run local maintenance scans while Obsidian is open. Disabled by default.")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.maintenanceSchedule.enabled)
+          .onChange(async (enabled) => {
+            await this.plugin.saveSettings({
+              ...this.plugin.settings,
+              maintenanceSchedule: { ...this.plugin.settings.maintenanceSchedule, enabled }
+            });
+          })
+      );
+
+    new Setting(this.containerEl)
+      .setName("Maintenance interval (minutes)")
+      .setDesc("Minimum 5 minutes; scheduled scans never overlap an active scan.")
+      .addText((text) =>
+        text
+          .setValue(String(this.plugin.settings.maintenanceSchedule.intervalMinutes))
+          .onChange(async (value) => {
+            const intervalMinutes = Number(value);
+            if (
+              !Number.isInteger(intervalMinutes) ||
+              intervalMinutes < 5 ||
+              intervalMinutes > 1_440
+            )
+              return;
+            await this.plugin.saveSettings({
+              ...this.plugin.settings,
+              maintenanceSchedule: { ...this.plugin.settings.maintenanceSchedule, intervalMinutes }
+            });
+          })
+      );
+
+    new Setting(this.containerEl)
+      .setName("Event-triggered maintenance")
+      .setDesc("Coalesce vault changes before a scheduled local scan.")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.maintenanceSchedule.eventTriggered)
+          .onChange(async (eventTriggered) => {
+            await this.plugin.saveSettings({
+              ...this.plugin.settings,
+              maintenanceSchedule: { ...this.plugin.settings.maintenanceSchedule, eventTriggered }
+            });
+          })
+      );
   }
 }
