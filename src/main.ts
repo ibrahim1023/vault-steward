@@ -30,6 +30,7 @@ import { explainFinding, type FindingExplanation } from "./agents/finding-explan
 import { checkModelReadiness } from "./model-provider/readiness.js";
 import type { Finding } from "./contracts/index.js";
 import { validateReviewerFeedback, type FeedbackVerdict } from "./feedback/review.js";
+import { analyzeChangeImpact, type ChangeImpact } from "./indexing/impact.js";
 import {
   decideMaintenanceRun,
   nextScheduleState,
@@ -148,6 +149,13 @@ export default class VaultStewardPlugin extends Plugin {
 
   getMaintenanceState(): MaintenanceScheduleState {
     return { ...this.maintenanceState, scanInProgress: this.activeScan };
+  }
+
+  inspectImpact(path: string): ChangeImpact {
+    return analyzeChangeImpact(
+      { kind: "delete", path },
+      { id: "active", notes: [...this.parsedNotes.values()] }
+    );
   }
 
   async setMaintenancePaused(paused: boolean): Promise<void> {
@@ -366,7 +374,8 @@ class VaultStewardStatusItemView extends ItemView {
             schedule: this.plugin.settings.maintenanceSchedule,
             state: this.plugin.getMaintenanceState(),
             setPaused: (paused) => this.plugin.setMaintenancePaused(paused)
-          }
+          },
+          inspectImpact: (path) => this.plugin.inspectImpact(path)
         })
       )
     );
