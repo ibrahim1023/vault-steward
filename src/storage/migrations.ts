@@ -147,6 +147,17 @@ export const MIGRATIONS: readonly Migration[] = [
       );
       CREATE INDEX reviewer_feedback_finding_idx ON reviewer_feedback (finding_id);
     `
+  },
+  {
+    version: 7,
+    sql: `
+      CREATE TABLE trace_spans (id TEXT PRIMARY KEY, scan_id TEXT NOT NULL REFERENCES scans(id), parent_span_id TEXT, kind TEXT NOT NULL, started_at TEXT NOT NULL, completed_at TEXT, outcome TEXT NOT NULL, correlation_id TEXT NOT NULL, attributes_json TEXT NOT NULL, schema_version INTEGER NOT NULL);
+      CREATE TABLE agent_executions (id TEXT PRIMARY KEY, scan_id TEXT NOT NULL REFERENCES scans(id), span_id TEXT NOT NULL REFERENCES trace_spans(id), agent TEXT NOT NULL, model TEXT NOT NULL, duration_ms INTEGER NOT NULL, retry_count INTEGER NOT NULL, validation TEXT NOT NULL, correlation_id TEXT NOT NULL, schema_version INTEGER NOT NULL);
+      CREATE TABLE finding_lineage (finding_id TEXT PRIMARY KEY REFERENCES findings(id), scan_id TEXT NOT NULL REFERENCES scans(id), evidence_locators_json TEXT NOT NULL, parsed_artifact_ids_json TEXT NOT NULL, validator_id TEXT NOT NULL, coordinator_decision_id TEXT NOT NULL, agent_execution_id TEXT, correlation_id TEXT NOT NULL, schema_version INTEGER NOT NULL);
+      CREATE TABLE telemetry_settings (id INTEGER PRIMARY KEY CHECK (id = 1), retention_days INTEGER NOT NULL, updated_at TEXT NOT NULL);
+      INSERT INTO telemetry_settings (id, retention_days, updated_at) VALUES (1, 30, CURRENT_TIMESTAMP);
+      CREATE TABLE telemetry_deletions (id TEXT PRIMARY KEY, deleted_at TEXT NOT NULL, category TEXT NOT NULL, scan_id TEXT);
+    `
   }
 ];
 
