@@ -28,6 +28,7 @@ export type CompletedScanSnapshot = {
   id: string;
   vaultFingerprint: string;
   status: "completed";
+  configHash: string;
   inputHash: string;
   parserVersion: string;
   files: ScanInput[];
@@ -87,7 +88,7 @@ export class ScanSnapshotRepository {
 
   getCompletedSnapshot(scanId: string): CompletedScanSnapshot | null {
     return this.getSnapshot(
-      "SELECT id, vault_fingerprint, status, input_hash, parser_version FROM scans WHERE id = ? AND status = 'completed'",
+      "SELECT id, vault_fingerprint, status, config_hash, input_hash, parser_version FROM scans WHERE id = ? AND status = 'completed'",
       [scanId]
     );
   }
@@ -98,7 +99,7 @@ export class ScanSnapshotRepository {
     parserVersion: string
   ): CompletedScanSnapshot | null {
     return this.getSnapshot(
-      "SELECT id, vault_fingerprint, status, input_hash, parser_version FROM scans WHERE vault_fingerprint = ? AND input_hash = ? AND parser_version = ? AND status = 'completed' ORDER BY finished_at DESC LIMIT 1",
+      "SELECT id, vault_fingerprint, status, config_hash, input_hash, parser_version FROM scans WHERE vault_fingerprint = ? AND input_hash = ? AND parser_version = ? AND status = 'completed' ORDER BY finished_at DESC LIMIT 1",
       [vaultFingerprint, inputHash, parserVersion]
     );
   }
@@ -117,11 +118,12 @@ export class ScanSnapshotRepository {
     if (!row) {
       return null;
     }
-    const [id, vaultFingerprint, status, inputHash, parserVersion] = row;
+    const [id, vaultFingerprint, status, configHash, inputHash, parserVersion] = row;
     if (
       typeof id !== "string" ||
       typeof vaultFingerprint !== "string" ||
       status !== "completed" ||
+      typeof configHash !== "string" ||
       typeof inputHash !== "string" ||
       typeof parserVersion !== "string"
     ) {
@@ -137,7 +139,7 @@ export class ScanSnapshotRepository {
         return { path, revisionHash };
       });
 
-    return { id, vaultFingerprint, status, inputHash, parserVersion, files: files ?? [] };
+    return { id, vaultFingerprint, status, configHash, inputHash, parserVersion, files: files ?? [] };
   }
 }
 
