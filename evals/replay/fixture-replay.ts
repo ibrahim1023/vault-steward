@@ -13,6 +13,7 @@ export type FixtureReplayConfiguration = {
   sourceReportId: string;
   fixtureManifestHash: string;
   configuration: Record<ReplayVariable, string>;
+  memoryUsage?: () => number;
 };
 
 export async function replayFixtureEvaluation(
@@ -21,39 +22,43 @@ export async function replayFixtureEvaluation(
   replay: FixtureReplayConfiguration
 ): Promise<FixtureReplayRecord> {
   const startedAt = performance.now();
-  const caseExecutions = await Promise.all(
-    cases.map(async (evaluationCase) => {
-      const caseStartedAt = performance.now();
-      try {
-        const actual = await evaluateFixtureCase(root, evaluationCase);
-        const metrics = gradeExpectedFindings(expectedFindings(evaluationCase), actual);
-        const matched =
-          metrics.falsePositives === 0 &&
-          metrics.falseNegatives === 0 &&
-          metrics.precision === 1 &&
-          metrics.recall === 1;
-        return {
-          metrics,
-          caseResult: {
-            id: evaluationCase.id,
-            outcome: matched ? ("passed" as const) : ("failed" as const),
-            durationMs: Math.round(performance.now() - caseStartedAt),
-            errorCode: matched ? null : "finding-mismatch"
-          }
-        };
-      } catch {
-        return {
-          metrics: emptyMetrics(),
-          caseResult: {
-            id: evaluationCase.id,
-            outcome: "incomplete" as const,
-            durationMs: Math.round(performance.now() - caseStartedAt),
-            errorCode: "evaluation-failed"
-          }
-        };
-      }
-    })
-  );
+  let peakMemoryBytes = sampleMemoryUsage(replay);
+  const caseExecutions = [];
+  for (const evaluationCase of cases) {
+    peakMemoryBytes = Math.max(peakMemoryBytes, sampleMemoryUsage(replay));
+    const caseStartedAt = performance.now();
+    try {
+      const actual = await evaluateFixtureCase(root, evaluationCase);
+      peakMemoryBytes = Math.max(peakMemoryBytes, sampleMemoryUsage(replay));
+      const metrics = gradeExpectedFindings(expectedFindings(evaluationCase), actual);
+      const matched =
+        metrics.falsePositives === 0 &&
+        metrics.falseNegatives === 0 &&
+        metrics.precision === 1 &&
+        metrics.recall === 1;
+      caseExecutions.push({
+        metrics,
+        caseResult: {
+          id: evaluationCase.id,
+          outcome: matched ? ("passed" as const) : ("failed" as const),
+          durationMs: Math.round(performance.now() - caseStartedAt),
+          errorCode: matched ? null : "finding-mismatch"
+        }
+      });
+    } catch {
+      peakMemoryBytes = Math.max(peakMemoryBytes, sampleMemoryUsage(replay));
+      caseExecutions.push({
+        metrics: emptyMetrics(),
+        caseResult: {
+          id: evaluationCase.id,
+          outcome: "incomplete" as const,
+          durationMs: Math.round(performance.now() - caseStartedAt),
+          errorCode: "evaluation-failed"
+        }
+      });
+    }
+  }
+  peakMemoryBytes = Math.max(peakMemoryBytes, sampleMemoryUsage(replay));
   const record: FixtureReplayRecord = {
     schemaVersion: 1,
     replayId: replayIdFor(cases, replay),
@@ -64,7 +69,7 @@ export async function replayFixtureEvaluation(
     metrics: averageMetrics(caseExecutions.map((item) => item.metrics)),
     runtime: {
       totalDurationMs: Math.round(performance.now() - startedAt),
-      peakMemoryBytes: process.memoryUsage().heapUsed,
+      peakMemoryBytes,
       inputTokens: null,
       outputTokens: null
     }
@@ -79,7 +84,7 @@ function replayIdFor(
 ): string {
   return createHash("sha256")
     .update(
-      JSON.stringify({
+      stableStringify({
         caseIds: cases.map((item) => item.id),
         fixtureManifestHash: replay.fixtureManifestHash,
         configuration: replay.configuration
@@ -87,6 +92,24 @@ function replayIdFor(
     )
     .digest("hex")
     .slice(0, 24);
+}
+
+function sampleMemoryUsage(replay: FixtureReplayConfiguration): number {
+  return replay.memoryUsage?.() ?? process.memoryUsage().heapUsed;
+}
+
+function stableStringify(value: unknown): string {
+  return JSON.stringify(canonicalize(value));
+}
+
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map((item) => canonicalize(item));
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => [key, canonicalize(item)])
+  );
 }
 
 function expectedFindings(evaluationCase: EvaluationCase): GradedFinding[] {

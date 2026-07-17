@@ -96,3 +96,13 @@ Output:
 
 - The environment does not provide `npx`, `npm`, or `node` on `PATH`; verification required the bundled Node runtime directly.
 - `tsx` CLI IPC failed under the sandbox (`listen EPERM` on a temp pipe), so replay verification used `node --import ./node_modules/tsx/dist/loader.mjs` instead of `npm run evals`.
+
+## Task 2 Follow-up
+
+- Added a regression test proving two equivalent configurations with different property insertion order produce the same `replayId`.
+- Switched replay identity to stable canonical stringification of the replay configuration, so key order no longer affects the hash.
+- Changed `peakMemoryBytes` to track the maximum sampled heap usage during the whole replay lifecycle via an injectable `memoryUsage` seam.
+- Verified with:
+  - `./node_modules/vitest/vitest.mjs run tests/evals/fixture-replay.test.ts`
+  - `./node_modules/vitest/vitest.mjs run tests/evals/runner.test.ts`
+  - `./node_modules/typescript/bin/tsc --noEmit`
