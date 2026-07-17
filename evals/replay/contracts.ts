@@ -23,11 +23,33 @@ export type LiveReplayEligibility =
   | { eligible: true; scanId: string; source: "retained-fixture" }
   | { eligible: false; scanId: string; reasons: ReplayIneligibilityReason[] };
 
+export type ReplayFindingSeverity = "info" | "low" | "medium" | "high" | "critical";
+
+export type RedactedReplayFindingEvidence = {
+  notePath: string;
+  locator: string;
+};
+
+export type RedactedReplayFindingValidation = {
+  supported: boolean;
+  schemaValid: boolean;
+  routeValid: boolean;
+  terminated: boolean;
+};
+
+export type RedactedReplayFindingResult = {
+  findingKey: string;
+  evidence: RedactedReplayFindingEvidence;
+  severity: ReplayFindingSeverity;
+  validation: RedactedReplayFindingValidation;
+};
+
 export type RedactedReplayCaseResult = {
   id: string;
   outcome: "passed" | "failed" | "incomplete";
   durationMs: number;
   errorCode: string | null;
+  findings: RedactedReplayFindingResult[];
 };
 
 export type RedactedRuntimeMetrics = {
@@ -83,13 +105,49 @@ export type ReplayFailureDiff = {
   changed: ReplayFailureChange[];
 };
 
-export type ReplayMetricDiff = Partial<Record<keyof EvaluationReport["metrics"], number>>;
+export type ReplayFindingReference = {
+  caseId: string;
+  findingKey: string;
+};
+
+export type ReplayFindingEvidenceChange = ReplayFindingReference & {
+  baseline: RedactedReplayFindingEvidence;
+  candidate: RedactedReplayFindingEvidence;
+};
+
+export type ReplayFindingSeverityChange = ReplayFindingReference & {
+  baseline: RedactedReplayFindingResult["severity"];
+  candidate: RedactedReplayFindingResult["severity"];
+};
+
+export type ReplayFindingValidationChange = ReplayFindingReference & {
+  baseline: RedactedReplayFindingValidation;
+  candidate: RedactedReplayFindingValidation;
+};
+
+export type ReplayFindingDiff = {
+  added: ReplayFindingReference[];
+  removed: ReplayFindingReference[];
+  evidenceChanges: ReplayFindingEvidenceChange[];
+  severityChanges: ReplayFindingSeverityChange[];
+  validationChanges: ReplayFindingValidationChange[];
+};
+
+export type ReplayValueTransition = {
+  baseline: number | null;
+  candidate: number | null;
+  delta: number | null;
+};
+
+export type ReplayMetricDiff = Partial<
+  Record<keyof EvaluationReport["metrics"], ReplayValueTransition>
+>;
 
 export type ReplayRuntimeDiff = {
   totalDurationMs: number;
   peakMemoryBytes: number;
-  inputTokens: number | null;
-  outputTokens: number | null;
+  inputTokens: ReplayValueTransition | null;
+  outputTokens: ReplayValueTransition | null;
 };
 
 export type ReplayComparisonAccepted = {
@@ -97,6 +155,7 @@ export type ReplayComparisonAccepted = {
   changedVariable: ReplayVariable;
   caseDiff: ReplayCaseDiff;
   failureDiff: ReplayFailureDiff;
+  findingDiff: ReplayFindingDiff;
   metricDiff: ReplayMetricDiff;
   runtimeDiff: ReplayRuntimeDiff;
 };
@@ -158,7 +217,23 @@ function validateReplayCaseResult(value: unknown): value is RedactedReplayCaseRe
     replayToken(value.id) &&
     ["passed", "failed", "incomplete"].includes(value.outcome as string) &&
     nonNegativeNumber(value.durationMs) &&
-    (value.errorCode === null || errorCode(value.errorCode))
+    (value.errorCode === null || errorCode(value.errorCode)) &&
+    Array.isArray(value.findings) &&
+    value.findings.every(validateReplayFindingResult)
+  );
+}
+
+function validateReplayFindingResult(value: unknown): value is RedactedReplayFindingResult {
+  if (!isObject(value) || !isObject(value.evidence) || !isObject(value.validation)) return false;
+  return (
+    replayToken(value.findingKey) &&
+    isRelativePath(value.evidence.notePath) &&
+    bounded(value.evidence.locator) &&
+    ["info", "low", "medium", "high", "critical"].includes(value.severity as string) &&
+    typeof value.validation.supported === "boolean" &&
+    typeof value.validation.schemaValid === "boolean" &&
+    typeof value.validation.routeValid === "boolean" &&
+    typeof value.validation.terminated === "boolean"
   );
 }
 
@@ -201,6 +276,17 @@ function errorCode(value: unknown): value is string {
 
 function hash(value: unknown): boolean {
   return typeof value === "string" && /^[a-f0-9]{64}$/i.test(value);
+}
+
+function isRelativePath(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 240 &&
+    !value.includes("\\") &&
+    !value.split("/").some((part) => part === "" || part === "." || part === "..") &&
+    !FORBIDDEN.some((pattern) => pattern.test(value))
+  );
 }
 
 function finiteNumber(value: unknown): value is number {

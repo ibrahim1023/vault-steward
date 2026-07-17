@@ -5,6 +5,8 @@ import { evaluateFixtureCase } from "../evaluate-case.js";
 import { gradeExpectedFindings, type GradedFinding } from "../graders/metrics.js";
 import {
   type FixtureReplayRecord,
+  type RedactedReplayFindingResult,
+  type ReplayFindingSeverity,
   type ReplayVariable,
   validateFixtureReplayRecord
 } from "./contracts.js";
@@ -42,7 +44,8 @@ export async function replayFixtureEvaluation(
           id: evaluationCase.id,
           outcome: matched ? ("passed" as const) : ("failed" as const),
           durationMs: Math.round(performance.now() - caseStartedAt),
-          errorCode: matched ? null : "finding-mismatch"
+          errorCode: matched ? null : "finding-mismatch",
+          findings: redactFindings(actual)
         }
       });
     } catch {
@@ -53,7 +56,8 @@ export async function replayFixtureEvaluation(
           id: evaluationCase.id,
           outcome: "incomplete" as const,
           durationMs: Math.round(performance.now() - caseStartedAt),
-          errorCode: "evaluation-failed"
+          errorCode: "evaluation-failed",
+          findings: []
         }
       });
     }
@@ -138,6 +142,28 @@ function emptyMetrics(): EvaluationReport["metrics"] {
     routingCompliance: null,
     terminationCompliance: null
   };
+}
+
+function redactFindings(findings: readonly GradedFinding[]): RedactedReplayFindingResult[] {
+  const counts = new Map<string, number>();
+  return findings.map((finding) => {
+    const count = (counts.get(finding.type) ?? 0) + 1;
+    counts.set(finding.type, count);
+    return {
+      findingKey: count === 1 ? finding.type : `${finding.type}.${count}`,
+      evidence: {
+        notePath: finding.notePath,
+        locator: finding.locator
+      },
+      severity: finding.severity as ReplayFindingSeverity,
+      validation: {
+        supported: finding.supported,
+        schemaValid: finding.schemaValid,
+        routeValid: finding.routeValid,
+        terminated: finding.terminated
+      }
+    };
+  });
 }
 
 function averageMetrics(

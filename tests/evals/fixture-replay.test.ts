@@ -41,12 +41,25 @@ describe("fixture replay evaluation", () => {
     expect(first.caseResults[0]).toMatchObject({
       id: "reference-missing-ci",
       outcome: "passed",
-      errorCode: null
+      errorCode: null,
+      findings: [
+        {
+          findingKey: "broken-reference",
+          evidence: { notePath: "Home.md", locator: "line:1" },
+          severity: "medium",
+          validation: {
+            supported: true,
+            schemaValid: true,
+            routeValid: true,
+            terminated: true
+          }
+        }
+      ]
     });
     expect(first.runtime.totalDurationMs).toBeGreaterThanOrEqual(0);
     expect(first.runtime.peakMemoryBytes).toBeGreaterThanOrEqual(0);
     expect(first.metrics.precision).toBe(1);
-    expect(JSON.stringify(first)).not.toMatch(/\[\[Missing\]\]|\/Users\//);
+    expect(JSON.stringify(first)).not.toMatch(/\[\[Missing\]\]|\/Users\/|note body|raw output/i);
   });
 
   it("derives the same replay id for equivalent configurations regardless of property insertion order", async () => {

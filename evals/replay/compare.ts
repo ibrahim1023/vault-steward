@@ -1,11 +1,14 @@
 import {
   REPLAY_VARIABLES,
   type FixtureReplayRecord,
+  type RedactedReplayFindingResult,
   type RedactedReplayCaseResult,
   type ReplayComparison,
   type ReplayDurationChange,
   type ReplayFailureChange,
+  type ReplayFindingDiff,
   type ReplayMetricDiff,
+  type ReplayValueTransition,
   type ReplayVariable
 } from "./contracts.js";
 
@@ -35,6 +38,7 @@ export function compareReplayRuns(
   const removedFailures = new Set<string>();
   const failureChanges: ReplayFailureChange[] = [];
   const durationChanges: ReplayDurationChange[] = [];
+  const findingDiff = emptyFindingDiff();
   const outcomeChanges = sharedCaseIds.flatMap((id) => {
     const baselineCase = baselineCases.get(id)!;
     const candidateCase = candidateCases.get(id)!;
@@ -49,12 +53,25 @@ export function compareReplayRuns(
       removedFailures,
       failureChanges
     });
+    collectFindingDiffs(baselineCase.findings, candidateCase.findings, id, findingDiff);
     return outcomeChange;
   });
 
   for (const [, caseResult] of candidateCases.entries()) {
-    if (!baselineCases.has(caseResult.id) && caseResult.errorCode) {
-      addedFailures.add(caseResult.errorCode);
+    if (!baselineCases.has(caseResult.id)) {
+      if (caseResult.errorCode) addedFailures.add(caseResult.errorCode);
+      for (const finding of caseResult.findings) {
+        findingDiff.added.push({ caseId: caseResult.id, findingKey: finding.findingKey });
+      }
+    }
+  }
+
+  for (const [, caseResult] of baselineCases.entries()) {
+    if (!candidateCases.has(caseResult.id)) {
+      if (caseResult.errorCode) removedFailures.add(caseResult.errorCode);
+      for (const finding of caseResult.findings) {
+        findingDiff.removed.push({ caseId: caseResult.id, findingKey: finding.findingKey });
+      }
     }
   }
 
@@ -72,6 +89,7 @@ export function compareReplayRuns(
       removed: [...removedFailures].sort(),
       changed: failureChanges.sort((left, right) => left.id.localeCompare(right.id))
     },
+    findingDiff: sortFindingDiff(findingDiff),
     metricDiff: diffMetrics(baseline.metrics, candidate.metrics),
     runtimeDiff: {
       totalDurationMs: candidate.runtime.totalDurationMs - baseline.runtime.totalDurationMs,
@@ -109,7 +127,64 @@ function collectFailureDiffs(
   }
 ): void {
   if (baseline === candidate) return;
+  if (baseline !== null && candidate === null) target.removedFailures.add(baseline);
   target.failureChanges.push({ id, baseline, candidate });
+}
+
+function collectFindingDiffs(
+  baseline: readonly RedactedReplayFindingResult[],
+  candidate: readonly RedactedReplayFindingResult[],
+  caseId: string,
+  target: ReplayFindingDiff
+): void {
+  const baselineFindings = new Map(baseline.map((item) => [item.findingKey, item]));
+  const candidateFindings = new Map(candidate.map((item) => [item.findingKey, item]));
+  const allKeys = new Set([...baselineFindings.keys(), ...candidateFindings.keys()]);
+  for (const findingKey of [...allKeys].sort()) {
+    const baselineFinding = baselineFindings.get(findingKey);
+    const candidateFinding = candidateFindings.get(findingKey);
+    if (!baselineFinding && candidateFinding) {
+      target.added.push({ caseId, findingKey });
+      continue;
+    }
+    if (baselineFinding && !candidateFinding) {
+      target.removed.push({ caseId, findingKey });
+      continue;
+    }
+    if (!baselineFinding || !candidateFinding) continue;
+    if (
+      baselineFinding.evidence.notePath !== candidateFinding.evidence.notePath ||
+      baselineFinding.evidence.locator !== candidateFinding.evidence.locator
+    ) {
+      target.evidenceChanges.push({
+        caseId,
+        findingKey,
+        baseline: baselineFinding.evidence,
+        candidate: candidateFinding.evidence
+      });
+    }
+    if (baselineFinding.severity !== candidateFinding.severity) {
+      target.severityChanges.push({
+        caseId,
+        findingKey,
+        baseline: baselineFinding.severity,
+        candidate: candidateFinding.severity
+      });
+    }
+    if (
+      baselineFinding.validation.supported !== candidateFinding.validation.supported ||
+      baselineFinding.validation.schemaValid !== candidateFinding.validation.schemaValid ||
+      baselineFinding.validation.routeValid !== candidateFinding.validation.routeValid ||
+      baselineFinding.validation.terminated !== candidateFinding.validation.terminated
+    ) {
+      target.validationChanges.push({
+        caseId,
+        findingKey,
+        baseline: baselineFinding.validation,
+        candidate: candidateFinding.validation
+      });
+    }
+  }
 }
 
 function diffMetrics(
@@ -125,12 +200,44 @@ function diffMetrics(
       baselineValue === undefined ? null : baselineValue,
       candidateValue === undefined ? null : candidateValue
     );
-    if (delta !== null && delta !== 0) diff[key] = delta;
+    if (delta !== null) diff[key] = delta;
   }
   return diff;
 }
 
-function diffNullableNumber(baseline: number | null, candidate: number | null): number | null {
-  if (baseline === null || candidate === null) return baseline === candidate ? null : null;
-  return candidate - baseline;
+function diffNullableNumber(
+  baseline: number | null,
+  candidate: number | null
+): ReplayValueTransition | null {
+  if (baseline === candidate) return null;
+  return {
+    baseline,
+    candidate,
+    delta: baseline === null || candidate === null ? null : candidate - baseline
+  };
+}
+
+function emptyFindingDiff(): ReplayFindingDiff {
+  return {
+    added: [],
+    removed: [],
+    evidenceChanges: [],
+    severityChanges: [],
+    validationChanges: []
+  };
+}
+
+function sortFindingDiff(target: ReplayFindingDiff): ReplayFindingDiff {
+  const byFinding = <T extends { caseId: string; findingKey: string }>(items: readonly T[]) =>
+    [...items].sort(
+      (left, right) =>
+        left.caseId.localeCompare(right.caseId) || left.findingKey.localeCompare(right.findingKey)
+    );
+  return {
+    added: byFinding(target.added),
+    removed: byFinding(target.removed),
+    evidenceChanges: byFinding(target.evidenceChanges),
+    severityChanges: byFinding(target.severityChanges),
+    validationChanges: byFinding(target.validationChanges)
+  };
 }
