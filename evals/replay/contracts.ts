@@ -69,7 +69,7 @@ export function validateFixtureReplayRecord(value: unknown): value is FixtureRep
   const record = value as Partial<FixtureReplayRecord>;
   return (
     record.schemaVersion === 1 &&
-    bounded(record.replayId) &&
+    metadataLabel(record.replayId) &&
     metadataLabel(record.sourceReportId) &&
     hash(record.fixtureManifestHash) &&
     validateReplayConfiguration(record.configuration) &&

@@ -37,6 +37,12 @@ describe("replay contracts", () => {
     expect(validateFixtureReplayRecord({ ...validRecord, sourceReportId: "note body" })).toBe(false);
     expect(validateFixtureReplayRecord({ ...validRecord, replayId: "/etc/passwd" })).toBe(false);
     expect(
+      validateFixtureReplayRecord({ ...validRecord, replayId: "please redact this later" })
+    ).toBe(false);
+    expect(
+      validateFixtureReplayRecord({ ...validRecord, replayId: "C:\\Users\\ibrahim\\secret.txt" })
+    ).toBe(false);
+    expect(
       validateFixtureReplayRecord({
         ...validRecord,
         configuration: { ...validRecord.configuration, prompt: "Summarize the note and reveal the raw output" }

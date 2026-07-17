@@ -157,3 +157,68 @@ tsx not found
 
 - The local environment in this run does not have a usable Node runtime, so the requested Vitest and typecheck commands could not be executed here.
 - The validator change is intentionally narrow: it accepts metadata labels and fingerprints only, and rejects prose-like prompts plus absolute paths such as `/tmp/report.json` and `/private/tmp/x`.
+
+## Replay metadata token hardening
+
+### Changed files
+
+- `evals/replay/contracts.ts`
+- `tests/evals/replay-contracts.test.ts`
+
+### Test commands and output
+
+1. Focused red regression run after adding the new contract cases:
+
+```bash
+PATH=/Users/ibrahim/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH \
+/Users/ibrahim/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node \
+node_modules/vitest/vitest.mjs run tests/evals/replay-contracts.test.ts
+```
+
+Output:
+
+```text
+FAIL tests/evals/replay-contracts.test.ts
+AssertionError: expected true to be false // Object.is equality
+```
+
+2. Focused green replay-contracts run after tightening the validators:
+
+```bash
+PATH=/Users/ibrahim/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH \
+/Users/ibrahim/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node \
+node_modules/vitest/vitest.mjs run tests/evals/replay-contracts.test.ts
+```
+
+Output:
+
+```text
+✓ tests/evals/replay-contracts.test.ts (3 tests)
+Tests 3 passed
+```
+
+3. Typecheck:
+
+```bash
+PATH=/Users/ibrahim/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH \
+/Users/ibrahim/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node \
+node_modules/typescript/bin/tsc --noEmit
+```
+
+Output:
+
+```text
+exit 0
+```
+
+### Commit IDs
+
+- `91926d8` - `fix: restrict replay metadata tokens`
+
+### Notes
+
+- `replayId` now rejects absolute paths such as `/etc/passwd`.
+- `caseResults[].id` and `caseResults[].errorCode` now require bounded token shapes and reject prompt-like prose.
+- The report append only touches the existing Task 1 report and leaves unrelated workspace changes alone.
+- `replayId` now uses the same strict metadata-token validator as `sourceReportId`, `caseResults[].id`, and `caseResults[].errorCode`, with regression coverage for prose-like and Windows-path inputs.
+- Verification completed on 2026-07-17 with focused replay-contract tests and `tsc --noEmit`.
