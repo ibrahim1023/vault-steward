@@ -91,6 +91,13 @@ Result:
 - Branch: `feat/phase-15-replay-comparison`
 - Commit message: `feat: add controlled replay comparison`
 
+## Follow-up Fix
+
+- Corrected the `tests/evals/replay-contracts.test.ts` fixture so the valid `FixtureReplayRecord` includes the now-required redacted `findings: []` array on its case result.
+- Verified the narrow replay contract/comparison suite and typecheck:
+  - `npx vitest run tests/evals/replay-contracts.test.ts tests/evals/replay-comparison.test.ts`
+  - `npm run typecheck`
+
 ## 2026-07-17 Review Fix Follow-Up
 
 Scope remained limited to replay contracts, replay generation, replay comparison, focused tests, and this appended report.

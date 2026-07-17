@@ -15,7 +15,15 @@ const validRecord = {
     policy: "policy-v1",
     agent: "agent-v1"
   },
-  caseResults: [{ id: "reference-missing-ci", outcome: "passed", durationMs: 2, errorCode: null }],
+  caseResults: [
+    {
+      id: "reference-missing-ci",
+      outcome: "passed",
+      durationMs: 2,
+      errorCode: null,
+      findings: []
+    }
+  ],
   metrics: { precision: 1, recall: 1, f1: 1, falsePositives: 0, falseNegatives: 0 },
   runtime: { totalDurationMs: 2, peakMemoryBytes: 128, inputTokens: 4, outputTokens: 8 }
 } as const;
