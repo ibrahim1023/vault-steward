@@ -7,6 +7,8 @@ import { type EvaluationReport, validateEvaluationReport } from "../evals/contra
 import { evaluateFixtureCase } from "../evals/evaluate-case.js";
 import { loadEvaluationCases } from "../evals/fixtures.js";
 import { gradeExpectedFindings } from "../evals/graders/metrics.js";
+import { compareReplayRuns } from "../evals/replay/compare.js";
+import { validateFixtureReplayRecord } from "../evals/replay/contracts.js";
 import { replayFixtureEvaluation } from "../evals/replay/fixture-replay.js";
 import { compareEvaluationReports } from "../evals/regression.js";
 import {
@@ -16,7 +18,8 @@ import {
 } from "../evals/runner.js";
 
 const root = resolve(import.meta.dirname, "..");
-const selection = parseEvaluationSelection(process.argv.slice(2));
+const { args, compareReplayPath } = extractReplayComparison(process.argv.slice(2));
+const selection = parseEvaluationSelection(args);
 const manifest = selection.manifest ?? "evals/manifests/ci-regression.json";
 const cases = selectEvaluationCases(
   await loadEvaluationCases(root, manifest, selection),
@@ -38,6 +41,16 @@ if (selection.replay) {
   });
   await mkdir(resolve(root, "evals/reports"), { recursive: true });
   await writeFile(resolve(root, "evals/reports/replay.json"), `${JSON.stringify(replay, null, 2)}\n`);
+  if (compareReplayPath) {
+    const comparison = compareReplayRuns(
+      await loadReplayRecord(root, compareReplayPath),
+      replay
+    );
+    await writeFile(
+      resolve(root, "evals/reports/replay-comparison.json"),
+      `${JSON.stringify(comparison, null, 2)}\n`
+    );
+  }
   console.log(JSON.stringify({ suite: "replay", cases: replay.caseResults.length, runtime: replay.runtime }));
   process.exit(0);
 }
@@ -131,6 +144,45 @@ async function fileHash(path: string): Promise<string> {
   return createHash("sha256")
     .update(await readFile(path))
     .digest("hex");
+}
+
+async function loadReplayRecord(rootPath: string, path: string) {
+  const localPath = resolveLocalPath(rootPath, path);
+  const record = JSON.parse(await readFile(localPath, "utf8"));
+  if (!validateFixtureReplayRecord(record)) {
+    throw new Error("Replay comparison requires a validated fixture replay record.");
+  }
+  return record;
+}
+
+function extractReplayComparison(args: readonly string[]): {
+  args: string[];
+  compareReplayPath?: string;
+} {
+  const filtered: string[] = [];
+  let compareReplayPath: string | undefined;
+  for (let index = 0; index < args.length; index++) {
+    const flag = args[index];
+    if (flag !== "--compare-replay") {
+      filtered.push(flag!);
+      continue;
+    }
+    const value = args[index + 1];
+    if (!value || value.startsWith("--")) throw new Error("Missing value for --compare-replay.");
+    compareReplayPath = value;
+    index++;
+  }
+  return compareReplayPath ? { args: filtered, compareReplayPath } : { args: filtered };
+}
+
+function resolveLocalPath(rootPath: string, relativePath: string): string {
+  if (relativePath.includes("://")) throw new Error("Replay comparison requires a local path.");
+  if (relativePath.startsWith("/")) throw new Error("Replay comparison requires a relative path.");
+  const resolved = resolve(rootPath, relativePath);
+  if (resolved !== rootPath && !resolved.startsWith(`${rootPath}/`)) {
+    throw new Error("Replay comparison path must stay within the workspace.");
+  }
+  return resolved;
 }
 function averageMetrics(
   items: readonly ReturnType<typeof gradeExpectedFindings>[]

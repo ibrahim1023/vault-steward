@@ -48,6 +48,66 @@ export type FixtureReplayRecord = {
   runtime: RedactedRuntimeMetrics;
 };
 
+export type ReplayComparisonRejectedReason =
+  | "fixture-manifest-mismatch"
+  | "no-configuration-change"
+  | "multiple-configuration-changes";
+
+export type ReplayOutcomeChange = {
+  id: string;
+  baseline: RedactedReplayCaseResult["outcome"];
+  candidate: RedactedReplayCaseResult["outcome"];
+};
+
+export type ReplayDurationChange = {
+  id: string;
+  deltaMs: number;
+};
+
+export type ReplayFailureChange = {
+  id: string;
+  baseline: string | null;
+  candidate: string | null;
+};
+
+export type ReplayCaseDiff = {
+  added: string[];
+  removed: string[];
+  outcomeChanges: ReplayOutcomeChange[];
+  durationChanges: ReplayDurationChange[];
+};
+
+export type ReplayFailureDiff = {
+  added: string[];
+  removed: string[];
+  changed: ReplayFailureChange[];
+};
+
+export type ReplayMetricDiff = Partial<Record<keyof EvaluationReport["metrics"], number>>;
+
+export type ReplayRuntimeDiff = {
+  totalDurationMs: number;
+  peakMemoryBytes: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
+};
+
+export type ReplayComparisonAccepted = {
+  accepted: true;
+  changedVariable: ReplayVariable;
+  caseDiff: ReplayCaseDiff;
+  failureDiff: ReplayFailureDiff;
+  metricDiff: ReplayMetricDiff;
+  runtimeDiff: ReplayRuntimeDiff;
+};
+
+export type ReplayComparisonRejected = {
+  accepted: false;
+  reason: ReplayComparisonRejectedReason;
+};
+
+export type ReplayComparison = ReplayComparisonAccepted | ReplayComparisonRejected;
+
 const FORBIDDEN = [
   /\n/,
   /\r/,
