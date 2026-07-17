@@ -7,6 +7,7 @@ import { type EvaluationReport, validateEvaluationReport } from "../evals/contra
 import { evaluateFixtureCase } from "../evals/evaluate-case.js";
 import { loadEvaluationCases } from "../evals/fixtures.js";
 import { gradeExpectedFindings } from "../evals/graders/metrics.js";
+import { replayFixtureEvaluation } from "../evals/replay/fixture-replay.js";
 import { compareEvaluationReports } from "../evals/regression.js";
 import {
   buildRedactedReport,
@@ -21,6 +22,25 @@ const cases = selectEvaluationCases(
   await loadEvaluationCases(root, manifest, selection),
   selection
 );
+const fixtureManifestHash = await fileHash(resolve(root, manifest));
+if (selection.replay) {
+  const replay = await replayFixtureEvaluation(root, cases, {
+    sourceReportId: `report-${fixtureManifestHash.slice(0, 16)}`,
+    fixtureManifestHash,
+    configuration: {
+      model: selection.modelProfile ?? "deterministic-fixture",
+      prompt: "none",
+      threshold: "fixture-threshold-v1",
+      retrieval: "fixture-retrieval-v1",
+      policy: "fixture-policy-v1",
+      agent: selection.agent ?? "deterministic-runner"
+    }
+  });
+  await mkdir(resolve(root, "evals/reports"), { recursive: true });
+  await writeFile(resolve(root, "evals/reports/replay.json"), `${JSON.stringify(replay, null, 2)}\n`);
+  console.log(JSON.stringify({ suite: "replay", cases: replay.caseResults.length, runtime: replay.runtime }));
+  process.exit(0);
+}
 const executions = await Promise.all(
   cases.map(async (item) => {
     const startedAt = performance.now();
@@ -68,7 +88,7 @@ const report = buildRedactedReport({
     policyVersions: ["fixture-policy-v1"],
     schemaVersions: ["evaluation-case-v1", "finding-v1"],
     modelProfile: selection.modelProfile ?? "deterministic-fixture",
-    fixtureManifestHash: await fileHash(resolve(root, manifest)),
+    fixtureManifestHash,
     configurationFingerprint: createHash("sha256").update(JSON.stringify(selection)).digest("hex"),
     hardware: {
       platform: process.platform,

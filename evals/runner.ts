@@ -8,14 +8,20 @@ export type EvaluationSelection = {
   modelProfile?: string;
   manifest?: string;
   compare?: string;
+  replay?: boolean;
 };
 
 export function parseEvaluationSelection(args: readonly string[]): EvaluationSelection {
   const selection: EvaluationSelection = { splits: [] };
   for (let index = 0; index < args.length; index++) {
     const flag = args[index];
-    const value = args[index + 1];
     if (!flag?.startsWith("--")) throw new Error("Evaluation argument is invalid.");
+    if (flag === "--replay") {
+      selection.replay = true;
+      selection.suite = "replay";
+      continue;
+    }
+    const value = args[index + 1];
     if (!value || value.startsWith("--")) throw new Error(`Missing value for ${flag}.`);
     index++;
     if (flag === "--suite") selection.suite = value;
@@ -29,6 +35,8 @@ export function parseEvaluationSelection(args: readonly string[]): EvaluationSel
     else if (flag === "--compare") selection.compare = value;
     else throw new Error("Unknown evaluation argument.");
   }
+  if (selection.replay && !selection.manifest)
+    throw new Error("Replay evaluation requires an explicit manifest.");
   if (selection.splits.length === 0) selection.splits = ["development", "ci-regression"];
   return selection;
 }

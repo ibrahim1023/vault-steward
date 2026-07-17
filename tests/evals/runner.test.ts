@@ -40,4 +40,17 @@ describe("evaluation selection", () => {
       )
     ).toEqual(["held"]);
   });
+
+  it("accepts an opt-in replay selection and requires an explicit manifest value", () => {
+    expect(
+      parseEvaluationSelection(["--replay", "--manifest", "evals/manifests/ci-regression.json"])
+    ).toMatchObject({
+      replay: true,
+      suite: "replay",
+      manifest: "evals/manifests/ci-regression.json"
+    });
+    expect(() => parseEvaluationSelection(["--replay"])).toThrow(
+      "Replay evaluation requires an explicit manifest."
+    );
+  });
 });
