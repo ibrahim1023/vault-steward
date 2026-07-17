@@ -52,12 +52,17 @@ const FORBIDDEN = [
   /\n/,
   /\r/,
   /https?:\/\//i,
-  /^\/(?:tmp|private\/tmp|Users)\//i,
-  /\/Users\//,
-  /secret/i,
-  /note body/i,
-  /raw output/i
+  /^\//,
+  /\/(?:Users|etc|private|tmp)\//i,
+  /\bsecret\b/i,
+  /\bnote body\b/i,
+  /\braw output\b/i,
+  /\bsummary\b/i,
+  /\bcontents\b/i
 ];
+
+const REPLAY_TOKEN_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+const ERROR_CODE_PATTERN = /^[A-Za-z][A-Za-z0-9._:-]{0,63}$/;
 
 export function validateFixtureReplayRecord(value: unknown): value is FixtureReplayRecord {
   if (!isObject(value)) return false;
@@ -90,10 +95,10 @@ function validateReplayConfiguration(
 function validateReplayCaseResult(value: unknown): value is RedactedReplayCaseResult {
   if (!isObject(value)) return false;
   return (
-    bounded(value.id) &&
+    replayToken(value.id) &&
     ["passed", "failed", "incomplete"].includes(value.outcome as string) &&
     nonNegativeNumber(value.durationMs) &&
-    (value.errorCode === null || bounded(value.errorCode))
+    (value.errorCode === null || errorCode(value.errorCode))
   );
 }
 
@@ -123,7 +128,15 @@ function bounded(value: unknown): value is string {
 }
 
 function metadataLabel(value: unknown): value is string {
-  return bounded(value) && /^[A-Za-z0-9._:-]+$/.test(value);
+  return bounded(value) && REPLAY_TOKEN_PATTERN.test(value);
+}
+
+function replayToken(value: unknown): value is string {
+  return bounded(value) && REPLAY_TOKEN_PATTERN.test(value);
+}
+
+function errorCode(value: unknown): value is string {
+  return bounded(value) && ERROR_CODE_PATTERN.test(value);
 }
 
 function hash(value: unknown): boolean {
