@@ -52,6 +52,7 @@ const FORBIDDEN = [
   /\n/,
   /\r/,
   /https?:\/\//i,
+  /^\/(?:tmp|private\/tmp|Users)\//i,
   /\/Users\//,
   /secret/i,
   /note body/i,
@@ -64,7 +65,7 @@ export function validateFixtureReplayRecord(value: unknown): value is FixtureRep
   return (
     record.schemaVersion === 1 &&
     bounded(record.replayId) &&
-    bounded(record.sourceReportId) &&
+    metadataLabel(record.sourceReportId) &&
     hash(record.fixtureManifestHash) &&
     validateReplayConfiguration(record.configuration) &&
     Array.isArray(record.caseResults) &&
@@ -81,7 +82,7 @@ function validateReplayConfiguration(
   const keys = Object.keys(value);
   return (
     keys.length === REPLAY_VARIABLES.length &&
-    REPLAY_VARIABLES.every((key) => bounded(value[key])) &&
+    REPLAY_VARIABLES.every((key) => metadataLabel(value[key])) &&
     keys.every((key) => REPLAY_VARIABLES.includes(key as ReplayVariable))
   );
 }
@@ -119,6 +120,10 @@ function bounded(value: unknown): value is string {
     value.length <= 256 &&
     !FORBIDDEN.some((pattern) => pattern.test(value))
   );
+}
+
+function metadataLabel(value: unknown): value is string {
+  return bounded(value) && /^[A-Za-z0-9._:-]+$/.test(value);
 }
 
 function hash(value: unknown): boolean {
