@@ -78,14 +78,12 @@ export async function replayFixtureEvaluation(
       outputTokens: null
     }
   };
-  if (!validateFixtureReplayRecord(record)) throw new Error("Generated fixture replay record is invalid.");
+  if (!validateFixtureReplayRecord(record))
+    throw new Error("Generated fixture replay record is invalid.");
   return record;
 }
 
-function replayIdFor(
-  cases: readonly EvaluationCase[],
-  replay: FixtureReplayConfiguration
-): string {
+function replayIdFor(cases: readonly EvaluationCase[], replay: FixtureReplayConfiguration): string {
   return createHash("sha256")
     .update(
       stableStringify({

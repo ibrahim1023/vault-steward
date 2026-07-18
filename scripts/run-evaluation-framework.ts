@@ -40,18 +40,20 @@ if (selection.replay) {
     }
   });
   await mkdir(resolve(root, "evals/reports"), { recursive: true });
-  await writeFile(resolve(root, "evals/reports/replay.json"), `${JSON.stringify(replay, null, 2)}\n`);
+  await writeFile(
+    resolve(root, "evals/reports/replay.json"),
+    `${JSON.stringify(replay, null, 2)}\n`
+  );
   if (compareReplayPath) {
-    const comparison = compareReplayRuns(
-      await loadReplayRecord(root, compareReplayPath),
-      replay
-    );
+    const comparison = compareReplayRuns(await loadReplayRecord(root, compareReplayPath), replay);
     await writeFile(
       resolve(root, "evals/reports/replay-comparison.json"),
       `${JSON.stringify(comparison, null, 2)}\n`
     );
   }
-  console.log(JSON.stringify({ suite: "replay", cases: replay.caseResults.length, runtime: replay.runtime }));
+  console.log(
+    JSON.stringify({ suite: "replay", cases: replay.caseResults.length, runtime: replay.runtime })
+  );
   process.exit(0);
 }
 const executions = await Promise.all(

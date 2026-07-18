@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 15 replay, comparative analysis, and model-quality reporting is under completion-gate verification.
+Phase 15 replay, comparative analysis, and model-quality reporting is complete.
 
 ## Completed Work
 
@@ -55,7 +55,7 @@ Phase 15 replay, comparative analysis, and model-quality reporting is under comp
 
 ## Current Work
 
-Phase 15 is implemented on `feat/phase-15-replay-comparison`; full verification, documentation finalization, promotion to `development`, and push are pending.
+Phase 15 is complete on `feat/phase-15-replay-comparison`; promotion to `development` and push are pending.
 
 ## Important Decisions
 
@@ -71,8 +71,8 @@ Phase 15 is implemented on `feat/phase-15-replay-comparison`; full verification,
 
 ## Verification Status
 
-The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. Phase 15 focused replay, comparison, and calibration tests are passing; its full completion gate is pending.
+The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 15 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 36 replay/evaluation tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities.
 
 ## Next Recommended Task
 
-Run the Phase 15 completion gate, generate the replay/comparison explanation, and promote the verified branch to `development`.
+Start Phase 16 advanced quality coverage and public documentation from a dedicated branch based on `development`.

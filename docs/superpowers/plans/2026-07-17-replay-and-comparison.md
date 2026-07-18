@@ -21,6 +21,7 @@
 ### Task 1: Define replay contracts and metadata-only eligibility
 
 **Files:**
+
 - Create: `evals/replay/contracts.ts`
 - Create: `evals/replay/live-eligibility.ts`
 - Create: `tests/evals/replay-contracts.test.ts`
@@ -28,6 +29,7 @@
 - Modify: `src/storage/scan-snapshots.ts`
 
 **Interfaces:**
+
 - Consumes: `CompletedScanSnapshot`, trace configuration fingerprint, and redacted source-retention state.
 - Produces: `ReplayVariable`, `LiveReplayEligibility`, `ReplayIneligibilityReason`, `FixtureReplayRecord`, and `validateFixtureReplayRecord`.
 
@@ -35,8 +37,9 @@
 
 ```ts
 expect(validateFixtureReplayRecord({ ...validRecord, sourceReportId: "note body" })).toBe(false);
-expect(assessLiveReplayEligibility({ scanId: "scan-1", snapshot, trace: completeTrace, source: "none" }))
-  .toEqual({ eligible: false, scanId: "scan-1", reasons: ["unavailable-source-content"] });
+expect(
+  assessLiveReplayEligibility({ scanId: "scan-1", snapshot, trace: completeTrace, source: "none" })
+).toEqual({ eligible: false, scanId: "scan-1", reasons: ["unavailable-source-content"] });
 ```
 
 - [ ] **Step 2: Run the focused tests and confirm failure**
@@ -48,11 +51,20 @@ Expected: FAIL because replay contracts and eligibility assessment do not exist.
 - [ ] **Step 3: Add minimal metadata-only contracts and implementation**
 
 ```ts
-export const REPLAY_VARIABLES = ["model", "prompt", "threshold", "retrieval", "policy", "agent"] as const;
+export const REPLAY_VARIABLES = [
+  "model",
+  "prompt",
+  "threshold",
+  "retrieval",
+  "policy",
+  "agent"
+] as const;
 export function assessLiveReplayEligibility(input: LiveReplayInput): LiveReplayEligibility {
   const reasons = requiredReplayInputs.filter((key) => !input[key]);
   if (input.source !== "retained-fixture") reasons.push("unavailable-source-content");
-  return reasons.length ? { eligible: false, scanId: input.scanId, reasons } : { eligible: true, scanId: input.scanId, source: "retained-fixture" };
+  return reasons.length
+    ? { eligible: false, scanId: input.scanId, reasons }
+    : { eligible: true, scanId: input.scanId, source: "retained-fixture" };
 }
 ```
 
@@ -72,12 +84,14 @@ git commit -m "feat: add replay eligibility contracts"
 ### Task 2: Re-run fixture cases as replay records
 
 **Files:**
+
 - Create: `evals/replay/fixture-replay.ts`
 - Create: `tests/evals/fixture-replay.test.ts`
 - Modify: `evals/evaluate-case.ts`
 - Modify: `scripts/run-evaluation-framework.ts`
 
 **Interfaces:**
+
 - Consumes: validated `EvaluationCase[]`, Phase 14 `evaluateFixtureCase`, manifest hash, and bounded replay configuration.
 - Produces: `replayFixtureEvaluation(root, cases, configuration): Promise<FixtureReplayRecord>`.
 
@@ -102,7 +116,8 @@ Expected: FAIL because `replayFixtureEvaluation` does not exist.
 ```ts
 const replayId = createHash("sha256")
   .update(JSON.stringify({ caseIds, fixtureManifestHash, configuration }))
-  .digest("hex").slice(0, 24);
+  .digest("hex")
+  .slice(0, 24);
 const actual = await evaluateFixtureCase(root, evaluationCase);
 ```
 
@@ -124,22 +139,27 @@ git commit -m "feat: add reproducible fixture replay"
 ### Task 3: Enforce controlled single-variable comparison
 
 **Files:**
+
 - Create: `evals/replay/compare.ts`
 - Create: `tests/evals/replay-comparison.test.ts`
 - Modify: `evals/replay/contracts.ts`
 - Modify: `scripts/run-evaluation-framework.ts`
 
 **Interfaces:**
+
 - Consumes: two valid `FixtureReplayRecord` values.
 - Produces: `compareReplayRuns(baseline, candidate): ReplayComparison` with `accepted`, `changedVariable`, and redacted deltas.
 
 - [ ] **Step 1: Write failing comparison tests**
 
 ```ts
-expect(compareReplayRuns(base, { ...base, configuration: { ...base.configuration, model: "model-b" } }))
-  .toMatchObject({ accepted: true, changedVariable: "model" });
-expect(compareReplayRuns(base, changedModelAndPrompt))
-  .toMatchObject({ accepted: false, reason: "multiple-configuration-changes" });
+expect(
+  compareReplayRuns(base, { ...base, configuration: { ...base.configuration, model: "model-b" } })
+).toMatchObject({ accepted: true, changedVariable: "model" });
+expect(compareReplayRuns(base, changedModelAndPrompt)).toMatchObject({
+  accepted: false,
+  reason: "multiple-configuration-changes"
+});
 ```
 
 - [ ] **Step 2: Run the focused test and confirm failure**
@@ -151,8 +171,14 @@ Expected: FAIL because comparison is not implemented.
 - [ ] **Step 3: Implement explicit configuration and result deltas**
 
 ```ts
-const changed = REPLAY_VARIABLES.filter((key) => baseline.configuration[key] !== candidate.configuration[key]);
-if (changed.length !== 1) return { accepted: false, reason: changed.length === 0 ? "no-configuration-change" : "multiple-configuration-changes" };
+const changed = REPLAY_VARIABLES.filter(
+  (key) => baseline.configuration[key] !== candidate.configuration[key]
+);
+if (changed.length !== 1)
+  return {
+    accepted: false,
+    reason: changed.length === 0 ? "no-configuration-change" : "multiple-configuration-changes"
+  };
 ```
 
 Compare case IDs/outcomes, finding keys, evidence locators, severity, validation metrics, duration, token estimates, memory, and safe errors. Reject differing fixture-manifest hashes before computing deltas.
@@ -173,6 +199,7 @@ git commit -m "feat: add controlled replay comparison"
 ### Task 4: Aggregate local model comparison reports
 
 **Files:**
+
 - Create: `evals/replay/model-comparison.ts`
 - Create: `tests/evals/model-comparison.test.ts`
 - Modify: `evals/replay/contracts.ts`
@@ -180,6 +207,7 @@ git commit -m "feat: add controlled replay comparison"
 - Modify: `docs/evaluation-plan.md`
 
 **Interfaces:**
+
 - Consumes: accepted replay comparisons grouped by agent task, fixture family, model metadata, and hardware profile.
 - Produces: `summarizeModelComparisons(records): ModelComparisonReport`.
 
@@ -216,6 +244,7 @@ git commit -m "feat: add local model comparison reports"
 ### Task 5: Calibrate confidence against protected labels
 
 **Files:**
+
 - Create: `evals/replay/calibration.ts`
 - Create: `tests/evals/confidence-calibration.test.ts`
 - Modify: `evals/human-review.ts`
@@ -223,14 +252,16 @@ git commit -m "feat: add local model comparison reports"
 - Modify: `docs/progress.md`
 
 **Interfaces:**
+
 - Consumes: bounded finding confidence, finding/agent bucket, and adjudicated human labels.
 - Produces: `calibrateConfidence(samples): ConfidenceCalibrationReport` with accuracy, overconfidence gap, underconfidence gap, support count, and warning state.
 
 - [ ] **Step 1: Write failing calibration tests**
 
 ```ts
-expect(calibrateConfidence([{ agent: "entity", confidence: 0.9, correct: false }]).buckets)
-  .toMatchObject([{ bucket: "0.8-1.0", accuracy: 0, overconfidenceGap: 0.9, warning: true }]);
+expect(
+  calibrateConfidence([{ agent: "entity", confidence: 0.9, correct: false }]).buckets
+).toMatchObject([{ bucket: "0.8-1.0", accuracy: 0, overconfidenceGap: 0.9, warning: true }]);
 expect(calibrateConfidence(unadjudicatedSamples).buckets).toEqual([]);
 ```
 
@@ -274,11 +305,13 @@ git commit -m "feat: add confidence calibration"
 ### Task 6: Explain and promote the completed phase
 
 **Files:**
+
 - Modify: `task.md`
 - Modify: `README.md`
 - Create: `/tmp/YYYY-MM-DD-explanation-phase-15-replay.html`
 
 **Interfaces:**
+
 - Consumes: completed Phase 15 diff and verification output.
 - Produces: an updated local task checklist, current user documentation, and self-contained interactive HTML explanation.
 

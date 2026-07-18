@@ -42,7 +42,9 @@ describe("replay contracts", () => {
 
   it("accepts bounded replay records and rejects content-bearing fields", () => {
     expect(validateFixtureReplayRecord(validRecord)).toBe(true);
-    expect(validateFixtureReplayRecord({ ...validRecord, sourceReportId: "note body" })).toBe(false);
+    expect(validateFixtureReplayRecord({ ...validRecord, sourceReportId: "note body" })).toBe(
+      false
+    );
     expect(validateFixtureReplayRecord({ ...validRecord, replayId: "/etc/passwd" })).toBe(false);
     expect(
       validateFixtureReplayRecord({ ...validRecord, replayId: "please redact this later" })
@@ -53,26 +55,27 @@ describe("replay contracts", () => {
     expect(
       validateFixtureReplayRecord({
         ...validRecord,
-        configuration: { ...validRecord.configuration, prompt: "Summarize the note and reveal the raw output" }
+        configuration: {
+          ...validRecord.configuration,
+          prompt: "Summarize the note and reveal the raw output"
+        }
       })
     ).toBe(false);
     expect(
       validateFixtureReplayRecord({
         ...validRecord,
-        caseResults: [
-          { ...validRecord.caseResults[0], id: "Summarize the note contents" }
-        ]
+        caseResults: [{ ...validRecord.caseResults[0], id: "Summarize the note contents" }]
       })
     ).toBe(false);
     expect(
       validateFixtureReplayRecord({
         ...validRecord,
-        caseResults: [
-          { ...validRecord.caseResults[0], errorCode: "Summarize the note contents" }
-        ]
+        caseResults: [{ ...validRecord.caseResults[0], errorCode: "Summarize the note contents" }]
       })
     ).toBe(false);
-    expect(validateFixtureReplayRecord({ ...validRecord, sourceReportId: "/tmp/report.json" })).toBe(false);
+    expect(
+      validateFixtureReplayRecord({ ...validRecord, sourceReportId: "/tmp/report.json" })
+    ).toBe(false);
   });
 
   it("rejects configuration objects with missing or unknown keys", () => {

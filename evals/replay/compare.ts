@@ -26,8 +26,7 @@ export function compareReplayRuns(
   if (changed.length !== 1) {
     return {
       accepted: false,
-      reason:
-        changed.length === 0 ? "no-configuration-change" : "multiple-configuration-changes"
+      reason: changed.length === 0 ? "no-configuration-change" : "multiple-configuration-changes"
     };
   }
 

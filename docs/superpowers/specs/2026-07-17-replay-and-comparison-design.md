@@ -67,13 +67,7 @@ multiple changed keys return a user-safe rejected comparison result.
 ## Contracts
 
 ```ts
-type ReplayVariable =
-  | "model"
-  | "prompt"
-  | "threshold"
-  | "retrieval"
-  | "policy"
-  | "agent";
+type ReplayVariable = "model" | "prompt" | "threshold" | "retrieval" | "policy" | "agent";
 
 type LiveReplayEligibility =
   | { eligible: true; scanId: string; source: "retained-fixture" }

@@ -139,7 +139,15 @@ export class ScanSnapshotRepository {
         return { path, revisionHash };
       });
 
-    return { id, vaultFingerprint, status, configHash, inputHash, parserVersion, files: files ?? [] };
+    return {
+      id,
+      vaultFingerprint,
+      status,
+      configHash,
+      inputHash,
+      parserVersion,
+      files: files ?? []
+    };
   }
 }
 
