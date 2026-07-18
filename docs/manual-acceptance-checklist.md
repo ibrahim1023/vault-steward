@@ -15,14 +15,14 @@ section.
 - [ ] Local model name and version recorded
 - [ ] Fresh installation or upgrade path recorded
 
-| Field | Value |
-| --- | --- |
-| Date | |
-| Obsidian | |
-| Operating system | |
-| Vault Steward | |
-| Local model | |
-| Install path | |
+| Field            | Value |
+| ---------------- | ----- |
+| Date             |       |
+| Obsidian         |       |
+| Operating system |       |
+| Vault Steward    |       |
+| Local model      |       |
+| Install path     |       |
 
 ## Installation And Readiness
 
@@ -140,11 +140,11 @@ section.
 
 ## Issues Found
 
-| ID | Scenario | Expected | Actual | Screenshot / notes | Status |
-| --- | --- | --- | --- | --- | --- |
-| UI-01 | | | | | Open |
-| UI-02 | | | | | Open |
-| UI-03 | | | | | Open |
+| ID    | Scenario | Expected | Actual | Screenshot / notes | Status |
+| ----- | -------- | -------- | ------ | ------------------ | ------ |
+| UI-01 |          |          |        |                    | Open   |
+| UI-02 |          |          |        |                    | Open   |
+| UI-03 |          |          |        |                    | Open   |
 
 ## Sign-off
 
