@@ -62,6 +62,9 @@ describe("seeded synthetic vault generation", () => {
       "brokenReferenceRate"
     );
     expect(() => generateSyntheticVault({ ...config, seed: "unsafe\nseed" })).toThrow("seed");
+    expect(() => generateSyntheticVault({ ...config, taskCount: config.noteCount + 1 })).toThrow(
+      "taskCount"
+    );
   });
 
   it("creates valid base references before it injects broken references", () => {

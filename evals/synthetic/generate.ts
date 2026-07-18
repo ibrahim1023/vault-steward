@@ -144,6 +144,12 @@ function validateConfig(config: SyntheticVaultConfig): void {
   validateInteger("entityCount", config.entityCount, 1, MAX_COUNT);
   validateInteger("taskCount", config.taskCount, 0, MAX_COUNT);
   validateInteger("decisionCount", config.decisionCount, 0, MAX_COUNT);
+  if (config.taskCount > config.noteCount) {
+    throw new Error("taskCount cannot exceed noteCount.");
+  }
+  if (config.decisionCount > config.noteCount) {
+    throw new Error("decisionCount cannot exceed noteCount.");
+  }
   for (const [key, value] of Object.entries(config)) {
     if (key.endsWith("Rate") || key === "linkDensity") validateRate(key, value as number);
   }
