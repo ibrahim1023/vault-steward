@@ -52,6 +52,10 @@ A case declares `id`, `split`, fixture reference, task, expected evidence, expec
 
 Configured local retrieval adapters may be evaluated with bounded query, evidence-ID, score, cache-state, and latency metadata. The local report measures query coverage, relevant-evidence rate, cache-hit rate, score distribution, missing queries, and p50/p95 latency. No configured adapter yields an explicit `not-configured` result. Retrieval remains optional and derived: these metrics never authorize findings, evidence, policies, proposals, approvals, or edits.
 
+## Policy Coverage
+
+Local policy coverage summarizes policy/version execution, triggered violations, explicit fixture coverage, deprecation, and aggregate reviewer false-positive rates. It distinguishes missing review data from a zero false-positive rate and orders its status deterministically: deprecated, unexercised, missing fixture, review needed, then covered. Its suggestions identify follow-up work only; it never changes policy YAML or policy storage.
+
 ## Reproducible Fixture Runner
 
 `npm run evals` runs the versioned fixture-vault cases under `evals/cases/`. Each case declares a bounded expected finding, source locator, severity, fix applicability, family, split, and contamination metadata. Fixtures cover references, entities, contradictions, staleness, tasks, schemas, policies, and decisions.
