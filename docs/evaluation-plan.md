@@ -48,6 +48,10 @@ A case declares `id`, `split`, fixture reference, task, expected evidence, expec
 
 `npm run eval:synthetic` generates a disposable local vault from a bounded seed/configuration and evaluates the generated reference defects against exact redacted ground truth. The initial scale report measures the deterministic reference family only; other injected defect kinds provide labelled inputs for later family-specific evaluators and must not be presented as measured agent accuracy. Generated vaults and reports are ignored by Git.
 
+## Optional Retrieval Quality
+
+Configured local retrieval adapters may be evaluated with bounded query, evidence-ID, score, cache-state, and latency metadata. The local report measures query coverage, relevant-evidence rate, cache-hit rate, score distribution, missing queries, and p50/p95 latency. No configured adapter yields an explicit `not-configured` result. Retrieval remains optional and derived: these metrics never authorize findings, evidence, policies, proposals, approvals, or edits.
+
 ## Reproducible Fixture Runner
 
 `npm run evals` runs the versioned fixture-vault cases under `evals/cases/`. Each case declares a bounded expected finding, source locator, severity, fix applicability, family, split, and contamination metadata. Fixtures cover references, entities, contradictions, staleness, tasks, schemas, policies, and decisions.
