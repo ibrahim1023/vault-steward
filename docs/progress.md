@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 14 reproducible evaluation and regression framework is complete.
+Phase 15 replay, comparative analysis, and model-quality reporting is complete.
 
 ## Completed Work
 
@@ -51,10 +51,11 @@ Phase 14 reproducible evaluation and regression framework is complete.
 - Phase 12 adds metadata-only trace contracts, persisted scan spans and finding lineage, invalid-lineage rejection before review, and retention/deletion inventory controls.
 - Phase 13 adds a collapsed metadata-only observability inspector with scan timelines, complete finding-lineage hops, deterministic configuration fingerprints, local privacy/retention controls, automatic retention cleanup, stored-data inventory, and operational scan metrics.
 - Phase 14 adds versioned fixture vaults and manifests across all supported finding families, deterministic source/evidence graders, redacted configuration-rich reports, CI regression gates, protected held-out/adversarial/human-review splits, and local human-review agreement summaries.
+- Phase 15 adds metadata-only live replay eligibility, deterministic fixture replay records, redacted single-variable comparison diffs, descriptive local model-comparison summaries, and confidence-calibration reports based only on adjudicated human labels.
 
 ## Current Work
 
-Phase 14 is complete on `feat/phase-14-evaluation-framework`; full verification, promotion to `development`, and push are pending.
+Phase 15 is complete on `feat/phase-15-replay-comparison`; promotion to `development` and push are pending.
 
 ## Important Decisions
 
@@ -70,8 +71,8 @@ Phase 14 is complete on `feat/phase-14-evaluation-framework`; full verification,
 
 ## Verification Status
 
-The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities.
+The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 15 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 36 replay/evaluation tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities.
 
 ## Next Recommended Task
 
-Start Phase 15 replay, comparative analysis, and model quality from a dedicated branch based on `development`.
+Start Phase 16 advanced quality coverage and public documentation from a dedicated branch based on `development`.

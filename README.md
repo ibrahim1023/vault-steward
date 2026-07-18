@@ -18,6 +18,7 @@ Vault Steward provides:
 - A fixed-path local Policy Studio with deterministic draft validation and preview, evidence-bounded selected-finding explanations, local model readiness checks, and metadata-only reviewer feedback.
 - A collapsed local Observability inspector with metadata-only scan timelines, finding lineage, configuration fingerprints, operational metrics, trace retention, opt-in redacted snapshot preferences, and explicit trace deletion controls.
 - A local evaluation framework with versioned fixture vaults across all finding families, protected development/CI/held-out/adversarial/human-review splits, deterministic evidence grading, regression baselines, and redacted local reports.
+- Reproducible fixture replay, controlled one-variable replay comparisons, and local model-comparison summaries that report measured tradeoffs without choosing a universal best model.
 
 The repository README is kept current as product capabilities change. Architecture decisions, interfaces, operational constraints, and detailed engineering progress are maintained in `docs/`.
 
@@ -59,6 +60,18 @@ npm run security:check
 ```
 
 `npm run build` writes `main.js` and `sql-wasm.wasm` at the project root. `npm run package:plugin` creates `dist/vault-steward/` with those assets, `styles.css`, `manifest.json`, and a SHA-256 `release-manifest.json`. Install that directory as `vault-steward` under an Obsidian vault's `.obsidian/plugins/` directory.
+
+## Replay And Quality Reports
+
+Fixture replay is available for the synthetic evaluation vaults:
+
+```bash
+npm run evals -- --replay --manifest evals/manifests/ci-regression.json
+```
+
+It writes a redacted local record to `evals/reports/replay.json`. A comparative replay accepts only two records with the same fixture manifest and exactly one changed configuration field: model, prompt, threshold, retrieval, policy, or agent. It writes its redacted diff to `evals/reports/replay-comparison.json`; it does not change a vault, policy, finding severity, or model setting.
+
+Live vault scans retain metadata by default, not note source. They therefore report whether exact replay is eligible rather than reconstructing historical note content. Local model summaries are descriptive measurements for a particular task, fixture family, vault scale, and hardware profile; they do not select a universal best model. Confidence calibration uses only adjudicated human labels, warns only after enough labels support a meaningful gap, and never authorizes a repair.
 
 ## Repository Guide
 

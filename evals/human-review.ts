@@ -4,6 +4,21 @@ export type HumanReviewLabel = {
   label: "correct" | "incorrect" | "uncertain";
 };
 
+export type AdjudicatedFindingReview = HumanReviewLabel & {
+  agent: string;
+  findingType: string;
+  confidence: number;
+  adjudicated: boolean;
+};
+
+export type ConfidenceCalibrationInput = {
+  agent: string;
+  findingType: string;
+  confidence: number;
+  correct: boolean;
+  adjudicated: boolean;
+};
+
 export type HumanReviewAgreement = {
   sampledCaseCount: number;
   independentlyReviewedCaseCount: number;
@@ -37,4 +52,22 @@ export function summarizeHumanReview(labels: readonly HumanReviewLabel[]): Human
       independentlyReviewedCaseCount === 0 ? null : agreed / independentlyReviewedCaseCount,
     unresolvedCaseCount
   };
+}
+
+/** Converts adjudicated review metadata into calibration inputs without note content. */
+export function calibrationSamplesFromHumanReviews(
+  labels: readonly AdjudicatedFindingReview[]
+): ConfidenceCalibrationInput[] {
+  return labels.flatMap((label) => {
+    if (!label.adjudicated || label.label === "uncertain") return [];
+    return [
+      {
+        agent: label.agent,
+        findingType: label.findingType,
+        confidence: label.confidence,
+        correct: label.label === "correct",
+        adjudicated: true
+      }
+    ];
+  });
 }
