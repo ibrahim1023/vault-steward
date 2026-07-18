@@ -20,6 +20,7 @@
     "test:acceptance": "vitest run tests/acceptance",
     "eval:smoke": "tsx scripts/run-evals.ts --suite reference-integrity",
     "eval:full": "tsx scripts/run-evals.ts --all",
+    "eval:synthetic": "tsx scripts/run-synthetic-scale-eval.ts",
     "evals": "tsx scripts/run-evaluation-framework.ts",
     "eval:local-model": "tsx scripts/run-live-model-evals.ts",
     "perf:smoke": "tsx scripts/run-performance.ts",

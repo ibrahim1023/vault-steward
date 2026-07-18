@@ -12,6 +12,7 @@ const MAX_NOTES = 1_000;
 const MAX_DEPTH = 16;
 const MAX_COUNT = 10_000;
 const TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+const BASE_FRONTMATTER_LINES = 5;
 
 type MutableSyntheticFile = { path: string; lines: string[] };
 
@@ -103,7 +104,7 @@ function injectDefect(
   kind: SyntheticDefectKind,
   index: number
 ): string {
-  const line = file.lines.length + 1;
+  const physicalLine = file.lines.length + 1;
   const suffix = index + 1;
   switch (kind) {
     case "contradiction":
@@ -128,7 +129,8 @@ function injectDefect(
       file.lines.push(`Decision ${suffix}: unresolved`);
       break;
   }
-  return `line:${line}`;
+  // Scanner locators are relative to Markdown content after frontmatter.
+  return `line:${physicalLine - BASE_FRONTMATTER_LINES}`;
 }
 
 function injectionCount(noteCount: number, rate: number): number {
