@@ -60,6 +60,7 @@ Fixture evaluation, replay, generated scale coverage, retrieval-quality measurem
 npm run eval:smoke
 npm run eval:full
 npm run eval:synthetic
+npm run eval:retrieval
 npm run evals -- --manifest evals/manifests/ci-regression.json --compare evals/baselines/evaluation-main.json
 ```
 
@@ -91,6 +92,7 @@ npm run test:acceptance
 npm run eval:smoke
 npm run eval:full
 npm run eval:synthetic
+npm run eval:retrieval
 npm run perf:smoke
 npm run ops:smoke
 npm run security:check

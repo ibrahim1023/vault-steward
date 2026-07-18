@@ -3,7 +3,11 @@ import { resolve } from "node:path";
 
 import type { SyntheticVaultConfig } from "../evals/synthetic/contracts.js";
 import { generateSyntheticVault } from "../evals/synthetic/generate.js";
-import { evaluateSyntheticScale } from "../evals/synthetic/scale-evaluation.js";
+import {
+  assertSyntheticScaleBaseline,
+  evaluateSyntheticScale,
+  type SyntheticScaleReport
+} from "../evals/synthetic/scale-evaluation.js";
 
 const root = resolve(import.meta.dirname, "..");
 const configPath = process.argv[2] ?? "evals/synthetic/configs/small.json";
@@ -28,6 +32,10 @@ await writeFile(
   `${JSON.stringify(generated.groundTruth, null, 2)}\n`
 );
 const report = evaluateSyntheticScale(generated);
+const baseline = JSON.parse(
+  await readFile(resolve(root, "evals/baselines/synthetic-scale.json"), "utf8")
+) as SyntheticScaleReport;
+assertSyntheticScaleBaseline(report, baseline);
 await mkdir(resolve(root, "evals/reports"), { recursive: true });
 await writeFile(
   resolve(root, "evals/reports/synthetic-scale.json"),

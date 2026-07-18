@@ -11,6 +11,23 @@ export type SyntheticScaleReport = {
   metrics: { precision: number; recall: number; f1: number };
 };
 
+export function assertSyntheticScaleBaseline(
+  report: SyntheticScaleReport,
+  baseline: SyntheticScaleReport
+): void {
+  if (report.configurationHash !== baseline.configurationHash) {
+    throw new Error("Synthetic scale baseline configuration mismatch.");
+  }
+  if (report.generatedFileCount !== baseline.generatedFileCount) {
+    throw new Error("Synthetic scale generated-file count mismatch.");
+  }
+  for (const metric of ["precision", "recall", "f1"] as const) {
+    if (report.metrics[metric] < baseline.metrics[metric]) {
+      throw new Error(`Synthetic ${metric} regression.`);
+    }
+  }
+}
+
 export function evaluateSyntheticScale(generated: GeneratedSyntheticVault): SyntheticScaleReport {
   const expected = new Set(
     generated.groundTruth.defects

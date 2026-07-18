@@ -14,8 +14,10 @@ Fixture replay reruns the same synthetic inputs and configuration into a redacte
 
 ## Synthetic Scale Coverage
 
-`npm run eval:synthetic` builds a disposable vault from a bounded seed and writes ignored artifacts under `evals/generated/` and `evals/reports/`. Its initial report measures deterministic reference findings against exact generated reference ground truth. Other generated defect labels are inputs for future family-specific evaluators, not reported as current model accuracy.
+`npm run eval:synthetic` builds a disposable vault from a bounded seed and writes ignored artifacts under `evals/generated/` and `evals/reports/`. Its initial report measures deterministic reference findings against exact generated reference ground truth and rejects precision, recall, F1, configuration, or generated-file-count regressions against `evals/baselines/synthetic-scale.json`. Other generated defect labels are inputs for future family-specific evaluators, not reported as current model accuracy.
 
 ## Quality Reports
 
 Model comparison, calibration, optional retrieval quality, and policy coverage reports are descriptive. They cannot select a default model, edit policies, authorize findings, or write notes. See `docs/evaluation-plan.md` for metrics and release thresholds.
+
+`npm run eval:retrieval` writes a redacted retrieval-quality report. Without configured adapter metadata it reports `not-configured`; a local adapter may provide a bounded `events`/`expectations` JSON input under `evals/` for measurement.
