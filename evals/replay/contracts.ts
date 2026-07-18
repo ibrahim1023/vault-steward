@@ -167,6 +167,50 @@ export type ReplayComparisonRejected = {
 
 export type ReplayComparison = ReplayComparisonAccepted | ReplayComparisonRejected;
 
+export type ModelComparisonSample = {
+  agent: string;
+  family: string;
+  model: string;
+  hardware: string;
+  retryCount: number;
+  replay: {
+    metrics: {
+      precision: number | null;
+      recall: number | null;
+      f1: number | null;
+      evidenceSourceAccuracy: number | null;
+    };
+    runtime: Pick<RedactedRuntimeMetrics, "totalDurationMs" | "peakMemoryBytes"> & {
+      inputTokens?: number | null;
+      outputTokens?: number | null;
+    };
+    caseResults: Array<Pick<RedactedReplayCaseResult, "outcome">>;
+  };
+};
+
+export type ModelComparisonRow = {
+  agent: string;
+  family: string;
+  model: string;
+  hardware: string;
+  sampleCount: number;
+  precision: number | null;
+  recall: number | null;
+  f1: number | null;
+  evidenceValidity: number | null;
+  p50LatencyMs: number;
+  p95LatencyMs: number;
+  peakMemoryBytes: number;
+  retryCount: number;
+  incompleteRate: number;
+};
+
+export type ModelComparisonReport = {
+  schemaVersion: 1;
+  comparisonOnly: true;
+  rows: ModelComparisonRow[];
+};
+
 const FORBIDDEN = [
   /\n/,
   /\r/,

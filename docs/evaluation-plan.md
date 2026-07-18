@@ -54,6 +54,12 @@ CI uses the fixed `ci-regression` manifest and baseline comparison. It fails cri
 
 Held-out and human-review cases are rejected if marked development-visible. Human labels are summarized only as aggregate independently-reviewed sample counts, agreement, and unresolved counts. Model-assisted assessment can inform usefulness review but cannot satisfy the deterministic evidence, schema, routing, or termination safety gates on its own.
 
+## Replay And Local Model Comparison
+
+Fixture replay re-runs the same synthetic cases, manifest, and configuration bundle through the deterministic evaluator. A comparison is accepted only when the two redacted records have the same fixture manifest and exactly one declared configuration value differs: model, prompt, threshold, retrieval, policy, or agent. Live vault scans are eligible only when their historical source is an explicitly retained synthetic fixture; ordinary vault scans record metadata-only eligibility and cannot be reconstructed from stored telemetry.
+
+Local model comparison groups accepted, redacted replay measurements by agent task, fixture family, model metadata, and hardware profile. It reports precision, recall, F1, evidence validity, p50/p95 latency, peak memory, retries, and incomplete rate. These reports are descriptive comparisons for the recorded conditions, not a universal ranking or a mechanism for selecting a default model.
+
 ## Runtime Efficiency Metrics
 
 Report input/output tokens, token per valid finding, repeated-context ratio, retrieved-context utilization, model latency, tool calls, retries, and incomplete-rate. Default budgets from `docs/ai-system.md` are hard limits; a 20% increase in p95 token use or latency versus baseline is an investigation gate.

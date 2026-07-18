@@ -18,6 +18,7 @@ Vault Steward provides:
 - A fixed-path local Policy Studio with deterministic draft validation and preview, evidence-bounded selected-finding explanations, local model readiness checks, and metadata-only reviewer feedback.
 - A collapsed local Observability inspector with metadata-only scan timelines, finding lineage, configuration fingerprints, operational metrics, trace retention, opt-in redacted snapshot preferences, and explicit trace deletion controls.
 - A local evaluation framework with versioned fixture vaults across all finding families, protected development/CI/held-out/adversarial/human-review splits, deterministic evidence grading, regression baselines, and redacted local reports.
+- Reproducible fixture replay, controlled one-variable replay comparisons, and local model-comparison summaries that report measured tradeoffs without choosing a universal best model.
 
 The repository README is kept current as product capabilities change. Architecture decisions, interfaces, operational constraints, and detailed engineering progress are maintained in `docs/`.
 
