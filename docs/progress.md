@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 16 advanced quality coverage and public documentation is under completion-gate verification.
+Phase 16 advanced quality coverage and public documentation is complete.
 
 ## Completed Work
 
@@ -56,7 +56,7 @@ Phase 16 advanced quality coverage and public documentation is under completion-
 
 ## Current Work
 
-Phase 16 is implemented on `feat/phase-16-advanced-quality`; full verification, documentation finalization, promotion to `development`, and push are pending.
+Phase 16 is complete on `feat/phase-16-advanced-quality`; promotion to `development` and push are pending.
 
 ## Important Decisions
 
@@ -72,8 +72,8 @@ Phase 16 is implemented on `feat/phase-16-advanced-quality`; full verification, 
 
 ## Verification Status
 
-The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 15 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 36 replay/evaluation tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. Phase 16 automated documentation acceptance passed on 2026-07-18; manual desktop installation and accessibility acceptance remains governed by the existing protocol before wider distribution.
+The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 15 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 36 replay/evaluation tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 16 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 128 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 48 evaluation/replay/quality tests, deterministic smoke/full evaluations, generated synthetic baseline evaluation, retrieval report, fixture-baseline evaluation, performance and operational smoke reports, and a production dependency audit with no moderate-or-higher vulnerabilities. Manual desktop installation and accessibility acceptance remains governed by the existing protocol before wider distribution.
 
 ## Next Recommended Task
 
-Run the Phase 16 completion gate, generate the quality explanation, and promote the verified branch to `development`.
+Plan the next independently approved milestone from `development`.
