@@ -60,6 +60,8 @@ Fixture replay re-runs the same synthetic cases, manifest, and configuration bun
 
 Local model comparison groups accepted, redacted replay measurements by agent task, fixture family, model metadata, and hardware profile. It reports precision, recall, F1, evidence validity, p50/p95 latency, peak memory, retries, and incomplete rate. These reports are descriptive comparisons for the recorded conditions, not a universal ranking or a mechanism for selecting a default model.
 
+Confidence calibration uses only adjudicated human labels and groups samples by agent, finding type, and fixed confidence range. It reports observed accuracy plus overconfidence and underconfidence gaps. A warning requires at least five labels and an absolute gap greater than 0.15; it is a quality-review signal only and never authorizes a repair, policy change, severity change, or automatic model selection.
+
 ## Runtime Efficiency Metrics
 
 Report input/output tokens, token per valid finding, repeated-context ratio, retrieved-context utilization, model latency, tool calls, retries, and incomplete-rate. Default budgets from `docs/ai-system.md` are hard limits; a 20% increase in p95 token use or latency versus baseline is an investigation gate.
