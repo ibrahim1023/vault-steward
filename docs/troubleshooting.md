@@ -1,0 +1,17 @@
+# Troubleshooting
+
+## Local Model Unavailable
+
+Confirm that Ollama or the compatible local endpoint is running, configured as a loopback address, and has the selected model available. Run the plugin readiness check. A governed scan remains incomplete until the required local semantic stage completes.
+
+## Database Or Migration Failure
+
+Use the recovery procedures in `docs/runbooks.md`. The plugin records bounded diagnostics and supports rebuild paths that preserve protected audit records where possible.
+
+## Plugin Installation Or Upgrade
+
+Rebuild with `npm run package:plugin`, install the complete `dist/vault-steward/` directory, reload Obsidian, and confirm the ribbon/command launcher is present. Consult `docs/upgrade-notes.md` and `docs/release-compatibility.md` before replacing an existing plugin directory.
+
+## Evaluation Reports
+
+Evaluation, replay, and synthetic reports are local files under ignored `evals/reports/`. If a replay says source is unavailable, the historical vault text was intentionally not retained; use fixture replay for reproducible evaluation instead.
