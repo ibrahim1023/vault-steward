@@ -5,6 +5,7 @@ main.js
 sql-wasm.wasm
 coverage/
 evals/reports/*.json
+evals/generated/
 npm-debug.log*
 
 # docs

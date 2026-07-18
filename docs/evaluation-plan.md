@@ -44,6 +44,18 @@ A case declares `id`, `split`, fixture reference, task, expected evidence, expec
 - Adversarial: injection, conflicting metadata, malformed output, large context, tool failure, and loop-pressure cases.
 - Human review: ambiguous contradiction/staleness and proposal usefulness samples with agreement tracking.
 
+## Seeded Synthetic Scale Coverage
+
+`npm run eval:synthetic` generates a disposable local vault from a bounded seed/configuration and evaluates the generated reference defects against exact redacted ground truth. The initial scale report measures the deterministic reference family only; other injected defect kinds provide labelled inputs for later family-specific evaluators and must not be presented as measured agent accuracy. Generated vaults and reports are ignored by Git.
+
+## Optional Retrieval Quality
+
+Configured local retrieval adapters may be evaluated with bounded query, evidence-ID, score, cache-state, and latency metadata. The local report measures query coverage, relevant-evidence rate, cache-hit rate, score distribution, missing queries, and p50/p95 latency. No configured adapter yields an explicit `not-configured` result. Retrieval remains optional and derived: these metrics never authorize findings, evidence, policies, proposals, approvals, or edits.
+
+## Policy Coverage
+
+Local policy coverage summarizes policy/version execution, triggered violations, explicit fixture coverage, deprecation, and aggregate reviewer false-positive rates. It distinguishes missing review data from a zero false-positive rate and orders its status deterministically: deprecated, unexercised, missing fixture, review needed, then covered. Its suggestions identify follow-up work only; it never changes policy YAML or policy storage.
+
 ## Reproducible Fixture Runner
 
 `npm run evals` runs the versioned fixture-vault cases under `evals/cases/`. Each case declares a bounded expected finding, source locator, severity, fix applicability, family, split, and contamination metadata. Fixtures cover references, entities, contradictions, staleness, tasks, schemas, policies, and decisions.

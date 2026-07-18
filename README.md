@@ -1,45 +1,82 @@
 # Vault Steward
 
-Vault Steward is a local-first Obsidian plugin for auditing note vaults for integrity and governance issues. It combines deterministic Markdown analysis, local persistence, policy checks, and evidence-backed findings while preserving the user's control over every change.
+Continuous integrity checks for local Obsidian vaults.
 
-## Capabilities
+Vault Steward audits Markdown knowledge bases for broken references, schema problems, task and decision drift, policy violations, and bounded local-model candidates. It presents cited findings for review and never edits a note without an explicit, revision-safe approval.
 
-Vault Steward provides:
+## Who It Is For
 
-- Obsidian plugin lifecycle, settings, command registration, a ribbon launcher, and a workspace view.
-- An actionable dashboard for the latest completed scan: health counts, severity-led next action, keyboard-accessible priority findings, selected evidence, and collapsed vault history.
-- A read-only Obsidian vault adapter with normalized paths, revision hashes, cancellation, and invalidation events.
-- Deterministic Markdown reference-integrity checks and safe proposed repairs for broken internal references.
-- Local SQLite-compatible persistence through `sql.js`, forward-only migrations, immutable scan snapshots, and a persisted review queue.
-- Revision-bound parse metadata and dependency records for safe in-process parser reuse, with conservative full-scan fallback for ambiguous vault events.
-- Rename/delete impact analysis for links, embeds, aliases, task, decision, and policy dependencies, plus a local scan and finding-lifecycle history view that never renders stored evidence content.
-- Deterministic graph projection, bounded YAML policy parsing/evaluation, schema validation, task integrity checks, decision validation, and a persisted review queue.
-- Required local Ollama or llama.cpp-compatible model provider for bounded entity, contradiction, staleness, and ambiguous-decision analysis. Every candidate is JSON-validated, citation-checked against the active scan, and cannot mutate vault state.
-- A fixed-path local Policy Studio with deterministic draft validation and preview, evidence-bounded selected-finding explanations, local model readiness checks, and metadata-only reviewer feedback.
-- A collapsed local Observability inspector with metadata-only scan timelines, finding lineage, configuration fingerprints, operational metrics, trace retention, opt-in redacted snapshot preferences, and explicit trace deletion controls.
-- A local evaluation framework with versioned fixture vaults across all finding families, protected development/CI/held-out/adversarial/human-review splits, deterministic evidence grading, regression baselines, and redacted local reports.
-- Reproducible fixture replay, controlled one-variable replay comparisons, and local model-comparison summaries that report measured tradeoffs without choosing a universal best model.
+Vault Steward is for people and teams who keep durable project knowledge in an Obsidian vault and need to find maintenance problems before they become misleading or expensive. It is not a chat-with-your-vault tool: its primary job is integrity, governance, and evidence-backed review.
 
-The repository README is kept current as product capabilities change. Architecture decisions, interfaces, operational constraints, and detailed engineering progress are maintained in `docs/`.
+## How It Works
+
+```text
+Local vault -> deterministic parser and graph -> policy and integrity checks
+            -> bounded local-model candidates -> deterministic validation
+            -> review queue -> explicit approved change
+```
+
+The deterministic core owns parsing, policies, evidence validation, finding normalization, persistence, diffs, and apply decisions. Local models may classify, extract candidates, or rank cited evidence through typed contracts. A model result cannot directly modify a vault, choose severity, change policy, approve a proposal, or apply an edit.
 
 ## Privacy And Safety
 
-- Local-only: no telemetry, cloud API, remote storage, or automatic note mutation.
-- SQLite is the canonical local store. `sql.js` runs SQLite through a bundled WebAssembly asset.
-- The deterministic core owns parsing, policy evaluation, evidence validation, finding normalization, and persistence.
-- A loopback-only local model is required for a completed governed scan. Provider absence or model-output exhaustion leaves the scan incomplete; it cannot silently fall back to a deterministic-only completion.
-- Any note mutation must be explicitly approved and revalidated against the current source revision.
-- Trace metadata excludes note bodies, excerpts, prompts, model outputs, absolute vault paths, URLs, and secrets by default. Optional snapshot categories are disabled unless explicitly enabled.
+- Runs locally in the Obsidian desktop process with SQLite as the canonical local store.
+- Uses only loopback-configured Ollama or llama.cpp-compatible local model providers for governed scans.
+- Does not send vault content, prompts, traces, metrics, or model output to a cloud service.
+- Stores metadata-only traces by default; note bodies, prompts, raw model outputs, absolute paths, URLs, and secrets are excluded.
+- Requires explicit approval and a current source-revision check before every note mutation.
+- Treats retrieval, replay, model comparisons, calibration, and policy coverage as informational quality signals, never edit authority.
 
-## Requirements
+Read the detailed [privacy statement](PRIVACY.md) and [security guidance](SECURITY.md) before evaluating sensitive vaults.
 
-- Node.js 20 or newer
-- Obsidian desktop 1.5.0 or newer
-- A running local Ollama service with a configured model, or a compatible local llama.cpp endpoint
+## What It Checks
+
+- Broken internal links, embeds, and anchors, with safe reference-repair previews where a replacement is unambiguous.
+- Markdown/frontmatter schema violations, task integrity problems, unresolved decisions, and deterministic YAML policy violations.
+- Bounded local-model candidates for duplicate entities, contradictions, staleness, and ambiguous decisions, subject to citation and schema validation.
+- Rename/delete impact, scan history, finding lifecycle, trace lineage, and operational metadata.
+
+## Installation
+
+Requirements:
+
+- Node.js 20 or newer for development and packaging.
+- Obsidian desktop 1.5.0 or newer.
+- A running local Ollama service with a configured model, or a compatible loopback-only llama.cpp endpoint, for a completed governed scan.
+
+For manual installation, build the plugin and copy `dist/vault-steward/` into `<vault>/.obsidian/plugins/vault-steward/`, then enable it in Obsidian's community-plugin settings. The package contains `main.js`, `manifest.json`, `styles.css`, `sql-wasm.wasm`, and a release manifest. See [release compatibility](docs/release-compatibility.md) and [troubleshooting](docs/troubleshooting.md) for upgrade and recovery guidance.
+
+## Local Models
+
+Vault Steward requires a local provider for its governed semantic-analysis stage. Configure a model that can produce bounded JSON through Ollama or a llama.cpp-compatible endpoint, then run the readiness check in the plugin before a scan.
+
+Model behavior varies by hardware, configuration, vault content, and task. This repository does not claim a universal best model. Record local quality and latency measurements using the evaluation reports described in [local model guidance](docs/local-models.md).
+
+## Evaluation And Observability
+
+Fixture evaluation, replay, generated scale coverage, retrieval-quality measurement, policy coverage, and confidence calibration are local-only tools for assessing behavior:
+
+```bash
+npm run eval:smoke
+npm run eval:full
+npm run eval:synthetic
+npm run eval:retrieval
+npm run evals -- --manifest evals/manifests/ci-regression.json --compare evals/baselines/evaluation-main.json
+```
+
+Fixture replay writes a redacted local record to `evals/reports/replay.json`. Controlled comparisons accept the same fixture manifest with exactly one changed configuration value: model, prompt, threshold, retrieval, policy, or agent. Live scans retain metadata rather than historical source by default, so they report replay eligibility instead of reconstructing old notes.
+
+Generated scale evaluation currently measures the deterministic reference family against exact synthetic ground truth. Retrieval metrics, policy coverage, model comparisons, and calibration describe recorded conditions only; they do not select a model or alter product behavior. See [evaluation methodology](EVALS.md) and [observability and retained data](OBSERVABILITY.md).
+
+## Limitations
+
+- Vault Steward cannot establish objective truth or verify external facts without an external source.
+- It can miss implicit contradictions and may produce false positives, especially with small local models or weak note structure.
+- Staleness and decision quality are contextual; evidence quality depends on note quality.
+- No model output is sufficient on its own to authorize a change.
+- Synthetic metrics are engineering signals, not a guarantee of accuracy on a user vault.
 
 ## Development
-
-Install dependencies and run the verification suite:
 
 ```bash
 npm install
@@ -47,66 +84,34 @@ npm run format:check
 npm run lint
 npm run typecheck
 npm run build
-npm run package:plugin
+npm run test:plugin-install
 npm run test:unit
 npm run test:integration
 npm run test:e2e
 npm run test:acceptance
 npm run eval:smoke
-npm run evals -- --manifest evals/manifests/ci-regression.json --compare evals/baselines/evaluation-main.json
+npm run eval:full
+npm run eval:synthetic
+npm run eval:retrieval
 npm run perf:smoke
 npm run ops:smoke
 npm run security:check
 ```
 
-`npm run build` writes `main.js` and `sql-wasm.wasm` at the project root. `npm run package:plugin` creates `dist/vault-steward/` with those assets, `styles.css`, `manifest.json`, and a SHA-256 `release-manifest.json`. Install that directory as `vault-steward` under an Obsidian vault's `.obsidian/plugins/` directory.
+`npm run package:plugin` creates the manual-install directory. `npm run evals -- --replay --manifest evals/manifests/ci-regression.json` writes a redacted fixture replay under ignored `evals/reports/`.
 
-## Replay And Quality Reports
+See [contributing](CONTRIBUTING.md) for fixture, prompt, policy, and quality-gate rules. Repository module boundaries are defined in [AGENTS.md](AGENTS.md).
 
-Fixture replay is available for the synthetic evaluation vaults:
+## Project Documentation
 
-```bash
-npm run evals -- --replay --manifest evals/manifests/ci-regression.json
-```
-
-It writes a redacted local record to `evals/reports/replay.json`. A comparative replay accepts only two records with the same fixture manifest and exactly one changed configuration field: model, prompt, threshold, retrieval, policy, or agent. It writes its redacted diff to `evals/reports/replay-comparison.json`; it does not change a vault, policy, finding severity, or model setting.
-
-Live vault scans retain metadata by default, not note source. They therefore report whether exact replay is eligible rather than reconstructing historical note content. Local model summaries are descriptive measurements for a particular task, fixture family, vault scale, and hardware profile; they do not select a universal best model. Confidence calibration uses only adjudicated human labels, warns only after enough labels support a meaningful gap, and never authorizes a repair.
-
-## Repository Guide
-
-- `src/main.ts`: Obsidian plugin entry point and settings/status UI wiring.
-- `src/vault-adapter/`: narrow live-vault boundary.
-- `src/scanner/` and `src/reference/`: deterministic Markdown parsing and reference checks.
-- `src/storage/`: SQLite runtime, migrations, repositories, and scan snapshots.
-- `src/graph/`, `src/policy/`, `src/schema/`, `src/tasks/`, `src/decisions/`, `src/coordinator/`: deterministic governance and finding pipeline.
-- `src/model-provider/` and `src/agents/`: loopback-only model adapters, bounded context assembly, typed output validation, and deterministic agent coordination.
-- `tests/`: unit, integration, UI, and end-to-end coverage.
-- `docs/`: architecture, interfaces, security, reliability, and ADRs.
-
-Read [AGENTS.md](AGENTS.md) before contributing. It defines module boundaries, test expectations, privacy constraints, and the completion gate.
-
-See [upgrade notes](docs/upgrade-notes.md) for install, upgrade, and uninstall guidance.
-
-See [local runbooks](docs/runbooks.md) for recovery procedures and diagnostic handling.
-
-## Commands
-
-| Command                                                                                                         | Purpose                                                               |
-| --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `npm run format:check`                                                                                          | Check Prettier formatting.                                            |
-| `npm run lint`                                                                                                  | Run ESLint.                                                           |
-| `npm run typecheck`                                                                                             | Run strict TypeScript checking.                                       |
-| `npm run build`                                                                                                 | Build the Obsidian plugin bundle and SQLite WebAssembly asset.        |
-| `npm run package:plugin`                                                                                        | Produce a versioned desktop-plugin release directory.                 |
-| `npm run test:plugin-install`                                                                                   | Run the packaged install/uninstall smoke harness.                     |
-| `npm run test:unit`                                                                                             | Run deterministic unit and component tests.                           |
-| `npm run test:integration`                                                                                      | Run SQLite migration, snapshot, and coordinator integration tests.    |
-| `npm run test:e2e`                                                                                              | Run the current end-to-end reference-finding test.                    |
-| `npm run test:acceptance`                                                                                       | Run the synthetic MVP vault acceptance suite.                         |
-| `npm run eval:smoke`                                                                                            | Run the deterministic reference-integrity evaluation.                 |
-| `npm run eval:full`                                                                                             | Run all registered evaluations.                                       |
-| `npm run evals -- --manifest evals/manifests/ci-regression.json --compare evals/baselines/evaluation-main.json` | Run fixture evaluation and enforce the committed regression baseline. |
-| `npm run perf:smoke`                                                                                            | Run the fixed large-vault and incremental-scan performance gate.      |
-| `npm run ops:smoke`                                                                                             | Run metadata-only MVP operational baseline checks.                    |
-| `npm run security:check`                                                                                        | Audit production dependencies.                                        |
+- [Evaluation methodology](EVALS.md)
+- [Observability and retained data](OBSERVABILITY.md)
+- [Privacy](PRIVACY.md)
+- [Security](SECURITY.md)
+- [Contributing](CONTRIBUTING.md)
+- [Roadmap](ROADMAP.md)
+- [Changelog](CHANGELOG.md)
+- [Local models](docs/local-models.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Release compatibility](docs/release-compatibility.md)
+- [Architecture](docs/architecture.md), [interfaces](docs/interfaces.md), [runbooks](docs/runbooks.md), and [upgrade notes](docs/upgrade-notes.md)

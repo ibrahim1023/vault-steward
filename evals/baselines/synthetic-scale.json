@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "configurationHash": "a18a8686fb87f74ea22a4b20868e76b89c026013c9ed686f1884325a89faaddc",
+  "generatedFileCount": 32,
+  "evaluatedFamilies": ["reference"],
+  "achievedDefectCounts": {
+    "contradiction": 3,
+    "duplicate-entity": 3,
+    "broken-reference": 6,
+    "stale-note": 3,
+    "orphan-task": 3,
+    "schema-violation": 3,
+    "unresolved-decision": 3
+  },
+  "metrics": {
+    "precision": 1,
+    "recall": 1,
+    "f1": 1
+  }
+}
