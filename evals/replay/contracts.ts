@@ -71,9 +71,7 @@ export type FixtureReplayRecord = {
 };
 
 export type ReplayComparisonRejectedReason =
-  | "fixture-manifest-mismatch"
-  | "no-configuration-change"
-  | "multiple-configuration-changes";
+  "fixture-manifest-mismatch" | "no-configuration-change" | "multiple-configuration-changes";
 
 export type ReplayOutcomeChange = {
   id: string;
@@ -170,9 +168,11 @@ export type ReplayComparison = ReplayComparisonAccepted | ReplayComparisonReject
 export type ModelComparisonSample = {
   agent: string;
   family: string;
+  vaultScale: string;
   model: string;
   hardware: string;
   retryCount: number;
+  comparisonAccepted: boolean;
   replay: {
     metrics: {
       precision: number | null;
@@ -191,6 +191,7 @@ export type ModelComparisonSample = {
 export type ModelComparisonRow = {
   agent: string;
   family: string;
+  vaultScale: string;
   model: string;
   hardware: string;
   sampleCount: number;
@@ -243,9 +244,7 @@ export function validateFixtureReplayRecord(value: unknown): value is FixtureRep
   );
 }
 
-function validateReplayConfiguration(
-  value: unknown
-): value is Record<ReplayVariable, string> {
+function validateReplayConfiguration(value: unknown): value is Record<ReplayVariable, string> {
   if (!isObject(value)) return false;
   const keys = Object.keys(value);
   return (
