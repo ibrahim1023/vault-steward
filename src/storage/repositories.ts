@@ -14,6 +14,7 @@ import {
   validateTraceMetadata,
   validateTracePreferences
 } from "../contracts/trace.js";
+import { parseProposal, proposalDigest } from "../contracts/proposal.js";
 
 export type ScanRecord = {
   id: string;
@@ -140,6 +141,11 @@ export type ProposalRecord = {
   patchJson: string;
   sourceRevisionsJson: string;
   status: string;
+  proposalDigest: string;
+};
+
+export type NewProposalRecord = Omit<ProposalRecord, "proposalDigest"> & {
+  proposalDigest?: string;
 };
 
 export type ApprovalRecord = {
@@ -148,6 +154,7 @@ export type ApprovalRecord = {
   action: string;
   actedAt: string;
   appliedRevision: string | null;
+  proposalDigest?: string | null;
 };
 
 export type ModelTraceRecord = {
@@ -475,16 +482,26 @@ export class VaultStewardRepository {
     );
   }
 
-  saveProposal(record: ProposalRecord): void {
+  saveProposal(record: NewProposalRecord): void {
+    const parsed = parseProposal(JSON.parse(record.patchJson));
+    if (!parsed.ok) throw new Error("Proposal record is invalid.");
+    const digest = proposalDigest(parsed.value);
     this.database.run(
-      "INSERT INTO proposals (id, finding_id, patch_json, source_revisions_json, status) VALUES (?, ?, ?, ?, ?)",
-      [record.id, record.findingId, record.patchJson, record.sourceRevisionsJson, record.status]
+      "INSERT INTO proposals (id, finding_id, patch_json, source_revisions_json, status, proposal_digest) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        record.id,
+        record.findingId,
+        record.patchJson,
+        record.sourceRevisionsJson,
+        record.status,
+        digest
+      ]
     );
   }
 
   findProposal(id: string): ProposalRecord | null {
     const row = this.database.exec(
-      "SELECT id, finding_id, patch_json, source_revisions_json, status FROM proposals WHERE id = ?",
+      "SELECT id, finding_id, patch_json, source_revisions_json, status, proposal_digest FROM proposals WHERE id = ?",
       [id]
     )[0]?.values[0];
     return row && row.every((value) => typeof value === "string")
@@ -493,9 +510,18 @@ export class VaultStewardRepository {
           findingId: row[1] as string,
           patchJson: row[2] as string,
           sourceRevisionsJson: row[3] as string,
-          status: row[4] as string
+          status: row[4] as string,
+          proposalDigest: row[5] as string
         }
       : null;
+  }
+
+  getApprovedProposalDigest(proposalId: string): string | null {
+    const value = this.database.exec(
+      "SELECT proposal_digest FROM approvals WHERE proposal_id = ? AND action = 'approved' ORDER BY acted_at DESC LIMIT 1",
+      [proposalId]
+    )[0]?.values[0]?.[0];
+    return typeof value === "string" && /^[a-f0-9]{64}$/.test(value) ? value : null;
   }
 
   updateProposalStatus(id: string, status: string): void {
@@ -518,8 +544,15 @@ export class VaultStewardRepository {
 
   recordApproval(record: ApprovalRecord): void {
     this.database.run(
-      "INSERT INTO approvals (id, proposal_id, action, acted_at, applied_revision) VALUES (?, ?, ?, ?, ?)",
-      [record.id, record.proposalId, record.action, record.actedAt, record.appliedRevision]
+      "INSERT INTO approvals (id, proposal_id, action, acted_at, applied_revision, proposal_digest) VALUES (?, ?, ?, ?, ?, ?)",
+      [
+        record.id,
+        record.proposalId,
+        record.action,
+        record.actedAt,
+        record.appliedRevision,
+        record.proposalDigest ?? null
+      ]
     );
   }
 

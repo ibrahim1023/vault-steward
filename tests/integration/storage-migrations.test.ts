@@ -143,7 +143,24 @@ describe("SQLite migrations and repositories", () => {
     repository.saveProposal({
       id: "proposal-1",
       findingId: "finding-1",
-      patchJson: "{}",
+      patchJson: JSON.stringify({
+        schemaVersion: 1,
+        id: "proposal-1",
+        findingId: "finding-1",
+        scanId: "scan-1",
+        explanation: "Repair the broken reference.",
+        operations: [
+          {
+            kind: "replace-range",
+            path: "Home.md",
+            sourceRevision: "revision-1",
+            start: 0,
+            end: 1,
+            expected: "x",
+            replacement: "y"
+          }
+        ]
+      }),
       sourceRevisionsJson: "{}",
       status: "pending"
     });

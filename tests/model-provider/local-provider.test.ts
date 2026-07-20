@@ -82,5 +82,56 @@ describe("local model providers", () => {
     );
     await provider.generate({ prompt: "x", maxOutputTokens: 5 });
     expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({ format: "json" });
+    expect(fetcher.mock.calls[0]?.[1]).toMatchObject({ redirect: "error" });
+  });
+
+  it("rejects redirect responses and invalid resource limits before model data can escape", async () => {
+    const redirecting = createLocalProvider(
+      {
+        kind: "ollama",
+        endpoint: "http://localhost:11434",
+        model: "local",
+        timeoutMs: 20,
+        maxResponseBytes: 1000
+      },
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(null, { status: 307, headers: { location: "https://example.com" } })
+        )
+    );
+    await expect(
+      redirecting.generate({ prompt: "vault evidence", maxOutputTokens: 5 })
+    ).rejects.toThrow("unavailable");
+    for (const value of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 20_000_000]) {
+      expect(() =>
+        createLocalProvider({
+          kind: "ollama",
+          endpoint: "http://localhost:11434",
+          model: "local",
+          timeoutMs: value,
+          maxResponseBytes: 1000
+        })
+      ).toThrow("configuration");
+    }
+  });
+
+  it("rejects declared oversized bodies and invalid output budgets", async () => {
+    const provider = createLocalProvider(
+      {
+        kind: "ollama",
+        endpoint: "http://localhost:11434",
+        model: "local",
+        timeoutMs: 20,
+        maxResponseBytes: 10
+      },
+      vi.fn().mockResolvedValue(new Response("{}", { headers: { "content-length": "100" } }))
+    );
+    await expect(provider.generate({ prompt: "x", maxOutputTokens: 5 })).rejects.toThrow(
+      "response size"
+    );
+    await expect(provider.generate({ prompt: "x", maxOutputTokens: 0 })).rejects.toThrow(
+      "unavailable"
+    );
   });
 });

@@ -1,4 +1,4 @@
-import type { Proposal } from "../contracts/proposal.js";
+import { proposalDigest, type Proposal } from "../contracts/proposal.js";
 import type { VaultStewardRepository } from "../storage/repositories.js";
 
 export type WritableVault = {
@@ -13,6 +13,7 @@ export class ReviewWorkflow {
     private readonly vault: WritableVault
   ) {}
   act(proposal: Proposal, action: ReviewAction, actedAt: string): void {
+    const digest = this.requireCurrentDigest(proposal);
     const status = this.repository.getProposalStatus(proposal.id);
     if (status !== "pending") throw new Error("Only pending proposals can be reviewed.");
     this.repository.updateProposalStatus(proposal.id, action);
@@ -21,7 +22,8 @@ export class ReviewWorkflow {
       proposalId: proposal.id,
       action,
       actedAt,
-      appliedRevision: null
+      appliedRevision: null,
+      proposalDigest: digest
     });
   }
   async apply(
@@ -32,6 +34,11 @@ export class ReviewWorkflow {
     if (this.repository.getProposalStatus(proposal.id) !== "approved")
       throw new Error("Only approved proposals can be applied.");
     if (options.signal?.aborted) return { ok: false, reason: "canceled" };
+    const digest = this.requireCurrentDigest(proposal);
+    if (this.repository.getApprovedProposalDigest(proposal.id) !== digest) {
+      this.repository.updateProposalStatus(proposal.id, "stale");
+      return { ok: false, reason: "stale" };
+    }
     this.repository.updateProposalStatus(proposal.id, "applying");
     let current: Array<{
       operation: Proposal["operations"][number];
@@ -109,6 +116,14 @@ export class ReviewWorkflow {
     const recovered = this.repository.recoverInterruptedApplies();
     if (recovered > 0) onReindex();
     return recovered;
+  }
+
+  private requireCurrentDigest(proposal: Proposal): string {
+    const digest = proposalDigest(proposal);
+    if (this.repository.findProposal(proposal.id)?.proposalDigest !== digest) {
+      throw new Error("Proposal integrity validation failed.");
+    }
+    return digest;
   }
 }
 

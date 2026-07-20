@@ -55,6 +55,29 @@ export function parseProposal(value: unknown): ProposalParseResult {
       };
 }
 
+export function proposalDigest(proposal: Proposal): string {
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        schemaVersion: proposal.schemaVersion,
+        id: proposal.id,
+        findingId: proposal.findingId,
+        scanId: proposal.scanId,
+        explanation: proposal.explanation,
+        operations: proposal.operations.map((operation) => ({
+          kind: operation.kind,
+          path: operation.path,
+          sourceRevision: operation.sourceRevision,
+          start: operation.start,
+          end: operation.end,
+          expected: operation.expected,
+          replacement: operation.replacement
+        }))
+      })
+    )
+    .digest("hex");
+}
+
 function overlapDiagnostics(operations: readonly ReplaceRangeOperation[]): string[] {
   const byPath = new Map<string, ReplaceRangeOperation[]>();
   for (const operation of operations)
@@ -154,3 +177,4 @@ function isVaultPath(value: unknown): value is string {
 function invalid(diagnostic: string): ProposalParseResult {
   return { ok: false, diagnostics: [diagnostic] };
 }
+import { createHash } from "node:crypto";

@@ -10,6 +10,10 @@ or tampered input.
 
 ## Validated Security Findings
 
+All four findings below were remediated on 2026-07-20. Focused regression
+coverage and the full verification gate passed; the remaining backlog items
+extend the protection with additional adversarial cases.
+
 ### P1: A loopback model call can follow a redirect to a remote host
 
 [local-provider.ts](../src/model-provider/local-provider.ts) validates the
@@ -20,6 +24,9 @@ host. This violates the local-only provider boundary.
 
 Remediation: disable redirects or validate every redirect target before a second
 request. A redirect must surface as provider-unavailable.
+
+Implemented: local-provider requests now use `redirect: "error"`, and redirect
+responses are rejected before their body is processed.
 
 ### P1: An approval is not bound to an immutable validated proposal
 
@@ -33,6 +40,9 @@ Remediation: parse and validate proposal records at creation, review, and apply;
 store a canonical patch digest with approval; reject an apply if the approved
 digest and persisted patch differ.
 
+Implemented: persisted proposals are parsed at write/review/apply boundaries,
+and approval plus apply are bound to the same canonical SHA-256 proposal digest.
+
 ### P2: Provider response limits and timeouts are bypassable in practice
 
 The provider reads `response.text()` before checking its byte limit. A very
@@ -42,6 +52,9 @@ can be treated as success.
 
 Remediation: require finite bounded integers, reject excessive `Content-Length`
 before reading, cap streaming reads, and check timeout state after fetch resolves.
+
+Implemented: provider configuration is bounded, response bodies are read through
+a capped stream, and late post-abort fetch resolution is treated as a timeout.
 
 ### P2: Vault parsing lacks enforced resource ceilings
 
@@ -53,6 +66,10 @@ resource exhaustion.
 
 Remediation: enforce reader/scanner budgets before parser work and fail safely
 with a redacted oversized-vault or parse diagnostic.
+
+Implemented: the reader and scanner now enforce file-count, per-file and total
+byte, heading, reference, duplicate-path, and canonical-path limits before
+unbounded parsing work proceeds.
 
 ## Test Backlog
 

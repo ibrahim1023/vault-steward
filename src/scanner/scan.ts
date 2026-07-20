@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 
 import type { VaultFile } from "../vault-adapter/types.js";
+import { assertScanLimits, DEFAULT_SCAN_LIMITS, type ScanLimits } from "./limits.js";
 
 export type ReferenceKind = "wiki" | "embed" | "markdown";
 
@@ -34,24 +35,35 @@ const wikiReference = /(!)?\[\[([^\]]+)\]\]/g;
 
 export function scanVaultFiles(
   files: readonly VaultFile[],
-  reusableNotes: ReadonlyMap<string, ScannedNote> = new Map()
+  reusableNotes: ReadonlyMap<string, ScannedNote> = new Map(),
+  limits: ScanLimits = DEFAULT_SCAN_LIMITS
 ): ScanSnapshot {
+  assertScanLimits(files, limits);
+  const paths = new Set<string>();
   const notes = files.map((file, index) => {
     const path = normalizeVaultPath(file.path);
+    if (!isSafeVaultPath(path) || paths.has(path))
+      throw new Error("vault path is unsafe or ambiguous");
+    paths.add(path);
     const revision = file.revision ?? `memory-${index}`;
     const cached = reusableNotes.get(path);
-    return cached?.revision === revision ? cached : scanFile(file, index);
+    return cached?.revision === revision ? cached : scanFile(file, index, limits);
   });
   return { id: `scan-${randomUUID()}`, notes };
 }
 
-function scanFile(file: VaultFile, index: number): ScannedNote {
+function scanFile(file: VaultFile, index: number, limits: ScanLimits): ScannedNote {
   const parsed = matter(file.content);
   const tree = unified().use(remarkParse).use(remarkGfm).parse(parsed.content);
   const headings = tree.children.flatMap((node) => {
     if (node.type !== "heading") return [];
     return [node.children.map((child) => ("value" in child ? child.value : "")).join("")];
   });
+  if (headings.length > limits.maxHeadingsPerFile)
+    throw new Error("vault exceeds configured processing limits");
+  const references = extractReferences(parsed.content);
+  if (references.length > limits.maxReferencesPerFile)
+    throw new Error("vault exceeds configured processing limits");
 
   return {
     path: normalizeVaultPath(file.path),
@@ -59,7 +71,7 @@ function scanFile(file: VaultFile, index: number): ScannedNote {
     frontmatter: parsed.data as Record<string, unknown>,
     revision: file.revision ?? `memory-${index}`,
     headings,
-    references: extractReferences(parsed.content)
+    references
   };
 }
 
@@ -98,6 +110,22 @@ function lineLocator(content: string, offset: number): string {
 
 export function normalizeVaultPath(path: string): string {
   return path.replaceAll("\\", "/").replace(/^\.\//, "");
+}
+
+function isSafeVaultPath(path: string): boolean {
+  return (
+    path.length > 0 &&
+    !path.startsWith("/") &&
+    !hasControlCharacters(path) &&
+    !path.split("/").some((part) => part === "" || part === "." || part === "..")
+  );
+}
+
+function hasControlCharacters(value: string): boolean {
+  return [...value].some((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 31 || code === 127;
+  });
 }
 
 export function normalizeAnchor(anchor: string): string {

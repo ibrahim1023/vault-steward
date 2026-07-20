@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import type { VaultEvent } from "../contracts/incremental.js";
 import type { WritableVault } from "../review/workflow.js";
 import type { VaultFile, VaultReader } from "./types.js";
+import { assertScanLimits, DEFAULT_SCAN_LIMITS, type ScanLimits } from "../scanner/limits.js";
 
 export type VaultFileHandle = {
   path: string;
@@ -26,22 +27,31 @@ export class ObsidianVaultReader implements VaultReader {
   private readonly invalidatedPaths = new Set<string>();
   private readonly invalidatedEvents: VaultEvent[] = [];
 
-  constructor(private readonly vault: VaultEventSource) {}
+  constructor(
+    private readonly vault: VaultEventSource,
+    private readonly limits: ScanLimits = DEFAULT_SCAN_LIMITS
+  ) {}
 
   async listFiles(signal?: AbortSignal): Promise<readonly VaultFile[]> {
     throwIfAborted(signal);
     const files: VaultFile[] = [];
-
-    for (const file of [...this.vault.getFiles()].sort((left, right) =>
+    const handles = [...this.vault.getFiles()].sort((left, right) =>
       left.path.localeCompare(right.path)
-    )) {
+    );
+    if (handles.length > this.limits.maxFiles)
+      throw new Error("vault exceeds configured processing limits");
+    const paths = new Set<string>();
+
+    for (const file of handles) {
       throwIfAborted(signal);
       const path = normalizeAndValidatePath(file.path);
+      if (paths.has(path)) throw new Error("Vault path is ambiguous.");
+      paths.add(path);
       const content = file.extension === "md" ? await this.vault.read(file) : "";
       throwIfAborted(signal);
       files.push({ path, content, revision: revisionFor(path, content) });
     }
-
+    assertScanLimits(files, this.limits);
     return files;
   }
 
@@ -132,11 +142,19 @@ function normalizeAndValidatePath(path: string): string {
   if (
     normalized.length === 0 ||
     normalized.startsWith("/") ||
-    normalized.split("/").some((segment) => segment === "..")
+    hasControlCharacters(normalized) ||
+    normalized.split("/").some((segment) => segment === "" || segment === "." || segment === "..")
   ) {
     throw new Error("Vault path resolves outside the active vault.");
   }
   return normalized;
+}
+
+function hasControlCharacters(value: string): boolean {
+  return [...value].some((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 31 || code === 127;
+  });
 }
 
 function revisionFor(path: string, content: string): string {

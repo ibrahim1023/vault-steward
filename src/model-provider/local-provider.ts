@@ -24,6 +24,10 @@ export type LocalProvider = {
 };
 export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
+export const MAX_PROVIDER_TIMEOUT_MS = 10 * 60 * 1_000;
+export const MAX_PROVIDER_RESPONSE_BYTES = 10 * 1_024 * 1_024;
+export const MAX_PROVIDER_OUTPUT_TOKENS = 4_096;
+
 export function createLocalProvider(
   config: LocalProviderConfig,
   fetcher: FetchLike = fetch
@@ -47,12 +51,14 @@ export function createLocalProvider(
           method: "POST",
           headers: { "content-type": "application/json" },
           signal: controller.signal,
+          redirect: "error",
           body: JSON.stringify(bodyFor(config, request))
         });
+        if (timedOut) throw new Error("provider timed out");
         if (!response.ok) throw new Error(`provider unavailable (${response.status})`);
-        const text = await response.text();
-        if (new TextEncoder().encode(text).byteLength > config.maxResponseBytes)
-          throw new Error("provider response size exceeds configured limit");
+        if (response.redirected) throw new Error("provider redirect rejected");
+        const text = await readResponseText(response, config.maxResponseBytes, controller.signal);
+        if (timedOut) throw new Error("provider timed out");
         const parsed: unknown = JSON.parse(text);
         const output = outputFor(config, parsed);
         if (!output) throw new Error("provider returned no text");
@@ -91,13 +97,20 @@ function validateConfig(config: LocalProviderConfig): void {
     url.password
   )
     throw new Error("provider endpoint must be an unauthenticated http loopback URL");
-  if (!config.model || config.timeoutMs < 1 || config.maxResponseBytes < 1)
+  if (
+    !config.model.trim() ||
+    !isBoundedPositiveInteger(config.timeoutMs, MAX_PROVIDER_TIMEOUT_MS) ||
+    !isBoundedPositiveInteger(config.maxResponseBytes, MAX_PROVIDER_RESPONSE_BYTES)
+  )
     throw new Error("provider configuration is invalid");
 }
 function endpointFor(config: LocalProviderConfig): string {
   return `${config.endpoint.replace(/\/$/, "")}${config.kind === "ollama" ? "/api/generate" : "/completion"}`;
 }
 function bodyFor(config: LocalProviderConfig, request: LocalGenerationRequest): unknown {
+  if (!isBoundedPositiveInteger(request.maxOutputTokens, MAX_PROVIDER_OUTPUT_TOKENS)) {
+    throw new Error("provider output token limit is invalid");
+  }
   return config.kind === "ollama"
     ? {
         model: config.model,
@@ -107,6 +120,52 @@ function bodyFor(config: LocalProviderConfig, request: LocalGenerationRequest): 
         options: { num_predict: request.maxOutputTokens }
       }
     : { prompt: request.prompt, n_predict: request.maxOutputTokens };
+}
+
+async function readResponseText(
+  response: Response,
+  maxBytes: number,
+  signal: AbortSignal
+): Promise<string> {
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    throw new Error("provider response size exceeds configured limit");
+  }
+  if (!response.body) {
+    const text = await response.text();
+    if (new TextEncoder().encode(text).byteLength > maxBytes)
+      throw new Error("provider response size exceeds configured limit");
+    return text;
+  }
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  try {
+    while (true) {
+      if (signal.aborted) throw new Error("provider request canceled");
+      const next = await reader.read();
+      if (next.done) break;
+      bytes += next.value.byteLength;
+      if (bytes > maxBytes) {
+        await reader.cancel();
+        throw new Error("provider response size exceeds configured limit");
+      }
+      chunks.push(next.value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const combined = new Uint8Array(bytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    combined.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(combined);
+}
+
+function isBoundedPositiveInteger(value: number, maximum: number): boolean {
+  return Number.isSafeInteger(value) && value >= 1 && value <= maximum;
 }
 function outputFor(config: LocalProviderConfig, value: unknown): string | null {
   if (!value || typeof value !== "object") return null;

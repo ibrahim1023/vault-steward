@@ -6,6 +6,7 @@ import {
   type VaultEventSource,
   type VaultFileHandle
 } from "../../src/vault-adapter/obsidian-reader.js";
+import { scanVaultFiles } from "../../src/scanner/scan.js";
 
 class FakeVault implements VaultEventSource {
   readonly listeners = new Map<string, Array<(...args: unknown[]) => void>>();
@@ -90,6 +91,29 @@ describe("ObsidianVaultReader", () => {
     ).rejects.toMatchObject({
       name: "AbortError"
     });
+  });
+
+  it("rejects ambiguous paths and bounded vault inputs before parsing", async () => {
+    const duplicate = new FakeVault(
+      [
+        { path: "notes\\Home.md", extension: "md" },
+        { path: "notes/Home.md", extension: "md" }
+      ],
+      new Map([
+        ["notes\\Home.md", "one"],
+        ["notes/Home.md", "two"]
+      ])
+    );
+    await expect(new ObsidianVaultReader(duplicate).listFiles()).rejects.toThrow("ambiguous");
+    expect(() =>
+      scanVaultFiles([{ path: "Home.md", content: "# one\n# two" }], new Map(), {
+        maxFiles: 1,
+        maxFileBytes: 100,
+        maxTotalBytes: 100,
+        maxHeadingsPerFile: 1,
+        maxReferencesPerFile: 1
+      })
+    ).toThrow("processing limits");
   });
 
   it("tracks changed and renamed files until the scanner consumes the invalidation set", () => {

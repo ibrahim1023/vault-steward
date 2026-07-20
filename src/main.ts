@@ -15,6 +15,7 @@ import { ObsidianVaultReader, ObsidianVaultWriter } from "./vault-adapter/obsidi
 import { createLocalProvider } from "./model-provider/local-provider.js";
 import { AgentResultCache } from "./agents/coordinator.js";
 import { proposeFix } from "./review/propose.js";
+import { parseProposal, proposalDigest } from "./contracts/proposal.js";
 import { ReviewWorkflow, type ReviewAction } from "./review/workflow.js";
 import { getPluginDatabasePath } from "./storage/sqlite-runtime.js";
 import { VaultStewardWorkspace } from "./ui/VaultStewardWorkspace.js";
@@ -296,12 +297,15 @@ export default class VaultStewardPlugin extends Plugin {
       target
     );
     if (!result.applicable) throw new Error(result.reason);
+    const parsed = parseProposal(result.proposal);
+    if (!parsed.ok) throw new Error("Generated proposal is invalid.");
     this.database.repository.saveProposal({
       id: result.proposal.id,
       findingId: result.proposal.findingId,
       patchJson: JSON.stringify(result.proposal),
       sourceRevisionsJson: "{}",
-      status: "pending"
+      status: "pending",
+      proposalDigest: proposalDigest(parsed.value)
     });
     await this.database.flush();
     return {
@@ -313,7 +317,7 @@ export default class VaultStewardPlugin extends Plugin {
   async reviewProposal(proposalId: string, action: ReviewAction) {
     const record = this.database?.repository.findProposal(proposalId);
     if (!record || !this.database) throw new Error("Proposal is unavailable.");
-    const proposal = JSON.parse(record.patchJson);
+    const proposal = parseStoredProposal(record.patchJson, record.proposalDigest);
     new ReviewWorkflow(this.database.repository, new ObsidianVaultWriter(this.app.vault)).act(
       proposal,
       action,
@@ -383,7 +387,7 @@ export default class VaultStewardPlugin extends Plugin {
   async applyProposal(proposalId: string) {
     const record = this.database?.repository.findProposal(proposalId);
     if (!record || !this.database) throw new Error("Proposal is unavailable.");
-    const proposal = JSON.parse(record.patchJson);
+    const proposal = parseStoredProposal(record.patchJson, record.proposalDigest);
     const result = await new ReviewWorkflow(
       this.database.repository,
       new ObsidianVaultWriter(this.app.vault)
@@ -413,6 +417,20 @@ function hashMetadata(value: unknown): string {
 
 function sourcePath(proposal: { operations: Array<{ path: string }> }): string {
   return proposal.operations[0]?.path ?? "";
+}
+
+function parseStoredProposal(source: string, expectedDigest: string) {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(source);
+  } catch {
+    throw new Error("Proposal integrity validation failed.");
+  }
+  const parsed = parseProposal(raw);
+  if (!parsed.ok || proposalDigest(parsed.value) !== expectedDigest) {
+    throw new Error("Proposal integrity validation failed.");
+  }
+  return parsed.value;
 }
 
 class VaultStewardStatusItemView extends ItemView {

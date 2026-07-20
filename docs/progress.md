@@ -58,6 +58,8 @@ Phase 16 advanced quality coverage and public documentation is complete.
 
 Phase 16 is complete on `feat/phase-16-advanced-quality`; promotion to `development` and push are pending.
 
+- Security hardening on 2026-07-20 rejects local-provider redirects, bounds provider configuration and response reads, binds approval/apply to validated persisted proposal digests, and enforces vault-reader/scanner resource and canonical-path limits.
+
 ## Important Decisions
 
 - Obsidian plugin with local TypeScript core.

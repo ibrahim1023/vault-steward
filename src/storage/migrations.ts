@@ -191,6 +191,13 @@ export const MIGRATIONS: readonly Migration[] = [
       ALTER TABLE finding_lineage ADD COLUMN policy_evaluation_id TEXT;
       ALTER TABLE finding_lineage ADD COLUMN proposal_source_id TEXT;
     `
+  },
+  {
+    version: 10,
+    sql: `
+      ALTER TABLE proposals ADD COLUMN proposal_digest TEXT NOT NULL DEFAULT '';
+      ALTER TABLE approvals ADD COLUMN proposal_digest TEXT;
+    `
   }
 ];
 
