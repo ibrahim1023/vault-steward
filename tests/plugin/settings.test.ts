@@ -16,6 +16,7 @@ describe("plugin settings", () => {
         vaultLabel: "Personal notes",
         autoScanOnLoad: true,
         modelProvider: DEFAULT_PLUGIN_SETTINGS.modelProvider,
+        cloudModelConsent: false,
         maintenanceSchedule: DEFAULT_PLUGIN_SETTINGS.maintenanceSchedule
       }
     );
@@ -40,6 +41,33 @@ describe("plugin settings", () => {
         vaultLabel: "Notes",
         autoScanOnLoad: true,
         modelProvider: { kind: "ollama", endpoint: "https://example.com" }
+      })
+    ).toEqual(DEFAULT_PLUGIN_SETTINGS);
+  });
+
+  it("accepts only the fixed OpenAI origin and keeps cloud consent explicit", () => {
+    const settings = parsePluginSettings({
+      vaultLabel: "Notes",
+      autoScanOnLoad: false,
+      cloudModelConsent: true,
+      modelProvider: {
+        kind: "openai",
+        endpoint: "https://api.openai.com/v1",
+        model: "gpt-4o-mini",
+        apiKey: "sk-test-key",
+        timeoutMs: 30_000,
+        maxResponseBytes: 1_000_000
+      }
+    });
+    expect(settings.modelProvider).toMatchObject({ kind: "openai", model: "gpt-4o-mini" });
+    expect(settings.cloudModelConsent).toBe(true);
+
+    expect(
+      parsePluginSettings({
+        vaultLabel: "Notes",
+        autoScanOnLoad: false,
+        cloudModelConsent: true,
+        modelProvider: { ...settings.modelProvider, endpoint: "https://example.com/v1" }
       })
     ).toEqual(DEFAULT_PLUGIN_SETTINGS);
   });

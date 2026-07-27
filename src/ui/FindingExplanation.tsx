@@ -35,7 +35,9 @@ export function FindingExplanation({
       {loading ? <p role="status">Explaining cited evidence...</p> : null}
       {result?.ok ? <p>{result.text}</p> : null}
       {result && !result.ok ? (
-        <p role="alert">The local model could not explain this finding. Check model readiness.</p>
+        <p role="alert">
+          The configured model could not explain this finding. Check model readiness.
+        </p>
       ) : null}
     </section>
   );

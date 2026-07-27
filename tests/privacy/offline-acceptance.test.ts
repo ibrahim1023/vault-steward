@@ -2,12 +2,16 @@ import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { createLocalProvider } from "../../src/model-provider/local-provider.js";
+import {
+  createLocalProvider,
+  createOpenAIProvider,
+  OPENAI_API_BASE_URL
+} from "../../src/model-provider/local-provider.js";
 
 const sourceRoot = resolve(import.meta.dirname, "../../src");
 
 describe("offline and privacy acceptance", () => {
-  it("keeps runtime source free of shell, telemetry, cloud-storage, and remote endpoint capabilities", async () => {
+  it("keeps runtime source free of shell, telemetry, cloud storage, and arbitrary remote endpoints", async () => {
     const sources = await readSources(sourceRoot);
     const combined = sources.map((source) => source.content).join("\n");
 
@@ -21,7 +25,7 @@ describe("offline and privacy acceptance", () => {
     ).toEqual(["model-provider/local-provider.ts"]);
   });
 
-  it("rejects cloud and private-network provider endpoints before a request can be sent", () => {
+  it("rejects cloud and private-network local endpoints and pins OpenAI to its API origin", () => {
     for (const endpoint of [
       "https://api.example.com",
       "http://10.0.0.1:11434",
@@ -37,6 +41,16 @@ describe("offline and privacy acceptance", () => {
         })
       ).toThrow("loopback");
     }
+    expect(() =>
+      createOpenAIProvider({
+        kind: "openai",
+        endpoint: "https://example.com/v1" as typeof OPENAI_API_BASE_URL,
+        model: "gpt-4o-mini",
+        apiKey: "sk-test",
+        timeoutMs: 100,
+        maxResponseBytes: 1000
+      })
+    ).toThrow("configuration");
   });
 });
 

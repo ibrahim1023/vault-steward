@@ -47,9 +47,9 @@ export function createGovernedIntegritySession(
       });
       if (!result.completed) {
         if (result.limitations.includes("local-model-output-unavailable")) {
-          throw new Error("required local model output could not be validated");
+          throw new Error("required model output could not be validated");
         }
-        throw new Error("required local model provider is unavailable");
+        throw new Error("required model provider is unavailable");
       }
       return result;
     }

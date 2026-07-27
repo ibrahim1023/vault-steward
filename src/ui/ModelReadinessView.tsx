@@ -10,8 +10,8 @@ export function ModelReadinessView({
   const [result, setResult] = useState<ModelReadiness>();
   const [loading, setLoading] = useState(false);
   return (
-    <section aria-label="Local model readiness">
-      <h2>Local model</h2>
+    <section aria-label="Model readiness">
+      <h2>Model</h2>
       <button
         type="button"
         disabled={loading}
@@ -24,7 +24,7 @@ export function ModelReadinessView({
       >
         Check readiness
       </button>
-      {loading ? <p role="status">Checking local model...</p> : null}
+      {loading ? <p role="status">Checking model...</p> : null}
       {result ? (
         <p role={result.available && result.structuredOutput ? "status" : "alert"}>
           {result.available && result.structuredOutput ? "Ready" : "Not ready"}: {result.provider} /{" "}

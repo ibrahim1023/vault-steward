@@ -1,4 +1,6 @@
 export type LocalProviderKind = "ollama" | "llama.cpp";
+export type OpenAIProviderKind = "openai";
+export type ModelProviderKind = LocalProviderKind | OpenAIProviderKind;
 export type LocalProviderConfig = {
   kind: LocalProviderKind;
   endpoint: string;
@@ -6,6 +8,15 @@ export type LocalProviderConfig = {
   timeoutMs: number;
   maxResponseBytes: number;
 };
+export type OpenAIProviderConfig = {
+  kind: OpenAIProviderKind;
+  endpoint: typeof OPENAI_API_BASE_URL;
+  model: string;
+  apiKey: string;
+  timeoutMs: number;
+  maxResponseBytes: number;
+};
+export type ModelProviderConfig = LocalProviderConfig | OpenAIProviderConfig;
 export type LocalGenerationRequest = {
   prompt: string;
   maxOutputTokens: number;
@@ -14,19 +25,22 @@ export type LocalGenerationRequest = {
 export type LocalGeneration = {
   text: string;
   model: string;
-  provider: LocalProviderKind;
+  provider: ModelProviderKind;
   latencyMs: number;
 };
-export type LocalProvider = {
-  readonly config: LocalProviderConfig;
+export type ModelProvider = {
+  readonly config: ModelProviderConfig;
   readonly capabilities: readonly string[];
   generate(request: LocalGenerationRequest): Promise<LocalGeneration>;
 };
+// Retained as an alias while existing agent contracts are migrated to the broader name.
+export type LocalProvider = ModelProvider;
 export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
 export const MAX_PROVIDER_TIMEOUT_MS = 10 * 60 * 1_000;
 export const MAX_PROVIDER_RESPONSE_BYTES = 10 * 1_024 * 1_024;
 export const MAX_PROVIDER_OUTPUT_TOKENS = 4_096;
+export const OPENAI_API_BASE_URL = "https://api.openai.com/v1";
 
 export function createLocalProvider(
   config: LocalProviderConfig,
@@ -81,6 +95,31 @@ export function createLocalProvider(
   };
 }
 
+export function createOpenAIProvider(
+  config: OpenAIProviderConfig,
+  fetcher: FetchLike = fetch
+): ModelProvider {
+  validateOpenAIConfig(config, true);
+  return createProvider(config, fetcher, {
+    endpoint: `${OPENAI_API_BASE_URL}/chat/completions`,
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${config.apiKey}`
+    },
+    body: (request) => openAIBody(config, request),
+    output: openAIOutput
+  });
+}
+
+export function createModelProvider(
+  config: ModelProviderConfig,
+  fetcher: FetchLike = fetch
+): ModelProvider {
+  return config.kind === "openai"
+    ? createOpenAIProvider(config, fetcher)
+    : createLocalProvider(config, fetcher);
+}
+
 export function selectProvider(
   providers: readonly LocalProvider[],
   capability: string
@@ -104,6 +143,94 @@ function validateConfig(config: LocalProviderConfig): void {
   )
     throw new Error("provider configuration is invalid");
 }
+
+export function isValidModelProviderConfig(value: unknown): value is ModelProviderConfig {
+  if (value === null || typeof value !== "object") return false;
+  const candidate = value as Partial<ModelProviderConfig>;
+  try {
+    if (candidate.kind === "openai") {
+      validateOpenAIConfig(candidate as OpenAIProviderConfig, false);
+    } else if (candidate.kind === "ollama" || candidate.kind === "llama.cpp") {
+      validateConfig(candidate as LocalProviderConfig);
+    } else {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function validateOpenAIConfig(config: OpenAIProviderConfig, requireApiKey: boolean): void {
+  if (
+    config.endpoint !== OPENAI_API_BASE_URL ||
+    !config.model.trim() ||
+    typeof config.apiKey !== "string" ||
+    config.apiKey.length > 1_024 ||
+    (requireApiKey && !config.apiKey.trim()) ||
+    !isBoundedPositiveInteger(config.timeoutMs, MAX_PROVIDER_TIMEOUT_MS) ||
+    !isBoundedPositiveInteger(config.maxResponseBytes, MAX_PROVIDER_RESPONSE_BYTES)
+  )
+    throw new Error("OpenAI provider configuration is invalid");
+}
+
+function createProvider(
+  config: ModelProviderConfig,
+  fetcher: FetchLike,
+  requestConfig: {
+    endpoint: string;
+    headers: Record<string, string>;
+    body: (request: LocalGenerationRequest) => unknown;
+    output: (value: unknown) => string | null;
+  }
+): ModelProvider {
+  return {
+    config,
+    capabilities: ["structured-output"],
+    async generate(request) {
+      const controller = new AbortController();
+      const onAbort = () => controller.abort();
+      request.signal?.addEventListener("abort", onAbort, { once: true });
+      let timedOut = false;
+      const timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+      }, config.timeoutMs);
+      const started = Date.now();
+      try {
+        const response = await fetcher(requestConfig.endpoint, {
+          method: "POST",
+          headers: requestConfig.headers,
+          signal: controller.signal,
+          redirect: "error",
+          body: JSON.stringify(requestConfig.body(request))
+        });
+        if (timedOut) throw new Error("provider timed out");
+        if (!response.ok) throw new Error(`provider unavailable (${response.status})`);
+        if (response.redirected) throw new Error("provider redirect rejected");
+        const text = await readResponseText(response, config.maxResponseBytes, controller.signal);
+        if (timedOut) throw new Error("provider timed out");
+        const parsed: unknown = JSON.parse(text);
+        const output = requestConfig.output(parsed);
+        if (!output) throw new Error("provider returned no text");
+        return {
+          text: output,
+          model: config.model,
+          provider: config.kind,
+          latencyMs: Date.now() - started
+        };
+      } catch (error) {
+        if (timedOut) throw new Error("provider timed out");
+        if (error instanceof Error && error.message.includes("response size")) throw error;
+        if (request.signal?.aborted) throw new Error("provider request canceled");
+        throw new Error("provider unavailable");
+      } finally {
+        clearTimeout(timer);
+        request.signal?.removeEventListener("abort", onAbort);
+      }
+    }
+  };
+}
 function endpointFor(config: LocalProviderConfig): string {
   return `${config.endpoint.replace(/\/$/, "")}${config.kind === "ollama" ? "/api/generate" : "/completion"}`;
 }
@@ -120,6 +247,25 @@ function bodyFor(config: LocalProviderConfig, request: LocalGenerationRequest): 
         options: { num_predict: request.maxOutputTokens }
       }
     : { prompt: request.prompt, n_predict: request.maxOutputTokens };
+}
+
+function openAIBody(config: OpenAIProviderConfig, request: LocalGenerationRequest): unknown {
+  if (!isBoundedPositiveInteger(request.maxOutputTokens, MAX_PROVIDER_OUTPUT_TOKENS)) {
+    throw new Error("provider output token limit is invalid");
+  }
+  return {
+    model: config.model,
+    messages: [
+      {
+        role: "system",
+        content: "Return only a valid JSON object. Do not use tools or external data."
+      },
+      { role: "user", content: request.prompt }
+    ],
+    response_format: { type: "json_object" },
+    max_completion_tokens: request.maxOutputTokens,
+    store: false
+  };
 }
 
 async function readResponseText(
@@ -172,4 +318,12 @@ function outputFor(config: LocalProviderConfig, value: unknown): string | null {
   const record = value as Record<string, unknown>;
   const output = config.kind === "ollama" ? record.response : record.content;
   return typeof output === "string" ? output : null;
+}
+
+function openAIOutput(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const choices = (value as { choices?: unknown }).choices;
+  if (!Array.isArray(choices) || choices.length === 0) return null;
+  const content = (choices[0] as { message?: { content?: unknown } } | undefined)?.message?.content;
+  return typeof content === "string" ? content : null;
 }

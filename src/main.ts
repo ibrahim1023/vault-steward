@@ -8,11 +8,12 @@ import { openPluginDatabase, type PluginDatabase } from "./plugin/database.js";
 import { createGovernedIntegritySession, type GovernedIntegrityResult } from "./plugin/main.js";
 import {
   DEFAULT_PLUGIN_SETTINGS,
+  openAIProviderSettings,
   parsePluginSettings,
   type PluginSettings
 } from "./plugin/settings.js";
 import { ObsidianVaultReader, ObsidianVaultWriter } from "./vault-adapter/obsidian-reader.js";
-import { createLocalProvider } from "./model-provider/local-provider.js";
+import { createModelProvider, type ModelProviderConfig } from "./model-provider/local-provider.js";
 import { AgentResultCache } from "./agents/coordinator.js";
 import { proposeFix } from "./review/propose.js";
 import { parseProposal, proposalDigest } from "./contracts/proposal.js";
@@ -107,7 +108,7 @@ export default class VaultStewardPlugin extends Plugin {
   private async scanVaultInternal(): Promise<GovernedIntegrityResult> {
     if (!this.vaultReader) throw new Error("Vault reader is unavailable.");
     if (!this.database) throw new Error("Vault Steward database is unavailable.");
-    const provider = createLocalProvider(this.settings.modelProvider);
+    const provider = this.createSelectedModelProvider();
     // Consume events here so a subsequent incremental worker can operate from a bounded batch.
     // The governed scan remains vault-wide: reference and semantic checks need global context.
     this.vaultReader.consumeInvalidatedEvents();
@@ -358,11 +359,11 @@ export default class VaultStewardPlugin extends Plugin {
   }
 
   async explainFinding(finding: Finding): Promise<FindingExplanation> {
-    return explainFinding(createLocalProvider(this.settings.modelProvider), finding);
+    return explainFinding(this.createSelectedModelProvider(), finding);
   }
 
   async checkModelReadiness() {
-    return checkModelReadiness(createLocalProvider(this.settings.modelProvider));
+    return checkModelReadiness(this.createSelectedModelProvider());
   }
 
   async submitFeedback(finding: Finding, verdict: FeedbackVerdict, label: string): Promise<void> {
@@ -402,6 +403,15 @@ export default class VaultStewardPlugin extends Plugin {
 
   private pluginDirectory(): string {
     return this.manifest.dir ?? `${this.app.vault.configDir}/plugins/${this.manifest.id}`;
+  }
+
+  private createSelectedModelProvider() {
+    if (this.settings.modelProvider.kind === "openai" && !this.settings.cloudModelConsent) {
+      throw new Error(
+        "OpenAI access requires acknowledgement that selected vault evidence is sent to OpenAI."
+      );
+    }
+    return createModelProvider(this.settings.modelProvider);
   }
 
   private async openStatusView(): Promise<void> {
@@ -526,20 +536,59 @@ class VaultStewardSettingsTab extends PluginSettingTab {
       );
 
     new Setting(this.containerEl)
-      .setName("Local model endpoint")
-      .setDesc("A loopback Ollama or llama.cpp-compatible endpoint required for governed scans.")
-      .addText((text) =>
-        text.setValue(this.plugin.settings.modelProvider.endpoint).onChange(async (endpoint) => {
-          await this.plugin.saveSettings({
-            ...this.plugin.settings,
-            modelProvider: { ...this.plugin.settings.modelProvider, endpoint }
-          });
-        })
+      .setName("Model provider")
+      .setDesc("Ollama keeps analysis local. OpenAI sends bounded selected evidence to OpenAI.")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("ollama", "Ollama (local)")
+          .addOption("llama.cpp", "llama.cpp (local)")
+          .addOption("openai", "OpenAI")
+          .setValue(this.plugin.settings.modelProvider.kind)
+          .onChange(async (kind) => {
+            const current = this.plugin.settings.modelProvider;
+            let modelProvider: ModelProviderConfig;
+            if (kind === "openai") {
+              modelProvider = openAIProviderSettings(current);
+            } else if (current.kind === "openai") {
+              modelProvider = {
+                kind: kind as "ollama" | "llama.cpp",
+                endpoint: "http://127.0.0.1:11434",
+                model: "llama3.1:8b",
+                timeoutMs: current.timeoutMs,
+                maxResponseBytes: current.maxResponseBytes
+              };
+            } else {
+              modelProvider = { ...current, kind: kind as "ollama" | "llama.cpp" };
+            }
+            await this.plugin.saveSettings({ ...this.plugin.settings, modelProvider });
+            this.display();
+          })
       );
 
+    const configuredProvider = this.plugin.settings.modelProvider;
+    if (configuredProvider.kind !== "openai") {
+      new Setting(this.containerEl)
+        .setName("Local model endpoint")
+        .setDesc("A loopback Ollama or llama.cpp-compatible endpoint required for governed scans.")
+        .addText((text) =>
+          text.setValue(configuredProvider.endpoint).onChange(async (endpoint) => {
+            await this.plugin.saveSettings({
+              ...this.plugin.settings,
+              modelProvider: { ...configuredProvider, endpoint }
+            });
+          })
+        );
+    }
+
     new Setting(this.containerEl)
-      .setName("Local model")
-      .setDesc("The installed local model used for required semantic analysis.")
+      .setName(
+        this.plugin.settings.modelProvider.kind === "openai" ? "OpenAI model" : "Local model"
+      )
+      .setDesc(
+        this.plugin.settings.modelProvider.kind === "openai"
+          ? "The OpenAI model used for required semantic analysis."
+          : "The installed local model used for required semantic analysis."
+      )
       .addText((text) =>
         text.setValue(this.plugin.settings.modelProvider.model).onChange(async (model) => {
           await this.plugin.saveSettings({
@@ -548,6 +597,37 @@ class VaultStewardSettingsTab extends PluginSettingTab {
           });
         })
       );
+
+    if (configuredProvider.kind === "openai") {
+      new Setting(this.containerEl)
+        .setName("OpenAI API key")
+        .setDesc(
+          "Stored locally in this vault's plugin data and used only for OpenAI API requests."
+        )
+        .addText((text) => {
+          text.inputEl.type = "password";
+          text.inputEl.autocomplete = "off";
+          text.setValue(configuredProvider.apiKey).onChange(async (apiKey) => {
+            await this.plugin.saveSettings({
+              ...this.plugin.settings,
+              modelProvider: { ...configuredProvider, apiKey }
+            });
+          });
+        });
+
+      new Setting(this.containerEl)
+        .setName("Allow OpenAI to receive selected vault evidence")
+        .setDesc(
+          "Required. OpenAI analysis is remote and can send bounded note excerpts to OpenAI."
+        )
+        .addToggle((toggle) =>
+          toggle
+            .setValue(this.plugin.settings.cloudModelConsent)
+            .onChange(async (cloudModelConsent) => {
+              await this.plugin.saveSettings({ ...this.plugin.settings, cloudModelConsent });
+            })
+        );
+    }
 
     new Setting(this.containerEl)
       .setName("Scheduled maintenance")

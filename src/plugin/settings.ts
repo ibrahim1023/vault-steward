@@ -1,4 +1,9 @@
-import { createLocalProvider, type LocalProviderConfig } from "../model-provider/local-provider.js";
+import {
+  isValidModelProviderConfig,
+  OPENAI_API_BASE_URL,
+  type ModelProviderConfig,
+  type OpenAIProviderConfig
+} from "../model-provider/local-provider.js";
 import {
   DEFAULT_MAINTENANCE_SCHEDULE,
   type MaintenanceSchedule
@@ -7,13 +12,15 @@ import {
 export type PluginSettings = {
   vaultLabel: string;
   autoScanOnLoad: boolean;
-  modelProvider: LocalProviderConfig;
+  modelProvider: ModelProviderConfig;
+  cloudModelConsent: boolean;
   maintenanceSchedule: MaintenanceSchedule;
 };
 
 export const DEFAULT_PLUGIN_SETTINGS: PluginSettings = {
   vaultLabel: "Current vault",
   autoScanOnLoad: false,
+  cloudModelConsent: false,
   maintenanceSchedule: DEFAULT_MAINTENANCE_SCHEDULE,
   modelProvider: {
     kind: "ollama",
@@ -37,12 +44,15 @@ export function parsePluginSettings(value: unknown): PluginSettings {
 
   const modelProvider = candidate.modelProvider ?? DEFAULT_PLUGIN_SETTINGS.modelProvider;
   if (!isValidProviderConfig(modelProvider)) return DEFAULT_PLUGIN_SETTINGS;
+  const cloudModelConsent = candidate.cloudModelConsent ?? false;
+  if (typeof cloudModelConsent !== "boolean") return DEFAULT_PLUGIN_SETTINGS;
   const maintenanceSchedule = candidate.maintenanceSchedule ?? DEFAULT_MAINTENANCE_SCHEDULE;
   if (!isValidMaintenanceSchedule(maintenanceSchedule)) return DEFAULT_PLUGIN_SETTINGS;
   return {
     vaultLabel,
     autoScanOnLoad: candidate.autoScanOnLoad,
     modelProvider,
+    cloudModelConsent,
     maintenanceSchedule
   };
 }
@@ -69,21 +79,19 @@ function isValidMaintenanceSchedule(value: unknown): value is MaintenanceSchedul
   );
 }
 
-function isValidProviderConfig(value: unknown): value is LocalProviderConfig {
-  if (
-    value === null ||
-    typeof value !== "object" ||
-    !["ollama", "llama.cpp"].includes((value as Partial<LocalProviderConfig>).kind ?? "") ||
-    typeof (value as Partial<LocalProviderConfig>).endpoint !== "string" ||
-    typeof (value as Partial<LocalProviderConfig>).model !== "string" ||
-    typeof (value as Partial<LocalProviderConfig>).timeoutMs !== "number" ||
-    typeof (value as Partial<LocalProviderConfig>).maxResponseBytes !== "number"
-  )
-    return false;
-  try {
-    createLocalProvider(value as LocalProviderConfig);
-    return true;
-  } catch {
-    return false;
-  }
+function isValidProviderConfig(value: unknown): value is ModelProviderConfig {
+  return isValidModelProviderConfig(value);
+}
+
+export function openAIProviderSettings(current: ModelProviderConfig): OpenAIProviderConfig {
+  return current.kind === "openai"
+    ? current
+    : {
+        kind: "openai",
+        endpoint: OPENAI_API_BASE_URL,
+        model: "gpt-4o-mini",
+        apiKey: "",
+        timeoutMs: current.timeoutMs,
+        maxResponseBytes: current.maxResponseBytes
+      };
 }

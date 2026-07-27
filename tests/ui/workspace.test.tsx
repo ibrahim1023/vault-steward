@@ -57,7 +57,7 @@ describe("VaultStewardWorkspace", () => {
     render(
       <VaultStewardWorkspace
         vaultLabel="Test vault"
-        scan={async () => Promise.reject(new Error("required local model provider is unavailable"))}
+        scan={async () => Promise.reject(new Error("required model provider is unavailable"))}
       />
     );
 
@@ -65,7 +65,7 @@ describe("VaultStewardWorkspace", () => {
 
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
-        "Local model analysis did not complete. Check Ollama and the configured model."
+        "Model analysis did not complete. Check the configured provider and model."
       )
     );
     expect(screen.getAllByRole("alert")).toHaveLength(1);
@@ -76,16 +76,12 @@ describe("VaultStewardWorkspace", () => {
     render(
       <VaultStewardWorkspace
         vaultLabel="Test vault"
-        scan={async () =>
-          Promise.reject(new Error("required local model output could not be validated"))
-        }
+        scan={async () => Promise.reject(new Error("required model output could not be validated"))}
       />
     );
     fireEvent.click(screen.getByRole("button", { name: "Run scan" }));
     await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        "Local model output could not be validated"
-      )
+      expect(screen.getByRole("alert")).toHaveTextContent("Model output could not be validated")
     );
   });
 

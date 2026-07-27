@@ -236,10 +236,10 @@ export function VaultStewardWorkspace({
 
 function scanFailureMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
-  if (message.includes("local model output"))
-    return "Local model output could not be validated. Try the scan again or check model readiness.";
-  if (message.includes("local model provider"))
-    return "Local model analysis did not complete. Check Ollama and the configured model.";
+  if (message.includes("model output"))
+    return "Model output could not be validated. Try the scan again or check model readiness.";
+  if (message.includes("model provider"))
+    return "Model analysis did not complete. Check the configured provider and model.";
   if (message.includes("Vault reader") || message.includes("vault read"))
     return "The active vault could not be read.";
   if (message.includes("database")) return "The local Vault Steward database is unavailable.";

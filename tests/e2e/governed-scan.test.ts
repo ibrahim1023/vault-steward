@@ -31,6 +31,6 @@ describe("governed scans", () => {
     });
     await expect(
       createGovernedIntegritySession([]).scan([{ path: "Home.md", content: "[[Missing]]" }])
-    ).rejects.toThrow("required local model");
+    ).rejects.toThrow("required model");
   });
 });
