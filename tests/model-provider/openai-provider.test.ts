@@ -17,12 +17,10 @@ const config: OpenAIProviderConfig = {
 };
 
 describe("OpenAI model provider", () => {
-  it("uses the fixed Chat Completions endpoint with no server-side storage", async () => {
+  it("uses the fixed Responses endpoint with no server-side storage", async () => {
     const fetcher = vi
       .fn()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ choices: [{ message: { content: '{"ready":true}' } }] }))
-      );
+      .mockResolvedValue(new Response(JSON.stringify({ output_text: '{"ready":true}' })));
     const provider = createOpenAIProvider(config, fetcher);
 
     await expect(
@@ -32,7 +30,7 @@ describe("OpenAI model provider", () => {
       provider: "openai"
     });
 
-    expect(fetcher.mock.calls[0]?.[0]).toBe(`${OPENAI_API_BASE_URL}/chat/completions`);
+    expect(fetcher.mock.calls[0]?.[0]).toBe(`${OPENAI_API_BASE_URL}/responses`);
     expect(fetcher.mock.calls[0]?.[1]).toMatchObject({
       redirect: "error",
       headers: {
@@ -42,8 +40,9 @@ describe("OpenAI model provider", () => {
     });
     expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({
       model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      max_completion_tokens: 32,
+      input: "check",
+      text: { format: { type: "json_object" } },
+      max_output_tokens: 32,
       store: false
     });
   });
@@ -59,7 +58,7 @@ describe("OpenAI model provider", () => {
 
     const malformed = createOpenAIProvider(
       config,
-      vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [] })))
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({ output_text: [] })))
     );
     await expect(malformed.generate({ prompt: "check", maxOutputTokens: 32 })).rejects.toThrow(
       "unavailable"

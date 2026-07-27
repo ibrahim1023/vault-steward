@@ -101,7 +101,7 @@ export function createOpenAIProvider(
 ): ModelProvider {
   validateOpenAIConfig(config, true);
   return createProvider(config, fetcher, {
-    endpoint: `${OPENAI_API_BASE_URL}/chat/completions`,
+    endpoint: `${OPENAI_API_BASE_URL}/responses`,
     headers: {
       "content-type": "application/json",
       authorization: `Bearer ${config.apiKey}`
@@ -255,15 +255,10 @@ function openAIBody(config: OpenAIProviderConfig, request: LocalGenerationReques
   }
   return {
     model: config.model,
-    messages: [
-      {
-        role: "system",
-        content: "Return only a valid JSON object. Do not use tools or external data."
-      },
-      { role: "user", content: request.prompt }
-    ],
-    response_format: { type: "json_object" },
-    max_completion_tokens: request.maxOutputTokens,
+    instructions: "Return only a valid JSON object. Do not use tools or external data.",
+    input: request.prompt,
+    text: { format: { type: "json_object" } },
+    max_output_tokens: request.maxOutputTokens,
     store: false
   };
 }
@@ -322,8 +317,6 @@ function outputFor(config: LocalProviderConfig, value: unknown): string | null {
 
 function openAIOutput(value: unknown): string | null {
   if (!value || typeof value !== "object") return null;
-  const choices = (value as { choices?: unknown }).choices;
-  if (!Array.isArray(choices) || choices.length === 0) return null;
-  const content = (choices[0] as { message?: { content?: unknown } } | undefined)?.message?.content;
-  return typeof content === "string" ? content : null;
+  const outputText = (value as { output_text?: unknown }).output_text;
+  return typeof outputText === "string" ? outputText : null;
 }
