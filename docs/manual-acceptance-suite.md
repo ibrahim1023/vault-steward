@@ -14,13 +14,14 @@ Track the run in [manual-acceptance-checklist.md](manual-acceptance-checklist.md
 1. Build and package the plugin with `npm run package:plugin`.
 2. Copy `dist/vault-steward/` to
    `<Northstar Acceptance>/.obsidian/plugins/vault-steward/`.
-3. Enable Vault Steward and set the local model endpoint and installed model in
-   its settings. Keep Ollama running for every governed scan.
-4. Open Vault Steward from the left-ribbon shield icon and run **Check local
-   model** before the first scan.
+3. Enable Vault Steward and configure either a loopback local model endpoint or
+   the OpenAI provider. For OpenAI, enter the API key and enable the cloud-data
+   acknowledgement before a scan.
+4. Open Vault Steward from the left-ribbon shield icon and run **Check
+   readiness** before the first scan.
 
-Record the Obsidian version, macOS/Windows/Linux version, local-model name,
-and whether the plugin was freshly installed or upgraded. A failed model
+Record the Obsidian version, macOS/Windows/Linux version, model provider/model
+name, and whether the plugin was freshly installed or upgraded. A failed model
 readiness check is a setup failure, not a finding-quality result.
 
 ## Baseline Scan
@@ -37,7 +38,7 @@ dashboard. Confirm that the queue contains findings covering:
 
 The semantic-analysis stage may add evidence-backed entity, contradiction,
 staleness, or decision findings. Treat those as review candidates rather than
-fixed-count assertions: local model output can vary by model and hardware.
+fixed-count assertions: model output can vary by provider, model, and hardware.
 
 For each result, assess whether the title, severity, evidence path, line number,
 and plain-language explanation make sense without opening source code. Note
@@ -69,7 +70,7 @@ turn. For each, verify that selection updates only the detail surface; it must
 not trigger a repair or change status. Non-reference findings should state that
 no safe automatic fix is available.
 
-Expand **Explain evidence** with Ollama running. The explanation must refer only
+Expand **Explain evidence** with the selected provider available. The explanation must refer only
 to the cited source evidence, be understandable in the sidebar, and fail
 cleanly if the model is unavailable. Use **Review feedback** to record one
 `Useful`, one `False positive`, and one `Needs review` verdict. Check that labels
@@ -137,10 +138,9 @@ review-only. Undo the rename when finished.
 
 ## Reliability And Accessibility
 
-With the local model stopped, run a scan and confirm that exactly one clear
+With the selected model provider unavailable, run a scan and confirm that exactly one clear
 failure message appears while the most recent successful findings remain visible.
-Start the model again, use **Check local model**, and confirm recovery with a
-successful scan.
+Restore the provider, use **Check readiness**, and confirm recovery with a successful scan.
 
 Repeat the main flow with keyboard only: ribbon/command palette opening, Run
 scan, selecting a priority finding, expanding disclosures, entering a repair

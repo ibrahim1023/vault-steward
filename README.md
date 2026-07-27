@@ -2,7 +2,7 @@
 
 Continuous integrity checks for local Obsidian vaults.
 
-Vault Steward audits Markdown knowledge bases for broken references, schema problems, task and decision drift, policy violations, and bounded local-model candidates. It presents cited findings for review and never edits a note without an explicit, revision-safe approval.
+Vault Steward audits Markdown knowledge bases for broken references, schema problems, task and decision drift, policy violations, and bounded model candidates. It presents cited findings for review and never edits a note without an explicit, revision-safe approval.
 
 ## Who It Is For
 
@@ -12,17 +12,18 @@ Vault Steward is for people and teams who keep durable project knowledge in an O
 
 ```text
 Local vault -> deterministic parser and graph -> policy and integrity checks
-            -> bounded local-model candidates -> deterministic validation
+            -> bounded model candidates -> deterministic validation
             -> review queue -> explicit approved change
 ```
 
-The deterministic core owns parsing, policies, evidence validation, finding normalization, persistence, diffs, and apply decisions. Local models may classify, extract candidates, or rank cited evidence through typed contracts. A model result cannot directly modify a vault, choose severity, change policy, approve a proposal, or apply an edit.
+The deterministic core owns parsing, policies, evidence validation, finding normalization, persistence, diffs, and apply decisions. The selected model may classify, extract candidates, or rank cited evidence through typed contracts. A model result cannot directly modify a vault, choose severity, change policy, approve a proposal, or apply an edit.
 
 ## Privacy And Safety
 
 - Runs locally in the Obsidian desktop process with SQLite as the canonical local store.
-- Uses only loopback-configured Ollama or llama.cpp-compatible local model providers for governed scans.
-- Does not send vault content, prompts, traces, metrics, or model output to a cloud service.
+- Defaults to loopback-configured Ollama or llama.cpp-compatible local model providers for governed scans.
+- OpenAI is an optional, explicit setting. It sends bounded selected evidence and prompts to the fixed OpenAI API only after the user enters an API key and acknowledges the cloud-data warning.
+- Does not send telemetry, traces, metrics, or model output to a cloud service. OpenAI API keys are excluded from traces, diagnostics, fingerprints, and exports.
 - Stores metadata-only traces by default; note bodies, prompts, raw model outputs, absolute paths, URLs, and secrets are excluded.
 - Requires explicit approval and a current source-revision check before every note mutation.
 - Treats retrieval, replay, model comparisons, calibration, and policy coverage as informational quality signals, never edit authority.
@@ -42,13 +43,13 @@ Requirements:
 
 - Node.js 20 or newer for development and packaging.
 - Obsidian desktop 1.5.0 or newer.
-- A running local Ollama service with a configured model, or a compatible loopback-only llama.cpp endpoint, for a completed governed scan.
+- Either a running local Ollama service with a configured model, a compatible loopback-only llama.cpp endpoint, or an OpenAI API key and an explicit cloud-data acknowledgement.
 
 For manual installation, build the plugin and copy `dist/vault-steward/` into `<vault>/.obsidian/plugins/vault-steward/`, then enable it in Obsidian's community-plugin settings. The package contains `main.js`, `manifest.json`, `styles.css`, `sql-wasm.wasm`, and a release manifest. See [release compatibility](docs/release-compatibility.md) and [troubleshooting](docs/troubleshooting.md) for upgrade and recovery guidance.
 
-## Local Models
+## Model Providers
 
-Vault Steward requires a local provider for its governed semantic-analysis stage. Configure a model that can produce bounded JSON through Ollama or a llama.cpp-compatible endpoint, then run the readiness check in the plugin before a scan.
+Vault Steward requires a configured model provider for its governed semantic-analysis stage. Ollama and llama.cpp stay local. The optional OpenAI provider uses the Chat Completions API with JSON mode and `store: false`; it uses the fixed `https://api.openai.com/v1` origin rather than a configurable remote endpoint. Selecting OpenAI requires a model, API key, and explicit acknowledgement that bounded selected vault evidence can leave the device. Run the readiness check in the plugin before a scan.
 
 Model behavior varies by hardware, configuration, vault content, and task. This repository does not claim a universal best model. Record local quality and latency measurements using the evaluation reports described in [local model guidance](docs/local-models.md).
 
@@ -71,7 +72,7 @@ Generated scale evaluation currently measures the deterministic reference family
 ## Limitations
 
 - Vault Steward cannot establish objective truth or verify external facts without an external source.
-- It can miss implicit contradictions and may produce false positives, especially with small local models or weak note structure.
+- It can miss implicit contradictions and may produce false positives, especially with smaller models or weak note structure.
 - Staleness and decision quality are contextual; evidence quality depends on note quality.
 - No model output is sufficient on its own to authorize a change.
 - Synthetic metrics are engineering signals, not a guarantee of accuracy on a user vault.

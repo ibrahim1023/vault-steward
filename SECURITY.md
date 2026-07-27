@@ -9,7 +9,7 @@ Do not publish a vulnerability with vault content, proof-of-concept notes, or se
 ## Protections
 
 - Vault access is limited to normalized vault-relative paths through the Obsidian adapter.
-- Local provider endpoints are restricted to loopback configuration.
+- Ollama and llama.cpp provider endpoints are restricted to loopback configuration. OpenAI is a fixed-origin, explicit opt-in provider that requires a local API key and cloud-data acknowledgement.
 - Model output is parsed against typed schemas, citation-checked, size-bounded, and cannot mutate state directly.
 - Proposed edits require explicit approval and a revision-safe preflight before apply.
 - Evaluation and trace records exclude sensitive content by default.

@@ -59,6 +59,7 @@ Phase 16 advanced quality coverage and public documentation is complete.
 Phase 16 is complete on `feat/phase-16-advanced-quality`; promotion to `development` and push are pending.
 
 - Security hardening on 2026-07-20 rejects local-provider redirects, bounds provider configuration and response reads, binds approval/apply to validated persisted proposal digests, and enforces vault-reader/scanner resource and canonical-path limits.
+- Phase 17 adds an explicit OpenAI provider option beside the default loopback Ollama/llama.cpp providers. OpenAI requests use a fixed API origin, bounded JSON-mode Chat Completions with `store: false`, a local API key, and a required cloud-data acknowledgement; keys remain excluded from traces, fingerprints, diagnostics, and portable exports.
 
 ## Important Decisions
 

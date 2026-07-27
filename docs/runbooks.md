@@ -14,6 +14,8 @@ Use the rebuild action after a corruption diagnostic or incomplete scan. The reb
 
 Confirm the configured loopback endpoint is running and that the configured model is installed. A governed scan remains incomplete until the local provider responds with valid structured output. Do not switch to a remote endpoint.
 
+When OpenAI is intentionally selected, confirm the configured model is available to the API key and the cloud-data acknowledgement remains enabled. The plugin can only use the fixed OpenAI API origin; do not attempt to redirect it through another remote endpoint.
+
 ## Structured Output Failure
 
 The provider receives one repair attempt. If that also fails, inspect model compatibility and context limits, then re-run the scan. Do not paste raw prompt or note content into diagnostics.

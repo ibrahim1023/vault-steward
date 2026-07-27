@@ -6,7 +6,7 @@ This document owns module boundaries, data ownership, trust boundaries, and work
 
 ## Deployment Model
 
-Vault Steward is a TypeScript/React Obsidian plugin. It runs locally in the Obsidian desktop process and accesses the selected vault only through a narrow vault adapter. SQLite persists canonical indexed state. A configured local model provider (Ollama or llama.cpp) is required for a completed governed scan.
+Vault Steward is a TypeScript/React Obsidian plugin. It runs locally in the Obsidian desktop process and accesses the selected vault only through a narrow vault adapter. SQLite persists canonical indexed state. A configured model provider is required for a completed governed scan: loopback Ollama/llama.cpp by default, or the explicit fixed-origin OpenAI option after cloud-data acknowledgement.
 
 ```mermaid
 flowchart LR
@@ -15,8 +15,9 @@ flowchart LR
   C --> D[Deterministic core]
   D --> V[Vault adapter]
   D --> S[(SQLite)]
-  C --> M[Local model adapter]
+  C --> M[Model provider adapter]
   M --> L[Ollama or llama.cpp]
+  M --> O[OpenAI opt-in]
   C --> R[Review queue]
   R --> U
   U --> A[Approved change]
@@ -39,7 +40,7 @@ flowchart LR
 | `review`         | Render evidence and preview edits                    | approval state                        |
 | `apply`          | Validate and atomically apply approved patches       | audit trail and re-index trigger      |
 | `storage`        | SQLite repositories and migrations                   | persisted product state               |
-| `model-provider` | Local structured-generation calls                    | model request/response trace metadata |
+| `model-provider` | Bounded structured-generation calls                  | model request/response trace metadata |
 
 ## Main Workflow
 
@@ -49,7 +50,7 @@ sequenceDiagram
   participant Coordinator
   participant Scanner
   participant Core as Graph/Policy
-  participant Model as Local model
+  participant Model as Selected model provider
   participant Review
   User->>Coordinator: start scan
   Coordinator->>Scanner: read vault snapshot

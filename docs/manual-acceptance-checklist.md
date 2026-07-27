@@ -12,7 +12,7 @@ section.
 - [ ] Obsidian version recorded
 - [ ] Operating system/version recorded
 - [ ] Vault Steward version recorded
-- [ ] Local model name and version recorded
+- [ ] Model provider and model name/version recorded
 - [ ] Fresh installation or upgrade path recorded
 
 | Field            | Value |
@@ -21,7 +21,7 @@ section.
 | Obsidian         |       |
 | Operating system |       |
 | Vault Steward    |       |
-| Local model      |       |
+| Model provider   |       |
 | Install path     |       |
 
 ## Installation And Readiness
@@ -30,8 +30,9 @@ section.
 - [ ] Vault Steward can be enabled from Community Plugins in the test vault.
 - [ ] The left-ribbon shield icon appears once.
 - [ ] The `Open Vault Steward status` command-palette command opens the workspace.
-- [ ] The configured local-model endpoint is loopback-only and points to the running provider.
-- [ ] `Check local model` reports readiness before the first scan.
+- [ ] With Ollama or llama.cpp selected, the configured endpoint is loopback-only and points to the running provider.
+- [ ] With OpenAI selected, the provider is visibly identified as OpenAI, the API-key field is masked, and the cloud-data acknowledgement is required.
+- [ ] `Check readiness` reports readiness before the first scan.
 
 ## Baseline Scan
 

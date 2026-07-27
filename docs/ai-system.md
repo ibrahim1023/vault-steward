@@ -6,7 +6,7 @@ This document owns agent roles, model boundaries, budgets, and guardrails. Evalu
 
 ## Operating Model
 
-The scanner, graph builder, reference integrity checks, task parsing, schema validation, policy evaluation, diff generation, and apply workflow are deterministic. A local model performs the required semantic-analysis stage for governed scans, identifying candidate entities, propositions, staleness signals, or ranked evidence. Every model result is schema-validated and evidence-checked before it becomes a finding.
+The scanner, graph builder, reference integrity checks, task parsing, schema validation, policy evaluation, diff generation, and apply workflow are deterministic. The selected model provider performs the required semantic-analysis stage for governed scans, identifying candidate entities, propositions, staleness signals, or ranked evidence. Ollama and llama.cpp remain local; OpenAI requires an explicit cloud-data acknowledgement. Every model result is schema-validated and evidence-checked before it becomes a finding.
 
 | Agent         | Input                              | Output                           | Model use                        |
 | ------------- | ---------------------------------- | -------------------------------- | -------------------------------- |
@@ -27,7 +27,7 @@ The scanner, graph builder, reference integrity checks, task parsing, schema val
 - Coordinator routes only after deterministic eligibility checks and caps each agent to one attempt plus one repair attempt for malformed structured output.
 - No agent calls another agent directly. Coordinator owns handoffs and stores only declared shared context.
 - Terminate on a complete typed response, exhausted budget, missing evidence, policy failure, or timeout. Mark incomplete work visibly.
-- A completed governed scan requires an available local provider and successful bounded semantic-analysis stage. Provider absence or structured-output exhaustion leaves the scan incomplete; it never degrades to a deterministic-only completion.
+- A completed governed scan requires an available configured provider and successful bounded semantic-analysis stage. Provider absence or structured-output exhaustion leaves the scan incomplete; it never degrades to a deterministic-only completion.
 - Structured model output is parsed as JSON, validated against the receiving contract, and may receive one repair attempt. Traces retain provider/model, latency, retry count, and outcome only; they never retain prompts or note excerpts.
 - Evidence context has a fixed untrusted-data prefix, vault-relative locators, entry and token limits, and excludes private entries before a provider call.
 
@@ -41,4 +41,4 @@ Initial defaults are configuration, not promises: one concurrent model request; 
 
 ## Governed Scan Input Boundary
 
-`src/core/governed-scan.ts` constructs each local-model request from the immutable scanner snapshot. It supplies bounded note evidence, deterministic contradiction propositions, staleness records, and decision records to the coordinator. The core result includes metadata-only model traces and limitations; a required model-stage failure returns an incomplete scan with no completed finding set.
+`src/core/governed-scan.ts` constructs each model request from the immutable scanner snapshot. It supplies bounded note evidence, deterministic contradiction propositions, staleness records, and decision records to the coordinator. The core result includes metadata-only model traces and limitations; a required model-stage failure returns an incomplete scan with no completed finding set.
