@@ -49,7 +49,7 @@ For manual installation, build the plugin and copy `dist/vault-steward/` into `<
 
 ## Model Providers
 
-Vault Steward requires a configured model provider for its governed semantic-analysis stage. Ollama and llama.cpp stay local. The optional OpenAI provider uses the Chat Completions API with JSON mode and `store: false`; it uses the fixed `https://api.openai.com/v1` origin rather than a configurable remote endpoint. Selecting OpenAI requires a model, API key, and explicit acknowledgement that bounded selected vault evidence can leave the device. Run the readiness check in the plugin before a scan.
+Vault Steward requires a configured model provider for its governed semantic-analysis stage. Ollama and llama.cpp stay local. The optional OpenAI provider uses the Responses API with JSON mode and `store: false`; it uses the fixed `https://api.openai.com/v1` origin rather than a configurable remote endpoint. Selecting OpenAI requires a model, API key, and explicit acknowledgement that bounded selected vault evidence can leave the device. Run the readiness check in the plugin before a scan.
 
 Model behavior varies by hardware, configuration, vault content, and task. This repository does not claim a universal best model. Record local quality and latency measurements using the evaluation reports described in [local model guidance](docs/local-models.md).
 

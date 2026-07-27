@@ -14,7 +14,7 @@ the existing local-only promise must not become an accidental remote endpoint.
 
 Keep Ollama as the default. Add OpenAI as a separate provider that sends
 bounded, already-prepared semantic prompts to the fixed
-`https://api.openai.com/v1/chat/completions` origin using Bearer authentication,
+`https://api.openai.com/v1/responses` origin using Bearer authentication,
 JSON mode, `store: false`, timeout/response caps, and redirect rejection.
 
 The user must select OpenAI, enter an API key, and acknowledge that bounded
