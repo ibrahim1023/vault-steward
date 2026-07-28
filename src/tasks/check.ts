@@ -11,12 +11,13 @@ export type ParsedTask = {
 };
 
 const TASK_PATTERN = /^\s*- \[([ xX])\]\s+(.+?)(?:\s+\^([\w-]+))?\s*$/;
+const TASK_CANDIDATE_PATTERN = /^\s*- \[(?!\[)/;
 const METADATA_PATTERN = /\b(owner|project|due|abandoned):([^\s]+)/g;
 
 export function checkTasks(content: string, now: string): TaskIssue[] {
   const seen = new Set<string>();
   return content.split("\n").flatMap((line, index) => {
-    if (!line.includes("- [")) return [];
+    if (!TASK_CANDIDATE_PATTERN.test(line)) return [];
     const parsed = parseTask(line, index + 1);
     if (!parsed) return [{ id: `line-${index + 1}`, kind: "malformed" as const, line: index + 1 }];
     const issues: TaskIssue[] = [];
