@@ -8,6 +8,7 @@ import {
   selectDashboardFinding,
   selectNextBestAction
 } from "./dashboard.js";
+import type { FindingQueueFilter } from "./dashboard.js";
 import { FindingDetail } from "./FindingDetail.js";
 import { FindingExplanation } from "./FindingExplanation.js";
 import { FindingFeedback } from "./FindingFeedback.js";
@@ -90,6 +91,12 @@ export function VaultStewardWorkspace({
   const [repairMessage, setRepairMessage] = useState<string>();
   const [target, setTarget] = useState("");
   const [selectedFindingId, setSelectedFindingId] = useState<string>();
+  const [queueExpanded, setQueueExpanded] = useState(false);
+  const [queueFilter, setQueueFilter] = useState<FindingQueueFilter>({
+    severity: "all",
+    query: ""
+  });
+  const [repairSetupOpen, setRepairSetupOpen] = useState(false);
   const [review, setReview] = useState<{
     proposal: Proposal;
     sources: Record<string, string>;
@@ -112,6 +119,10 @@ export function VaultStewardWorkspace({
       .catch(() => setErrorMessage("The persisted review queue is unavailable."));
   }, [loadFindings]);
 
+  useEffect(() => {
+    setRepairSetupOpen(false);
+  }, [selectedFinding?.id]);
+
   const runScan = async () => {
     setStatus("scanning");
     setErrorMessage(undefined);
@@ -128,28 +139,37 @@ export function VaultStewardWorkspace({
 
   const repairControls =
     selectedFinding?.type === "broken-reference" && createProposal ? (
-      <div>
-        <label>
-          Reference target{" "}
-          <input
-            aria-label="Reference target"
-            value={target}
-            onChange={(event) => setTarget(event.target.value)}
-          />
-        </label>
-        <button
-          type="button"
-          disabled={!target}
-          onClick={() => {
-            setRepairMessage(undefined);
-            void createProposal(selectedFinding.id, target)
-              .then(({ proposal, sources }) => setReview({ proposal, sources, status: "pending" }))
-              .catch((error: unknown) => setRepairMessage(repairFailureMessage(error)));
-          }}
-        >
-          Prepare reference repair
+      <div className="repair-setup">
+        <button type="button" onClick={() => setRepairSetupOpen(true)}>
+          Review repair
         </button>
-        {repairMessage ? <p role="alert">{repairMessage}</p> : null}
+        {repairSetupOpen ? (
+          <div>
+            <label>
+              Reference target{" "}
+              <input
+                aria-label="Reference target"
+                value={target}
+                onChange={(event) => setTarget(event.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              disabled={!target}
+              onClick={() => {
+                setRepairMessage(undefined);
+                void createProposal(selectedFinding.id, target)
+                  .then(({ proposal, sources }) =>
+                    setReview({ proposal, sources, status: "pending" })
+                  )
+                  .catch((error: unknown) => setRepairMessage(repairFailureMessage(error)));
+              }}
+            >
+              Prepare reference repair
+            </button>
+            {repairMessage ? <p role="alert">{repairMessage}</p> : null}
+          </div>
+        ) : null}
       </div>
     ) : null;
 
@@ -172,29 +192,35 @@ export function VaultStewardWorkspace({
         finding={selectNextBestAction(actionableFindings)}
         onOpen={setSelectedFindingId}
       />
-      <PriorityFindings
-        findings={actionableFindings}
-        selectedFindingId={selectedFinding?.id}
-        onSelect={setSelectedFindingId}
-      />
-      <FindingDetail finding={selectedFinding}>
-        {repairControls}
-        {selectedFinding && selectedFinding.type !== "broken-reference" ? (
-          <p className="no-safe-fix">No safe automatic fix is available for this finding.</p>
-        ) : null}
-        {selectedFinding && explainFinding ? (
-          <details className="finding-disclosure">
-            <summary>Explain evidence</summary>
-            <FindingExplanation finding={selectedFinding} explain={explainFinding} />
-          </details>
-        ) : null}
-        {selectedFinding && submitFeedback ? (
-          <details className="finding-disclosure">
-            <summary>Review feedback</summary>
-            <FindingFeedback finding={selectedFinding} submit={submitFeedback} />
-          </details>
-        ) : null}
-      </FindingDetail>
+      <div className="review-workbench">
+        <PriorityFindings
+          findings={actionableFindings}
+          selectedFindingId={selectedFinding?.id}
+          onSelect={setSelectedFindingId}
+          expanded={queueExpanded}
+          filter={queueFilter}
+          onFilterChange={setQueueFilter}
+          onToggleExpanded={() => setQueueExpanded((expanded) => !expanded)}
+        />
+        <FindingDetail finding={selectedFinding}>
+          {repairControls}
+          {selectedFinding && selectedFinding.type !== "broken-reference" ? (
+            <p className="no-safe-fix">No safe automatic fix is available for this finding.</p>
+          ) : null}
+          {selectedFinding && explainFinding ? (
+            <details className="finding-disclosure">
+              <summary>Explain evidence</summary>
+              <FindingExplanation finding={selectedFinding} explain={explainFinding} />
+            </details>
+          ) : null}
+          {selectedFinding && submitFeedback ? (
+            <details className="finding-disclosure">
+              <summary>Review feedback</summary>
+              <FindingFeedback finding={selectedFinding} submit={submitFeedback} />
+            </details>
+          ) : null}
+        </FindingDetail>
+      </div>
       {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
       {checkModelReadiness ? <ModelReadinessView checkReadiness={checkModelReadiness} /> : null}
       {maintenance ? <MaintenanceScheduleView {...maintenance} /> : null}

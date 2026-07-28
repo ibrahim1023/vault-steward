@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { VaultStewardWorkspace } from "../../src/ui/VaultStewardWorkspace.js";
@@ -85,6 +85,42 @@ describe("VaultStewardWorkspace", () => {
     );
   });
 
+  it("shows a compact finding queue with the highest-priority detail selected by default", async () => {
+    const findings = [
+      {
+        ...finding,
+        id: "critical",
+        severity: "critical" as const,
+        explanation: "Critical finding"
+      },
+      { ...finding, id: "high", severity: "high" as const, explanation: "High finding" },
+      { ...finding, id: "medium", severity: "medium" as const, explanation: "Medium finding" },
+      { ...finding, id: "low", severity: "low" as const, explanation: "Low finding" }
+    ];
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings })}
+        loadFindings={() => findings}
+      />
+    );
+
+    const priorityFindings = within(screen.getByRole("region", { name: "Priority findings" }));
+    await waitFor(() =>
+      expect(
+        priorityFindings.getByRole("button", { name: /critical finding/i })
+      ).toBeInTheDocument()
+    );
+    expect(priorityFindings.getAllByRole("button", { name: /finding:/i })).toHaveLength(3);
+    expect(priorityFindings.queryByRole("button", { name: /low finding/i })).toBeNull();
+    expect(screen.getByRole("region", { name: "Finding detail" })).toHaveTextContent(
+      "Critical finding"
+    );
+
+    fireEvent.click(priorityFindings.getByRole("button", { name: "View all findings" }));
+    expect(priorityFindings.getByRole("button", { name: /low finding/i })).toBeInTheDocument();
+  });
+
   it("selects the intended broken reference before preparing a repair", async () => {
     const secondFinding = {
       ...finding,
@@ -109,6 +145,8 @@ describe("VaultStewardWorkspace", () => {
       expect(screen.getByRole("button", { name: /old target needs repair/i })).toBeEnabled()
     );
     fireEvent.click(screen.getByRole("button", { name: /old target needs repair/i }));
+    expect(screen.queryByLabelText("Reference target")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Review repair" }));
     fireEvent.change(screen.getByLabelText("Reference target"), {
       target: { value: "Vault Steward Test/Target" }
     });
@@ -116,6 +154,33 @@ describe("VaultStewardWorkspace", () => {
 
     await waitFor(() => expect(selectedId).toBe("second-finding"));
     expect(screen.getByRole("alert")).toHaveTextContent("stop after selection");
+  });
+
+  it("closes repair setup when the selected finding changes", async () => {
+    const secondFinding = {
+      ...finding,
+      id: "second-finding",
+      explanation: "Second target needs repair"
+    };
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [finding, secondFinding] })}
+        loadFindings={() => [finding, secondFinding]}
+        createProposal={async () => {
+          throw new Error("not used");
+        }}
+      />
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Review repair" })).toBeEnabled()
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Review repair" }));
+    expect(screen.getByLabelText("Reference target")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /second target needs repair/i }));
+    expect(screen.queryByLabelText("Reference target")).toBeNull();
   });
 
   it("uses keyboard-native controls and announces scan state without exposing mutation", async () => {

@@ -29,7 +29,7 @@ export function FindingDetail({
           <dd>{finding.confidence}</dd>
         </div>
       </dl>
-      {children}
+      {children ? <div className="finding-detail-primary-action">{children}</div> : null}
     </section>
   );
 }
