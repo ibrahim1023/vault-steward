@@ -18,9 +18,12 @@ import { AgentResultCache } from "./agents/coordinator.js";
 import { proposeFix } from "./review/propose.js";
 import { parseProposal, proposalDigest } from "./contracts/proposal.js";
 import { ReviewWorkflow, type ReviewAction } from "./review/workflow.js";
+import { parsePreparedRepairBatch, type PreparedRepairBatch } from "./contracts/prepared-repair.js";
+import { prepareReferenceRepairBatch } from "./review/prepare-repair-batch.js";
+import { selectReferenceCandidateWithProviders } from "./review/reference-recommendation.js";
 import { getPluginDatabasePath } from "./storage/sqlite-runtime.js";
 import { VaultStewardWorkspace } from "./ui/VaultStewardWorkspace.js";
-import { scanVaultFiles, type ScannedNote } from "./scanner/scan.js";
+import { scanVaultFiles, type ScannedNote, type ScanSnapshot } from "./scanner/scan.js";
 import {
   DEFAULT_POLICY_DRAFT,
   POLICY_STUDIO_PATH,
@@ -48,6 +51,8 @@ export default class VaultStewardPlugin extends Plugin {
   private vaultReader?: ObsidianVaultReader;
   private database: PluginDatabase | undefined;
   private readonly parsedNotes = new Map<string, ScannedNote>();
+  private activeSnapshot?: ScanSnapshot;
+  private recentRenames: Array<{ oldPath: string; path: string }> = [];
   private readonly agentResultCache = new AgentResultCache();
   private maintenanceState: MaintenanceScheduleState = { runsInWindow: 0, scanInProgress: false };
   private activeScan = false;
@@ -111,7 +116,7 @@ export default class VaultStewardPlugin extends Plugin {
     const provider = this.createSelectedModelProvider();
     // Consume events here so a subsequent incremental worker can operate from a bounded batch.
     // The governed scan remains vault-wide: reference and semantic checks need global context.
-    this.vaultReader.consumeInvalidatedEvents();
+    const events = this.vaultReader.consumeInvalidatedEvents();
     const files = await this.vaultReader.listFiles();
     const snapshot = scanVaultFiles(files, this.parsedNotes);
     const policySource = await this.loadPolicyDraft();
@@ -135,6 +140,10 @@ export default class VaultStewardPlugin extends Plugin {
     );
     this.parsedNotes.clear();
     for (const note of snapshot.notes) this.parsedNotes.set(note.path, note);
+    this.activeSnapshot = snapshot;
+    this.recentRenames = events.flatMap((event) =>
+      event.kind === "rename" && event.oldPath ? [{ oldPath: event.oldPath, path: event.path }] : []
+    );
     this.database.saveCompletedScan({
       id: result.scanId,
       vaultFingerprint: this.app.vault.getName(),
@@ -315,6 +324,42 @@ export default class VaultStewardPlugin extends Plugin {
     };
   }
 
+  async prepareRecommendedRepairBatch() {
+    if (!this.database || !this.activeSnapshot)
+      throw new Error("Run Check vault before preparing repairs.");
+    const provider = this.createSelectedModelProvider();
+    const writer = new ObsidianVaultWriter(this.app.vault);
+    const prepared = await prepareReferenceRepairBatch({
+      snapshot: this.activeSnapshot,
+      findings: this.loadFindings(),
+      renames: this.recentRenames,
+      readSource: (path) => writer.read(path),
+      selectCandidate: (request) => selectReferenceCandidateWithProviders([provider], request),
+      persistProposal: (proposal) => {
+        const existing = this.database!.repository.findProposal(proposal.id);
+        if (existing) {
+          const persisted = parseStoredProposal(existing.patchJson, existing.proposalDigest);
+          if (
+            existing.status === "pending" &&
+            proposalDigest(persisted) === proposalDigest(proposal)
+          )
+            return;
+          throw new Error("A previous proposal for this finding must be reviewed first.");
+        }
+        this.database!.repository.saveProposal({
+          id: proposal.id,
+          findingId: proposal.findingId,
+          patchJson: JSON.stringify(proposal),
+          sourceRevisionsJson: "{}",
+          status: "pending",
+          proposalDigest: proposalDigest(proposal)
+        });
+      }
+    });
+    await this.database.flush();
+    return prepared;
+  }
+
   async reviewProposal(proposalId: string, action: ReviewAction) {
     const record = this.database?.repository.findProposal(proposalId);
     if (!record || !this.database) throw new Error("Proposal is unavailable.");
@@ -395,6 +440,33 @@ export default class VaultStewardPlugin extends Plugin {
     ).apply(proposal, new Date().toISOString(), {
       onReindex: () => {
         void this.scanVault();
+      }
+    });
+    await this.database.flush();
+    return result;
+  }
+
+  async applyPreparedRepairBatch(batch: PreparedRepairBatch) {
+    if (!this.database) throw new Error("Vault Steward database is unavailable.");
+    const parsedBatch = parsePreparedRepairBatch(batch);
+    if (!parsedBatch.ok) throw new Error("Prepared repair batch is invalid.");
+    const proposals = parsedBatch.value.proposalIds.map((proposalId, index) => {
+      const record = this.database!.repository.findProposal(proposalId);
+      if (!record) throw new Error("A prepared proposal is unavailable.");
+      const proposal = parseStoredProposal(record.patchJson, record.proposalDigest);
+      if (
+        proposal.scanId !== parsedBatch.value.scanId ||
+        proposal.findingId !== parsedBatch.value.findingIds[index]
+      )
+        throw new Error("Prepared repair batch integrity validation failed.");
+      return proposal;
+    });
+    const result = await new ReviewWorkflow(
+      this.database.repository,
+      new ObsidianVaultWriter(this.app.vault)
+    ).approveAndApplyBatch(proposals, new Date().toISOString(), {
+      onReindex: async () => {
+        await this.scanVault();
       }
     });
     await this.database.flush();

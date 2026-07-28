@@ -13,7 +13,8 @@ export function proposeFix(
   const evidence = finding.evidence[0];
   if (finding.type !== "broken-reference" || !evidence || evidence.notePath !== source.path)
     return { applicable: false, reason: "No deterministic fix is available for this finding." };
-  if (!/^\[\[[^\]]+\]\]$/.test(evidence.excerpt) || !/^[^/\\][^\\]*$/.test(target))
+  const reference = /^\[\[([^\]|#]+)(#[^\]|]+)?(?:\|([^\]]+))?\]\]$/.exec(evidence.excerpt);
+  if (!reference || !/^[^/\\][^\\]*$/.test(target) || /[\[\]#|]/.test(target))
     return { applicable: false, reason: "The reference replacement is unsafe or ambiguous." };
   const start = source.content.indexOf(evidence.excerpt);
   if (start < 0)
@@ -34,7 +35,7 @@ export function proposeFix(
           start,
           end: start + evidence.excerpt.length,
           expected: evidence.excerpt,
-          replacement: `[[${target}]]`
+          replacement: `[[${target}${reference[2] ?? ""}${reference[3] ? `|${reference[3]}` : ""}]]`
         }
       ]
     }

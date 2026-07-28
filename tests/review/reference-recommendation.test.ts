@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { Finding } from "../../src/contracts/index.js";
 import {
   buildReferenceTargetCandidates,
-  recommendReferenceRepair
+  recommendReferenceRepair,
+  selectReferenceCandidateWithProviders
 } from "../../src/review/reference-recommendation.js";
 import { scanVaultFiles } from "../../src/scanner/scan.js";
 
@@ -210,5 +211,57 @@ describe("bounded reference repair recommendations", () => {
       })
     ).resolves.toMatchObject({ status: "ai-suggested" });
     expect(selectCandidate).toHaveBeenCalledOnce();
+  });
+
+  it("routes a typed bounded request through the selected provider", async () => {
+    const request = {
+      schemaVersion: 1 as const,
+      scanId: "scan-1",
+      findingId: "finding-1",
+      task: "select-reference-target" as const,
+      instructions: "Choose one candidate ID or abstain.",
+      evidence: finding().evidence[0]!,
+      candidates: [
+        {
+          id: "path:Guides/Similar Guide.md",
+          path: "Guides/Similar Guide.md",
+          source: "path" as const
+        }
+      ]
+    };
+    const provider = {
+      config: {
+        kind: "ollama" as const,
+        endpoint: "http://127.0.0.1:11434",
+        model: "test",
+        timeoutMs: 1_000,
+        maxResponseBytes: 1_000
+      },
+      capabilities: ["structured-output"],
+      generate: vi.fn(async ({ prompt }: { prompt: string }) => {
+        const parsed = JSON.parse(prompt) as Record<string, unknown>;
+        expect(parsed).toMatchObject({
+          task: "select-reference-target",
+          scanId: "scan-1",
+          candidates: [{ id: "path:Guides/Similar Guide.md" }]
+        });
+        return {
+          text: JSON.stringify({
+            schemaVersion: 1,
+            candidateId: "path:Guides/Similar Guide.md",
+            reason: "Closest existing target."
+          }),
+          model: "test",
+          provider: "ollama" as const,
+          latencyMs: 1
+        };
+      })
+    };
+
+    await expect(selectReferenceCandidateWithProviders([provider], request)).resolves.toEqual({
+      schemaVersion: 1,
+      candidateId: "path:Guides/Similar Guide.md",
+      reason: "Closest existing target."
+    });
   });
 });

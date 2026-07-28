@@ -40,6 +40,47 @@ describe("deterministic proposals", () => {
         "Target"
       )
     ).toMatchObject({ applicable: false });
+    expect(
+      proposeFix(
+        finding,
+        { path: "Home.md", revision: "hash", content: "See [[Missing]]." },
+        "Target#Injected|label"
+      )
+    ).toMatchObject({ applicable: false });
+  });
+
+  it("preserves an existing anchor and display label in the deterministic replacement", () => {
+    const anchored = {
+      ...finding,
+      evidence: [
+        {
+          notePath: "Home.md",
+          locator: "line:1",
+          excerpt: "[[Missing#Plan|project plan]]"
+        }
+      ]
+    };
+    expect(
+      proposeFix(
+        anchored,
+        {
+          path: "Home.md",
+          revision: "hash",
+          content: "See [[Missing#Plan|project plan]]."
+        },
+        "Guides/Target"
+      )
+    ).toMatchObject({
+      applicable: true,
+      proposal: {
+        operations: [
+          {
+            expected: "[[Missing#Plan|project plan]]",
+            replacement: "[[Guides/Target#Plan|project plan]]"
+          }
+        ]
+      }
+    });
   });
 
   it("proposes the documented acceptance-vault repair", () => {

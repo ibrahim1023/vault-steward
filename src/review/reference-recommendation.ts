@@ -1,4 +1,6 @@
 import type { EvidenceRef, Finding } from "../contracts/index.js";
+import type { ModelProvider } from "../model-provider/local-provider.js";
+import { generateStructured } from "../model-provider/structured.js";
 import type { ScanSnapshot } from "../scanner/scan.js";
 
 const MAX_CANDIDATES = 20;
@@ -142,6 +144,22 @@ export async function recommendReferenceRepair(input: {
     : abstain("The model selected a target outside the bounded candidate list.");
 }
 
+export async function selectReferenceCandidateWithProviders(
+  providers: readonly ModelProvider[],
+  request: ReferenceCandidateSelectionRequest
+): Promise<unknown> {
+  const result = await generateStructured(
+    providers,
+    {
+      prompt: JSON.stringify(request),
+      maxOutputTokens: 256
+    },
+    isSelection
+  );
+  if (!result.ok) throw new Error("Reference target selection did not complete.");
+  return result.value;
+}
+
 function validateCandidates(
   candidates: readonly ReferenceTargetCandidate[]
 ): ReferenceTargetCandidate[] | null {
@@ -165,7 +183,14 @@ function validateCandidates(
 }
 
 function parseSelection(value: unknown): { candidateId: string | null; reason: string } | null {
-  if (!isRecord(value)) return null;
+  if (!isSelection(value)) return null;
+  return { candidateId: value.candidateId, reason: value.reason };
+}
+
+function isSelection(
+  value: unknown
+): value is { schemaVersion: 1; candidateId: string | null; reason: string } {
+  if (!isRecord(value)) return false;
   if (
     Object.keys(value).some((key) => !["schemaVersion", "candidateId", "reason"].includes(key)) ||
     value.schemaVersion !== 1 ||
@@ -178,8 +203,8 @@ function parseSelection(value: unknown): { candidateId: string | null; reason: s
     typeof value.reason !== "string" ||
     value.reason.length > 500
   )
-    return null;
-  return { candidateId: value.candidateId, reason: value.reason };
+    return false;
+  return true;
 }
 
 function addCandidate(
