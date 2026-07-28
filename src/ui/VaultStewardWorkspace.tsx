@@ -18,6 +18,7 @@ import { PluginStatusView, type PluginStatus } from "./PluginStatusView.js";
 import { ModelReadinessView } from "./ModelReadinessView.js";
 import { MaintenanceScheduleView } from "./MaintenanceScheduleView.js";
 import { MaintenanceView } from "./MaintenanceView.js";
+import { MoreTools } from "./MoreTools.js";
 import { PriorityFindings } from "./PriorityFindings.js";
 import { PolicyStudio } from "./PolicyStudio.js";
 import { ProposalReviewPanel } from "./ProposalReviewPanel.js";
@@ -221,10 +222,29 @@ export function VaultStewardWorkspace({
           ) : null}
         </FindingDetail>
       </div>
-      {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
-      {checkModelReadiness ? <ModelReadinessView checkReadiness={checkModelReadiness} /> : null}
-      {maintenance ? <MaintenanceScheduleView {...maintenance} /> : null}
-      {inspectImpact ? <MaintenanceView findings={findings} inspectImpact={inspectImpact} /> : null}
+      <MoreTools>
+        {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
+        {checkModelReadiness ? <ModelReadinessView checkReadiness={checkModelReadiness} /> : null}
+        {maintenance ? <MaintenanceScheduleView {...maintenance} /> : null}
+        {inspectImpact ? (
+          <MaintenanceView findings={findings} inspectImpact={inspectImpact} />
+        ) : null}
+        {history ? (
+          <details>
+            <summary>History</summary>
+            <HistoryView scans={history.scans} lifecycle={history.lifecycle} />
+          </details>
+        ) : null}
+        {history && loadObservability ? (
+          <ObservabilityView
+            scans={history.scans}
+            loadObservability={loadObservability}
+            {...(selectedFinding ? { selectedFindingId: selectedFinding.id } : {})}
+            {...(deleteScanTrace ? { deleteScanTrace } : {})}
+            {...(deleteAllTraceData ? { deleteAllTraceData } : {})}
+          />
+        ) : null}
+      </MoreTools>
       {review && reviewProposal && applyProposal ? (
         <ProposalReviewPanel
           proposal={review.proposal}
@@ -239,21 +259,6 @@ export function VaultStewardWorkspace({
             if (result.ok) setReview({ ...review, status: "applied" });
             return result;
           }}
-        />
-      ) : null}
-      {history ? (
-        <details>
-          <summary>History</summary>
-          <HistoryView scans={history.scans} lifecycle={history.lifecycle} />
-        </details>
-      ) : null}
-      {history && loadObservability ? (
-        <ObservabilityView
-          scans={history.scans}
-          loadObservability={loadObservability}
-          {...(selectedFinding ? { selectedFindingId: selectedFinding.id } : {})}
-          {...(deleteScanTrace ? { deleteScanTrace } : {})}
-          {...(deleteAllTraceData ? { deleteAllTraceData } : {})}
         />
       ) : null}
     </section>
