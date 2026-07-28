@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -9,7 +10,8 @@ import {
   groupDashboardFindings,
   rankDashboardFindings,
   selectDashboardFinding,
-  selectNextBestAction
+  selectNextBestAction,
+  type FindingQueueFilter
 } from "../../src/ui/dashboard.js";
 import { NextBestAction } from "../../src/ui/NextBestAction.js";
 import { PriorityFindings } from "../../src/ui/PriorityFindings.js";
@@ -121,6 +123,7 @@ describe("dashboard model", () => {
     render(<VaultHealthSummary vaultLabel="Test vault" findings={[critical, finding]} />);
     expect(screen.getByText("Critical 1")).toBeInTheDocument();
     expect(screen.getByText("Medium 1")).toBeInTheDocument();
+    expect(screen.getByText("Critical 1").closest("button")).toBeNull();
 
     render(<NextBestAction finding={critical} onOpen={onOpen} />);
     fireEvent.click(screen.getByRole("button", { name: /review critical finding/i }));
@@ -139,6 +142,73 @@ describe("dashboard model", () => {
     expect(selected).toHaveFocus();
     fireEvent.click(selected);
     expect(onSelect).toHaveBeenCalledWith("critical");
+  });
+
+  it("keeps the review queue compact until the user expands it", () => {
+    const critical = {
+      ...finding,
+      id: "critical",
+      severity: "critical" as const,
+      explanation: "Critical finding",
+      evidence: [{ notePath: "Notes/Critical.md", locator: "line:1", excerpt: "critical" }]
+    };
+    const high = {
+      ...finding,
+      id: "high",
+      severity: "high" as const,
+      explanation: "High finding",
+      evidence: [{ notePath: "Notes/High.md", locator: "line:2", excerpt: "high" }]
+    };
+    const medium = {
+      ...finding,
+      id: "medium",
+      severity: "medium" as const,
+      explanation: "Medium finding",
+      evidence: [{ notePath: "Notes/Medium.md", locator: "line:3", excerpt: "medium" }]
+    };
+    const low = {
+      ...finding,
+      id: "low",
+      severity: "low" as const,
+      explanation: "Low finding",
+      evidence: [{ notePath: "Notes/Low.md", locator: "line:4", excerpt: "low" }]
+    };
+    const onSelect = vi.fn();
+
+    function Queue() {
+      const [expanded, setExpanded] = useState(false);
+      const [filter, setFilter] = useState<FindingQueueFilter>({ severity: "all", query: "" });
+      return (
+        <PriorityFindings
+          findings={[low, medium, high, critical]}
+          selectedFindingId="critical"
+          onSelect={onSelect}
+          expanded={expanded}
+          filter={filter}
+          onFilterChange={setFilter}
+          onToggleExpanded={() => setExpanded((value) => !value)}
+        />
+      );
+    }
+
+    render(<Queue />);
+
+    expect(screen.getAllByRole("button", { name: /finding:/i })).toHaveLength(3);
+    expect(screen.queryByRole("button", { name: /low finding/i })).toBeNull();
+    expect(screen.queryByLabelText("Finding severity filter")).toBeNull();
+    expect(screen.queryByLabelText("Search findings")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "View all findings" }));
+
+    expect(screen.getAllByRole("button", { name: /finding:/i })).toHaveLength(4);
+    expect(screen.getByText("Notes/Low.md")).toBeInTheDocument();
+    expect(screen.getByText("line:4")).toBeInTheDocument();
+    expect(screen.getByLabelText("Finding severity filter")).toBeInTheDocument();
+    expect(screen.getByLabelText("Search findings")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /critical finding.*selected/i })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
   });
 
   it("does not expose an action button without a finding", () => {

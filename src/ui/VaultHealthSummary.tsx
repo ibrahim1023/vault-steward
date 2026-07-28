@@ -19,7 +19,11 @@ export function VaultHealthSummary({
       <ul aria-label="Finding counts">
         {DASHBOARD_SEVERITIES.map((severity) => (
           <li key={severity}>
-            {severity[0]!.toUpperCase() + severity.slice(1)} {counts[severity]}
+            <span
+              aria-label={`${severity[0]!.toUpperCase() + severity.slice(1)} ${counts[severity]}`}
+            >
+              {severity[0]!.toUpperCase() + severity.slice(1)} {counts[severity]}
+            </span>
           </li>
         ))}
       </ul>
