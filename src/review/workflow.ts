@@ -6,6 +6,17 @@ export type WritableVault = {
   write(path: string, content: string): Promise<void>;
 };
 export type ReviewAction = "approved" | "dismissed" | "deferred";
+export type BatchApplyFailureReason =
+  "invalid" | "stale" | "write-failed" | "recovery-required" | "canceled";
+export type BatchApplyResult = {
+  ok: boolean;
+  reason?: BatchApplyFailureReason;
+  appliedProposalIds: string[];
+  skippedProposalIds: string[];
+  failedProposalIds: string[];
+  notesEdited: number;
+  reindexed: boolean;
+};
 
 export class ReviewWorkflow {
   constructor(
@@ -112,6 +123,158 @@ export class ReviewWorkflow {
     return { ok: true };
   }
 
+  async approveAndApplyBatch(
+    proposals: readonly Proposal[],
+    actedAt: string,
+    options: { signal?: AbortSignal; onReindex?: () => void | Promise<void> } = {}
+  ): Promise<BatchApplyResult> {
+    const proposalIds = proposals.map((proposal) => proposal.id);
+    const invalid = (): BatchApplyResult => batchFailure("invalid", [], proposalIds, []);
+    if (
+      proposals.length === 0 ||
+      proposals.length > 20 ||
+      new Set(proposalIds).size !== proposals.length ||
+      new Set(proposals.map((proposal) => proposal.findingId)).size !== proposals.length ||
+      new Set(proposals.map((proposal) => proposal.scanId)).size !== 1 ||
+      hasOverlappingOperations(proposals.flatMap((proposal) => proposal.operations))
+    )
+      return invalid();
+
+    const digests = new Map<string, string>();
+    for (const proposal of proposals) {
+      const record = this.repository.findProposal(proposal.id);
+      const digest = proposalDigest(proposal);
+      if (
+        !record ||
+        record.findingId !== proposal.findingId ||
+        record.status !== "pending" ||
+        record.proposalDigest !== digest
+      )
+        return invalid();
+      digests.set(proposal.id, digest);
+    }
+    if (options.signal?.aborted) return batchFailure("canceled", [], proposalIds, []);
+
+    for (const proposal of proposals) {
+      const digest = digests.get(proposal.id)!;
+      this.repository.updateProposalStatus(proposal.id, "approved");
+      this.repository.recordApproval({
+        id: `${proposal.id}:approved:${actedAt}`,
+        proposalId: proposal.id,
+        action: "approved",
+        actedAt,
+        appliedRevision: null,
+        proposalDigest: digest
+      });
+    }
+
+    const paths = [
+      ...new Set(
+        proposals.flatMap((proposal) => proposal.operations.map((operation) => operation.path))
+      )
+    ];
+    const files = new Map<string, { content: string; revision: string }>();
+    try {
+      await Promise.all(
+        paths.map(async (path) => {
+          files.set(path, await this.vault.read(path));
+        })
+      );
+    } catch {
+      this.updateBatchStatus(proposals, "apply-failed");
+      return batchFailure("write-failed", [], [], proposalIds);
+    }
+
+    const current = proposals.flatMap((proposal) =>
+      proposal.operations.map((operation) => ({
+        operation,
+        file: files.get(operation.path)!
+      }))
+    );
+    if (
+      current.some(
+        ({ operation, file }) =>
+          file.revision !== operation.sourceRevision ||
+          file.content.slice(operation.start, operation.end) !== operation.expected
+      )
+    ) {
+      this.updateBatchStatus(proposals, "stale");
+      for (const proposal of proposals) {
+        this.repository.recordApproval({
+          id: `${proposal.id}:stale:${actedAt}`,
+          proposalId: proposal.id,
+          action: "stale",
+          actedAt,
+          appliedRevision: null
+        });
+      }
+      return batchFailure("stale", [], proposalIds, []);
+    }
+    if (options.signal?.aborted) {
+      this.updateBatchStatus(proposals, "approved");
+      return batchFailure("canceled", [], proposalIds, []);
+    }
+
+    let writes: Array<{ path: string; before: string; content: string }>;
+    try {
+      writes = createWrites(current);
+    } catch {
+      this.updateBatchStatus(proposals, "stale");
+      return batchFailure("invalid", [], proposalIds, []);
+    }
+    this.updateBatchStatus(proposals, "applying");
+
+    const written: Array<{ path: string; content: string }> = [];
+    try {
+      for (const write of writes) {
+        await this.vault.write(write.path, write.content);
+        written.push({ path: write.path, content: write.before });
+      }
+    } catch {
+      let rollbackFailed = false;
+      for (const write of [...written].reverse()) {
+        try {
+          await this.vault.write(write.path, write.content);
+        } catch {
+          rollbackFailed = true;
+        }
+      }
+      this.updateBatchStatus(proposals, rollbackFailed ? "recovery-required" : "apply-failed");
+      return batchFailure(
+        rollbackFailed ? "recovery-required" : "write-failed",
+        [],
+        [],
+        proposalIds
+      );
+    }
+
+    this.updateBatchStatus(proposals, "applied");
+    for (const proposal of proposals) {
+      this.repository.recordApproval({
+        id: `${proposal.id}:applied:${actedAt}`,
+        proposalId: proposal.id,
+        action: "applied",
+        actedAt,
+        appliedRevision: null
+      });
+    }
+    let reindexed = false;
+    try {
+      await options.onReindex?.();
+      reindexed = options.onReindex !== undefined;
+    } catch {
+      reindexed = false;
+    }
+    return {
+      ok: true,
+      appliedProposalIds: proposalIds,
+      skippedProposalIds: [],
+      failedProposalIds: [],
+      notesEdited: writes.length,
+      reindexed
+    };
+  }
+
   recoverInterruptedApplies(onReindex: () => void): number {
     const recovered = this.repository.recoverInterruptedApplies();
     if (recovered > 0) onReindex();
@@ -125,6 +288,39 @@ export class ReviewWorkflow {
     }
     return digest;
   }
+
+  private updateBatchStatus(proposals: readonly Proposal[], status: string): void {
+    for (const proposal of proposals) this.repository.updateProposalStatus(proposal.id, status);
+  }
+}
+
+function batchFailure(
+  reason: BatchApplyFailureReason,
+  appliedProposalIds: string[],
+  skippedProposalIds: string[],
+  failedProposalIds: string[]
+): BatchApplyResult {
+  return {
+    ok: false,
+    reason,
+    appliedProposalIds,
+    skippedProposalIds,
+    failedProposalIds,
+    notesEdited: 0,
+    reindexed: false
+  };
+}
+
+function hasOverlappingOperations(operations: readonly Proposal["operations"][number][]): boolean {
+  const byPath = new Map<string, Proposal["operations"]>();
+  for (const operation of operations)
+    byPath.set(operation.path, [...(byPath.get(operation.path) ?? []), operation]);
+  return [...byPath.values()].some((items) => {
+    const sorted = [...items].sort(
+      (left, right) => left.start - right.start || left.end - right.end
+    );
+    return sorted.slice(1).some((operation, index) => operation.start < sorted[index]!.end);
+  });
 }
 
 function createWrites(
