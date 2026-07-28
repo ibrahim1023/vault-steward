@@ -2,7 +2,8 @@
 
 ## Current Phase
 
-Phase 16 advanced quality coverage and public documentation is complete.
+Phase 18 OpenAI Responses API support is complete. Phase 19 focused review
+workbench design is approved and awaiting implementation planning.
 
 ## Completed Work
 
@@ -61,6 +62,9 @@ Phase 16 is complete on `feat/phase-16-advanced-quality`; promotion to `developm
 - Security hardening on 2026-07-20 rejects local-provider redirects, bounds provider configuration and response reads, binds approval/apply to validated persisted proposal digests, and enforces vault-reader/scanner resource and canonical-path limits.
 - Phase 17 adds an explicit OpenAI provider option beside the default loopback Ollama/llama.cpp providers. OpenAI requests use a fixed API origin, bounded JSON-mode Responses API calls with `store: false`, a local API key, and a required cloud-data acknowledgement; keys remain excluded from traces, fingerprints, diagnostics, and portable exports.
 - Phase 18 migrates the OpenAI adapter to the current Responses API request and response contract: `input`, `instructions`, JSON mode under `text.format`, `max_output_tokens`, `store: false`, and aggregate `output_text` parsing.
+- The approved Phase 19 workbench design reduces first-use cognitive load with a
+  top-three teal review queue, selected-finding detail, progressive repair
+  setup, and one collapsed More section for advanced tools.
 
 ## Important Decisions
 
@@ -80,4 +84,4 @@ The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type che
 
 ## Next Recommended Task
 
-Plan the next independently approved milestone from `development`.
+Review and plan the approved focused review workbench milestone from `development`.
