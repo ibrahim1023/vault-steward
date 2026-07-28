@@ -1,154 +1,107 @@
 # Manual Acceptance Checklist
 
-Use this checklist with [Manual Acceptance Suite](manual-acceptance-suite.md)
-and `fixtures/desktop-acceptance-vault/`. Tick a box only after the stated
-outcome is observed in the Obsidian desktop application. Leave a failed item
-unchecked and add its screenshot and reproduction details below the relevant
-section.
+Use this checklist with
+[Manual Acceptance Suite](manual-acceptance-suite.md) and
+`fixtures/desktop-acceptance-vault/`. Tick an item only after observing it in
+Obsidian desktop.
 
 ## Run Record
 
 - [ ] New run started
-- [ ] Obsidian version recorded
-- [ ] Operating system/version recorded
+- [ ] Obsidian and macOS versions recorded
 - [ ] Vault Steward version recorded
-- [ ] Model provider and model name/version recorded
-- [ ] Fresh installation or upgrade path recorded
+- [ ] Provider and model version recorded
+- [ ] Fresh-install or upgrade path recorded
 
-| Field            | Value |
-| ---------------- | ----- |
-| Date             |       |
-| Obsidian         |       |
-| Operating system |       |
-| Vault Steward    |       |
-| Model provider   |       |
-| Install path     |       |
+| Field          | Value |
+| -------------- | ----- |
+| Date           |       |
+| Obsidian       |       |
+| macOS          |       |
+| Vault Steward  |       |
+| Provider/model |       |
+| Install path   |       |
 
-## Installation And Readiness
+## Installation And Setup
 
-- [ ] The packaged plugin folder contains `main.js`, `manifest.json`, `styles.css`, and `sql-wasm.wasm`.
-- [ ] Vault Steward can be enabled from Community Plugins in the test vault.
-- [ ] The left-ribbon shield icon appears once.
-- [ ] The `Open Vault Steward status` command-palette command opens the workspace.
-- [ ] With Ollama or llama.cpp selected, the configured endpoint is loopback-only and points to the running provider.
-- [ ] With OpenAI selected, the provider is visibly identified as OpenAI, the API-key field is masked, and the cloud-data acknowledgement is required.
-- [ ] `More` is opened for `Check readiness` during setup, then closed before the first scan.
+- [ ] The package contains `main.js`, `manifest.json`, `styles.css`, and `sql-wasm.wasm`.
+- [ ] Vault Steward enables without an installation or migration error.
+- [ ] The ribbon shield and command-palette entry each open one workspace.
+- [ ] Provider configuration is in Obsidian settings, outside the primary path.
+- [ ] Ollama accepts only a loopback endpoint.
+- [ ] OpenAI masks the API key and requires the cloud-data acknowledgement.
+- [ ] Reload and disable/re-enable preserve non-secret settings correctly.
 
-## Baseline Scan
+## Simple Review
 
-- [ ] A baseline scan completes without a vault-access, database, or model error.
-- [ ] The dashboard has a clear ready state and does not duplicate status text.
-- [ ] Vault health counts are readable and match the visible priority findings.
-- [ ] The first-run order is Run scan, inspect health, select a top-three finding, review detail, expand `View all findings`, then open `More` only for advanced tools.
-- [ ] The compact queue initially shows only the top three ranked findings.
-- [ ] The selected queue row and finding detail use the teal selection treatment.
-- [ ] Every queue row has a readable text severity label; severity meaning is not conveyed by color alone.
+- [ ] The ready state has one dominant action: `Check vault`.
+- [ ] The default path does not show health scores, counters, filters, confidence, raw evidence, policy, model, maintenance, or observability controls.
+- [ ] Scanning shows one progress state and preserves the last successful result.
+- [ ] A prepared repair shows `Current`, `After`, and an accurate expected result.
+- [ ] The preview identifies the source note, locator, current reference, replacement reference, and target status.
+- [ ] Exact rename candidates are labelled `Verified rename`.
+- [ ] Model-ranked candidates are labelled `AI suggestion - target exists`.
+- [ ] `Apply fixes` is the single explicit approval action.
+- [ ] Duplicate apply actions are disabled while applying.
+- [ ] Success reports the actual result and exposes `Review next issue`.
+- [ ] `View all issues` is secondary.
+- [ ] `Advanced` is separate from the primary path.
+
+## Finding Coverage
+
 - [ ] The broken reference in `Work/Partner Enablement.md` appears.
-- [ ] The broken anchor in `Research/Customer Interviews.md` appears.
-- [ ] The missing embed in `Research/Customer Interviews.md` appears.
+- [ ] The broken anchor and missing embed in `Research/Customer Interviews.md` appear.
 - [ ] The unsupported reference in `Notes/Working Agreement.md` appears.
-- [ ] The overdue task in `Work/Launch Readiness.md` appears.
-- [ ] The orphaned task in `Work/Launch Readiness.md` appears.
-- [ ] The duplicate task in `Work/Launch Readiness.md` appears.
-- [ ] The abandoned task in `Work/Launch Readiness.md` appears.
-- [ ] The malformed task in `Work/Launch Readiness.md` appears.
-- [ ] The missing-rationale decision in `Decisions/ADR-004-Launch-window.md` appears.
-- [ ] Finding titles, severity, evidence paths, and explanations are understandable without source-code knowledge.
-- [ ] Any semantic findings are evidence-backed and appropriately cautious.
+- [ ] Overdue, orphaned, duplicate, abandoned, and malformed task findings appear.
+- [ ] The missing-rationale decision appears.
+- [ ] Semantic findings cite active-scan evidence and use cautious language.
 
-## Finding Navigation And Detail
+## Repair And Batch Safety
 
-- [ ] Clicking a priority finding changes the selected detail only.
-- [ ] `View all findings` expands the queue and exposes the severity filter and finding search.
-- [ ] Severity and text filtering narrow the expanded queue without changing the selected finding until another result is selected.
-- [ ] The selected broken reference exposes a reference-repair action.
-- [ ] The reference target and `Prepare reference repair` remain hidden until `Review repair` is selected.
-- [ ] A selected task, policy, or decision finding does not display a misleading repair control.
-- [ ] Non-repairable findings clearly state that no safe automatic fix is available.
-- [ ] Evidence paths and line references fit the sidebar without confusing truncation.
-- [ ] The next best action is understandable and leads to the intended finding.
+- [ ] The intended Partner Enablement repair changes only the cited wiki link.
+- [ ] The expected result matches the validated proposal operations.
+- [ ] No note changes before `Apply fixes`.
+- [ ] One click creates an individual approval record for every selected proposal.
+- [ ] Every batch member is preflighted before the first write.
+- [ ] A stale member rejects the entire batch without partial writes.
+- [ ] Altered, missing, conflicting, or unauthorized proposals fail closed.
+- [ ] Same-note operations apply without offset corruption.
+- [ ] A successful apply re-indexes the vault.
+- [ ] The actual result matches the changed notes and refreshed findings.
+- [ ] Runtime write failure rolls back earlier writes or enters recovery-required state.
 
-## Safe Reference Repair
+## Judgment Actions
 
-- [ ] `Work/Partner Enablement.md` is selected as the repair source.
-- [ ] `Review repair` is selected before repair setup is shown.
-- [ ] `Guides/Partner Onboarding Checklist` is accepted as the replacement target.
-- [ ] Preparing a repair produces a proposal and readable diff preview.
-- [ ] The diff changes only `[[Guides/Partner Migration Checklist]]`.
-- [ ] Approval is explicit and does not write the source note.
-- [ ] Applying an approved change updates the source note.
-- [ ] A later scan resolves the repaired finding without hiding unrelated findings.
-- [ ] A proposal becomes stale when its source note changes before apply.
-- [ ] A stale proposal does not overwrite the newer source note.
+- [ ] A non-repairable issue shows one plain-language sentence.
+- [ ] It exposes one concrete action such as `Open note`, `Review both notes`, or `Not important`.
+- [ ] The action never creates or applies an unsupported patch.
 
-## Evidence Explanation And Feedback
+## Advanced Tools
 
-- [ ] `Explain evidence` opens only for the selected finding.
-- [ ] The local-model explanation is grounded in the cited evidence.
-- [ ] The explanation view has a clear loading, success, and failure state.
-- [ ] A `Useful` verdict can be saved.
-- [ ] A `False positive` verdict can be saved.
-- [ ] A `Needs review` verdict can be saved.
-- [ ] Feedback labels do not expose raw note content elsewhere in the workspace.
+- [ ] The full issue list, provider settings, Policy Studio, maintenance, history, and observability are reachable under `Advanced`.
+- [ ] Two unchanged scans do not multiply persistent findings.
+- [ ] History records resolved and recurring findings.
+- [ ] Invalid policy YAML cannot be saved.
+- [ ] Rename/delete impact does not trigger destructive automatic rewrites.
+- [ ] Observability excludes note bodies, prompts, API keys, and raw model output by default.
 
-## Policy Studio
+## Provider Recovery And Privacy
 
-- [ ] The active policy YAML loads into Policy Studio.
-- [ ] The supplied Northstar policy previews an owner violation.
-- [ ] The supplied Northstar policy previews a missing-rationale violation.
-- [ ] The preview count is clear and does not alter the scan automatically.
-- [ ] Saving the valid policy shows a success state.
-- [ ] A later scan shows policy findings with rule and source context.
-- [ ] Invalid YAML displays useful diagnostics.
-- [ ] Invalid YAML cannot be saved.
-- [ ] Restoring valid YAML recovers the Policy Studio state.
+- [ ] Stopped Ollama produces exactly one actionable error and preserves the last successful result.
+- [ ] Restarting Ollama allows a later `Check vault` to recover.
+- [ ] Missing OpenAI acknowledgement blocks provider use.
+- [ ] Invalid OpenAI credentials fail without exposing the key.
+- [ ] Valid acknowledged OpenAI configuration can complete a scan.
+- [ ] No write occurs after any provider failure.
 
-## History, Lifecycle, And Observability
+## Accessibility And Layout
 
-- [ ] Running a second unchanged scan does not multiply persistent findings.
-- [ ] A fixed decision becomes resolved only after a later completed scan.
-- [ ] Restoring a defect records a recurrence after the next completed scan.
-- [ ] History lists scans in a readable order.
-- [ ] `More` remains closed until activated and contains readiness, policy, maintenance, history, and observability tools.
-- [ ] Scan and finding lifecycle metadata remains legible in a narrow sidebar.
-- [ ] Observability opens and allows selecting a completed scan.
-- [ ] Agent timeline, finding lineage, and configuration fingerprint are visible.
-- [ ] Observability does not reveal raw note bodies, prompts, or unredacted model output.
-- [ ] Deleting one scan trace removes only that trace.
-- [ ] Deleting all trace data requires deliberate confirmation and leaves the workspace usable.
-
-## Maintenance And Change Impact
-
-- [ ] Maintenance groups related findings in a readable queue.
-- [ ] `Projects/Northstar Launch.md` produces coherent impact results.
-- [ ] `Work/Launch Readiness.md` produces coherent impact results.
-- [ ] `Decisions/ADR-004-Launch-window.md` produces coherent impact results.
-- [ ] Rename impact identifies inbound exact wiki links.
-- [ ] Delete impact reports affected references without destructive rewrites.
-- [ ] Maintenance controls remain understandable at narrow sidebar width.
-- [ ] Scheduled maintenance starts disabled unless explicitly enabled.
-- [ ] Pause/resume state is visible and changes only after an explicit action.
-
-## Failure Recovery And Privacy
-
-- [ ] With the local model stopped, scan failure shows exactly one clear message.
-- [ ] The last successful findings remain visible after a failed scan.
-- [ ] Starting the local model and passing readiness allows a later scan to recover.
-- [ ] Trace preferences default to metadata-only storage.
-- [ ] Prompt/model-output snapshots remain disabled unless explicitly enabled.
-- [ ] Changing retention preferences is reflected after closing and reopening settings.
-
-## Keyboard And Responsive Use
-
-- [ ] Ribbon and command-palette entry points work.
-- [ ] Keyboard focus remains visible for every interactive control.
-- [ ] `Tab`, `Shift+Tab`, `Enter`, and `Space` work through the main review flow.
-- [ ] Collapsible sections work by keyboard.
-- [ ] `More` opens and closes by keyboard without losing focus.
-- [ ] Error messages are announced once, not duplicated.
-- [ ] No important text, button, or input is clipped in the narrow sidebar.
-- [ ] No section has excessive spacing or unclear hierarchy.
-- [ ] At narrow sidebar width, the queue stacks above the selected finding detail.
+- [ ] Keyboard focus is visible and the tab order follows the main journey.
+- [ ] `Enter` and `Space` activate the expected primary action once.
+- [ ] VoiceOver announces scan, error, recommendation, applying, and result states once.
+- [ ] Current/After content remains readable in narrow and wide panes.
+- [ ] Light and dark themes preserve contrast and non-color status meaning.
+- [ ] No text, button, or input overlaps or clips.
 
 ## Issues Found
 
@@ -161,6 +114,7 @@ section.
 ## Sign-off
 
 - [ ] All applicable checks completed
-- [ ] No critical data-loss or unintended-write behavior observed
-- [ ] No unresolved blocking installation, scan, repair, or model-recovery issue remains
-- [ ] UI issues have been captured with reproduction details
+- [ ] No data loss or unintended write observed
+- [ ] No blocking install, scan, repair, provider-recovery, or accessibility issue remains
+- [ ] The primary path stayed simpler than the Advanced surface
+- [ ] Phase 19 is ready to promote to `development`

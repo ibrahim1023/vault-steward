@@ -18,29 +18,29 @@ flowchart LR
   C --> M[Model provider adapter]
   M --> L[Ollama or llama.cpp]
   M --> O[OpenAI opt-in]
-  C --> R[Review queue]
+  C --> R[Prepared result]
   R --> U
-  U --> A[Approved change]
+  U --> A[Explicit batch approval]
   A --> V
   V --> D
 ```
 
 ## Components and Ownership
 
-| Component        | Responsibility                                       | Owns                                  |
-| ---------------- | ---------------------------------------------------- | ------------------------------------- |
-| `vault-adapter`  | Narrow read/write access through Obsidian APIs       | live vault interaction                |
-| `scanner`        | Parse files and generate normalized scan records     | scan snapshot inputs                  |
-| `core`           | Derive checks and bounded model inputs from one scan | governed scan result                  |
-| `graph`          | Build deterministic note/entity/task/reference graph | graph projection                      |
-| `policy`         | Parse and evaluate YAML policies                     | policy results                        |
-| `agents`         | Produce typed candidate findings from bounded inputs | candidate outputs only                |
-| `coordinator`    | Deduplicate, prioritize, persist findings            | review queue ordering                 |
-| `findings`       | Normalize bounded deterministic/model candidates     | authoritative typed finding boundary  |
-| `review`         | Render evidence and preview edits                    | approval state                        |
-| `apply`          | Validate and atomically apply approved patches       | audit trail and re-index trigger      |
-| `storage`        | SQLite repositories and migrations                   | persisted product state               |
-| `model-provider` | Bounded structured-generation calls                  | model request/response trace metadata |
+| Component        | Responsibility                                        | Owns                                  |
+| ---------------- | ----------------------------------------------------- | ------------------------------------- |
+| `vault-adapter`  | Narrow read/write access through Obsidian APIs        | live vault interaction                |
+| `scanner`        | Parse files and generate normalized scan records      | scan snapshot inputs                  |
+| `core`           | Derive checks and bounded model inputs from one scan  | governed scan result                  |
+| `graph`          | Build deterministic note/entity/task/reference graph  | graph projection                      |
+| `policy`         | Parse and evaluate YAML policies                      | policy results                        |
+| `agents`         | Produce typed candidate findings from bounded inputs  | candidate outputs only                |
+| `coordinator`    | Deduplicate, prioritize, persist findings             | recommendation ordering               |
+| `findings`       | Normalize bounded deterministic/model candidates      | authoritative typed finding boundary  |
+| `review`         | Prepare exact result previews and recommended actions | approval state                        |
+| `apply`          | Validate and atomically apply approved patches        | audit trail and re-index trigger      |
+| `storage`        | SQLite repositories and migrations                    | persisted product state               |
+| `model-provider` | Bounded structured-generation calls                   | model request/response trace metadata |
 
 ## Main Workflow
 
@@ -60,15 +60,24 @@ sequenceDiagram
   Model-->>Coordinator: candidate structured output
   Coordinator->>Core: validate evidence, policy, schema
   Core->>Core: normalize supported evidence-backed candidates
-  Core-->>Review: persisted, deduplicated findings
-  User->>Review: approve one proposed edit
-  Review->>Core: validate diff against current revision
-  Core-->>User: apply and re-index result
+  Core-->>Review: persisted findings + validated proposals
+  Review-->>User: exact current/after preview + expected result
+  User->>Review: Apply N fixes (explicit approval)
+  Review->>Core: preflight every proposal and current revision
+  Core-->>User: actual apply and re-index result
 ```
 
 ## State and Failure Boundaries
 
-`idle -> scanning -> findings_ready -> awaiting_approval -> applying -> reindexing -> findings_ready`. A scan creates an immutable snapshot ID. Findings and proposals reference that ID and the source-file revision; a stale proposal cannot apply. Failed parser/model/policy work produces a visible diagnostic finding or scan warning, never a silent mutation.
+`ready -> scanning -> recommendation -> applying -> result`. A scan creates an
+immutable snapshot ID. Findings and proposals reference that ID and the
+source-file revision. The recommendation state shows either a prepared repair
+batch or one judgment action. `Apply N fixes` creates individual digest-bound
+approval records, then preflights the entire selected batch before any write.
+A stale or invalid member aborts the batch. Runtime failures retain grouped
+writes, compensating rollback, recovery-required state, and re-indexing.
+Failed parser/model/policy work produces one actionable error, never a silent
+mutation.
 
 ## Scale and Bottlenecks
 

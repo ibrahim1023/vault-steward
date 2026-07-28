@@ -75,9 +75,26 @@ type ToolResult<T> =
 
 Approval actions are append-only records. Only a pending proposal can be approved, dismissed, or deferred. The apply workflow accepts only an approved proposal, re-reads every affected file, verifies its revision and expected text, then writes through the narrow vault adapter. Any mismatch marks the proposal stale; failed or interrupted apply attempts require explicit recovery.
 
+`PreparedRepairBatch` is a versioned, metadata-only grouping of individually
+persisted proposals from one scan. It contains unique proposal and finding IDs
+plus deterministic counts for expected findings resolved, distinct notes
+edited, notes created/deleted, and findings left unchanged. It does not copy
+proposal text, evidence excerpts, or note bodies.
+
+The UI joins the batch to validated proposal operations to display current and
+proposed references. `Apply N fixes` is the explicit approval event for the
+selected proposals. Batch apply validates every proposal, digest, scan binding,
+source revision, expected range, and cross-proposal overlap before the first
+write. A preflight failure writes nothing.
+
 ## Tool Permissions
 
 Agents receive only read-scoped tools: retrieve indexed evidence, resolve paths within the active vault, and inspect parsed policy/graph data. The apply tool is not agent-callable; it is invoked by the review workflow only after explicit approval and stale-revision validation.
+
+The reference recommender may select an ID from a bounded list of target notes
+or abstain. Deterministic code verifies that the selected target belongs to the
+active scan and constructs the `replace-range` proposal. Model output never
+supplies replacement syntax, patch offsets, approval, or write authority.
 
 ## Unified Finding Normalization
 

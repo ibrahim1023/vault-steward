@@ -21,7 +21,7 @@ Sensitive assets are vault content, attachment paths, policy files, local model 
 
 ## Authentication and Authorization
 
-The initial product inherits the local Obsidian user session and has no remote accounts or tenants. The user selects the vault. Agent authorization is capability-based and read-only; mutation authorization is a UI approval token bound to a proposal and source revision.
+The initial product inherits the local Obsidian user session and has no remote accounts or tenants. The user selects the vault. Agent authorization is capability-based and read-only; mutation authorization is created only by the **Apply N fixes** UI action and is bound to each persisted proposal digest and source revision. All batch members are preflighted before the first write.
 
 ## Enforcement Requirements
 

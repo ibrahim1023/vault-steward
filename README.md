@@ -11,17 +11,30 @@ Vault Steward is for people and teams who keep durable project knowledge in an O
 ## How It Works
 
 ```text
-Local vault -> deterministic parser and graph -> policy and integrity checks
-            -> bounded model candidates -> deterministic validation
-            -> review queue -> explicit approved change
+Check vault -> deterministic parser and integrity checks
+            -> bounded AI triage and target recommendation
+            -> deterministic validation and prepared result
+            -> explicit approved change -> verified result
 ```
 
-The review workspace is a focused interface: it starts with vault health, the
-three highest-priority findings, and one selected detail. Expand the full queue
-when needed; readiness, policy, maintenance, history, and observability tools
-remain under **More** so they do not crowd the initial review path.
+The default experience asks for one decision at a time. Select **Check vault**;
+when a safe reference repair is available, Vault Steward shows the affected
+note, the current and proposed references, and the expected result. The single
+**Apply fixes** action records explicit approval, re-checks every source
+revision, applies only validated changes, and reports the actual result.
+Non-repairable findings receive one recommended action instead of an
+unsupported edit.
 
-The deterministic core owns parsing, policies, evidence validation, finding normalization, persistence, diffs, and apply decisions. The selected model may classify, extract candidates, or rank cited evidence through typed contracts. A model result cannot directly modify a vault, choose severity, change policy, approve a proposal, or apply an edit.
+The full issue list and operational tools remain available under **Advanced**,
+but provider readiness, Policy Studio, maintenance, history, and observability
+do not crowd the everyday review path.
+
+The deterministic core owns parsing, policies, evidence validation, finding
+normalization, persistence, diffs, expected-result calculation, approval, and
+apply decisions. The selected model may classify, rank cited evidence, group
+likely duplicates, or choose from bounded existing target candidates. A model
+result cannot construct patch ranges, modify a vault, change policy, approve a
+proposal, or apply an edit.
 
 ## Privacy And Safety
 

@@ -23,7 +23,12 @@ describe("public documentation", () => {
 
     expect(readme).toContain("## Privacy And Safety");
     expect(readme).toContain("## How It Works");
+    expect(readme).toContain("Check vault");
+    expect(readme).toContain("current and proposed references");
+    expect(readme).toContain("expected result");
+    expect(readme).toContain("Apply fixes");
     expect(readme).toContain("## Evaluation And Observability");
+    expect(readme).toContain("Advanced");
     expect(readme).not.toMatch(/\bPhase\s+1[0-9]\b/i);
     expect(readme).not.toMatch(/Community Plugins|Obsidian marketplace/i);
     expect(readme).not.toMatch(/sends? remote telemetry|cloud analytics/i);
@@ -44,16 +49,18 @@ describe("public documentation", () => {
     expect(commands.every((command) => command in packageJson.scripts)).toBe(true);
   });
 
-  it("documents the readiness check through More before the focused review flow", () => {
+  it("documents the simple result-first flow and separate advanced tools", () => {
     const suite = readFileSync(resolve(root, "docs/manual-acceptance-suite.md"), "utf8");
     const checklist = readFileSync(resolve(root, "docs/manual-acceptance-checklist.md"), "utf8");
 
-    expect(suite).toMatch(
-      /open \*\*More\*\*, run\s+\*\*Check readiness\*\*, then close \*\*More\*\* before the first scan/
-    );
-    expect(suite).not.toContain("Follow this first-run flow before opening advanced tools");
-    expect(checklist).toContain(
-      "`More` is opened for `Check readiness` during setup, then closed before the first scan"
-    );
+    expect(suite).toContain("Check vault");
+    expect(suite).toContain("Current");
+    expect(suite).toContain("After");
+    expect(suite).toContain("Expected result");
+    expect(suite).toContain("Apply fixes");
+    expect(suite).toContain("Advanced");
+    expect(checklist).toContain("one dominant action");
+    expect(checklist).toContain("expected result");
+    expect(checklist).toContain("actual result");
   });
 });

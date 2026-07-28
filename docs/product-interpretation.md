@@ -10,22 +10,33 @@ Obsidian users with long-lived, personally owned vaults need to find integrity p
 
 ## Core Journey
 
-The user chooses a local vault and policy set, starts a scan, reviews evidence-backed findings, inspects a generated diff for an individual approved change, applies it, and receives a re-indexed result. Scanning may be repeated, but no step modifies the vault before explicit approval.
+The user selects **Check vault**. Vault Steward ranks the completed scan and
+prepares the highest-value bounded repair it can validate. The user sees the
+exact current and proposed references, the deterministic expected result, and
+one **Apply N fixes** action. That action records explicit approval, applies the
+revision-safe batch, re-indexes the vault, and reports the actual result. When
+no safe repair exists, the user receives one concrete review action instead of
+an unsupported edit.
 
 ## Requirements
 
 - Parse Markdown, frontmatter, links, tags, tasks, attachments, and build a canonical graph.
 - Surface entity duplication, contradictions, staleness, broken references, task issues, schema violations, decision gaps, and policy violations.
 - Store each finding with ID, type, severity, evidence, affected notes, policy, explanation, fixes, and confidence.
-- Operate offline with local models and user-owned data only.
+- Default to offline operation with local models and user-owned data. OpenAI is
+  available only as an explicit opt-in provider with acknowledgement.
 - Support user-defined YAML governance policies.
+- Keep the full issue list and operational tools available under a separate
+  **Advanced** surface.
 
 ## Non-Functional Constraints
 
-- Local-first, offline-capable, no telemetry, cloud APIs, or remote storage.
+- Local-first, offline-capable by default, no telemetry or remote storage.
 - Evidence-first and policy-governed.
 - Human approval is mandatory for every note mutation.
 - Deterministic results must be reproducible from a scan snapshot.
+- Models may select only from bounded candidates and may abstain. They cannot
+  construct patches, authorize writes, or calculate outcomes.
 
 ## Non-Goals
 

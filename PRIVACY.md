@@ -14,6 +14,11 @@ The database stores indexed state, findings, proposals, approvals, audits, and m
 
 ## Deletion And Exclusions
 
-Users can configure trace retention, delete individual traces, delete all telemetry, and exclude configured folders from retained trace material. Note mutations always require explicit approval and current-revision validation.
+Prepared repair batches store proposal and finding identifiers plus numeric
+outcome counts. They do not duplicate note bodies, evidence excerpts, prompts,
+or replacement text. Users can configure trace retention, delete individual
+traces, delete all telemetry, and exclude configured folders from retained
+trace material. Note mutations always require explicit approval, whole-batch
+preflight, and current-revision validation.
 
 Read `OBSERVABILITY.md` for the retained-data inventory and `docs/runbooks.md` for local recovery procedures.

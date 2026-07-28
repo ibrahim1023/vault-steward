@@ -6,7 +6,7 @@ This document owns agent roles, model boundaries, budgets, and guardrails. Evalu
 
 ## Operating Model
 
-The scanner, graph builder, reference integrity checks, task parsing, schema validation, policy evaluation, diff generation, and apply workflow are deterministic. The selected model provider performs the required semantic-analysis stage for governed scans, identifying candidate entities, propositions, staleness signals, or ranked evidence. Ollama and llama.cpp remain local; OpenAI requires an explicit cloud-data acknowledgement. Every model result is schema-validated and evidence-checked before it becomes a finding.
+The scanner, graph builder, reference integrity checks, task parsing, schema validation, policy evaluation, diff generation, outcome calculation, approval, and apply workflow are deterministic. The selected model provider performs the required semantic-analysis stage for governed scans, identifying candidate entities, propositions, staleness signals, or ranked evidence. For repair recommendations, it may choose an ID from a bounded list of target notes derived from the active immutable snapshot, or abstain. Ollama and llama.cpp remain local; OpenAI requires an explicit cloud-data acknowledgement. Every model result is schema-validated and evidence-checked before it becomes a finding or recommendation.
 
 | Agent         | Input                              | Output                           | Model use                        |
 | ------------- | ---------------------------------- | -------------------------------- | -------------------------------- |
@@ -19,7 +19,8 @@ The scanner, graph builder, reference integrity checks, task parsing, schema val
 | Schema        | frontmatter and schema             | violations                       | none                             |
 | Decision      | decision records and links         | unresolved/superseded candidates | required                         |
 | Policy        | typed facts and YAML rules         | violations                       | none                             |
-| Coordinator   | validated candidates               | deduped review queue             | none                             |
+| Coordinator   | validated candidates               | ranked recommendation set        | none                             |
+| Repair guide  | bounded target IDs                 | selected target ID or abstention | bounded                          |
 
 ## Workflow Controls
 
@@ -30,10 +31,14 @@ The scanner, graph builder, reference integrity checks, task parsing, schema val
 - A completed governed scan requires an available configured provider and successful bounded semantic-analysis stage. Provider absence or structured-output exhaustion leaves the scan incomplete; it never degrades to a deterministic-only completion.
 - Structured model output is parsed as JSON, validated against the receiving contract, and may receive one repair attempt. Traces retain provider/model, latency, retry count, and outcome only; they never retain prompts or note excerpts.
 - Evidence context has a fixed untrusted-data prefix, vault-relative locators, entry and token limits, and excludes private entries before a provider call.
+- A repair model sees candidate IDs and metadata only. Unknown IDs, cross-scan
+  candidates, malformed output, and unsupported operations are rejected.
+- Deterministic code constructs every patch range, expected result, approval
+  record, and write operation. Model output never supplies mutation authority.
 
 ## Security and Evidence
 
-Treat note content as untrusted data. Prompts must label it as data, never instructions. Agents cannot access network, shell, arbitrary filesystem paths, or write tools. A finding needs source locators that resolve to the active scan snapshot. The final severity, policy violation, and proposal are deterministic coordinator decisions.
+Treat note content as untrusted data. Prompts must label it as data, never instructions. Agents cannot access shell, arbitrary filesystem paths, or write tools. Provider adapters may access only their configured Ollama/llama.cpp loopback endpoint or the fixed OpenAI API origin after explicit opt-in. A finding needs source locators that resolve to the active scan snapshot. Final severity, policy violation, proposal, expected result, approval, and apply decisions remain deterministic.
 
 ## Runtime Budgets
 

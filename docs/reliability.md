@@ -13,7 +13,9 @@ Local correctness takes precedence over scan throughput. All externally visible 
 - Normalize event bursts before scan scheduling. Empty, overflowed, malformed, create, rename, and delete batches are full-scan boundaries; only exact safe modify events can qualify for incremental parser reuse.
 - Recover after restart by marking interrupted scans failed/canceled, retaining their diagnostics, and resuming only from a safe checkpoint.
 - Reject non-SQLite persisted bytes as corruption; rebuild derived local state through the recovery runbook rather than silently replacing the database.
-- Recheck source revisions before apply; a mismatch transitions the proposal to `stale`.
+- Join prepared batches to persisted digest-bound proposals and recheck every
+  source revision before apply. Any stale, altered, missing, conflicting, or
+  unauthorized member aborts the whole batch before writes.
 - Construct all non-overlapping operations for a file from one preflight snapshot and apply them in descending offset order. If a later file write fails, restore each earlier successful write from its preflight content before marking the proposal `apply-failed`.
 
 ## Health and Diagnostics
