@@ -9,6 +9,7 @@ evals/generated/
 npm-debug.log*
 .pnpm-store/
 .superpowers/
+.worktrees/
 
 # docs
 task.md
