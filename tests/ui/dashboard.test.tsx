@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   activeDashboardFindings,
+  compactDashboardFindings,
   countDashboardFindings,
+  filterDashboardFindings,
   groupDashboardFindings,
   rankDashboardFindings,
   selectDashboardFinding,
@@ -74,6 +76,41 @@ describe("dashboard model", () => {
       { severity: "critical", findings: [{ id: "critical" }] },
       { severity: "medium", findings: [{ id: "medium" }] }
     ]);
+  });
+
+  it("compacts the ranked queue and filters visible finding fields", () => {
+    const critical = { ...finding, id: "critical", severity: "critical" as const };
+    const high = { ...finding, id: "high", severity: "high" as const };
+    const medium = {
+      ...finding,
+      id: "medium",
+      severity: "medium" as const,
+      explanation: "Broken link from the home page",
+      evidence: [{ notePath: "Home.md", locator: "heading:Home", excerpt: "[[Missing]]" }]
+    };
+    const low = { ...finding, id: "low", severity: "low" as const };
+
+    expect(compactDashboardFindings([critical, high, medium, low])).toEqual([
+      critical,
+      high,
+      medium
+    ]);
+    expect(compactDashboardFindings([critical, high, medium], 2).map((item) => item.id)).toEqual([
+      "critical",
+      "high"
+    ]);
+    expect(
+      filterDashboardFindings([critical, medium], { severity: "medium", query: "  HOME " })
+    ).toEqual([medium]);
+    expect(
+      filterDashboardFindings([critical, medium], { severity: "all", query: "broken link" })
+    ).toEqual([medium]);
+    expect(
+      filterDashboardFindings([critical, medium], { severity: "all", query: "heading:home" })
+    ).toEqual([medium]);
+    expect(
+      filterDashboardFindings([critical, medium], { severity: "critical", query: "broken link" })
+    ).toEqual([]);
   });
 
   it("renders health, a next action, and keyboard-native priority selection", () => {

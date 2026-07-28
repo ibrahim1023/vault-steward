@@ -4,6 +4,8 @@ export const DASHBOARD_SEVERITIES = ["critical", "high", "medium", "low", "info"
 
 export type DashboardCounts = Record<FindingSeverity, number>;
 
+export type FindingQueueFilter = { severity: FindingSeverity | "all"; query: string };
+
 export function activeDashboardFindings(findings: readonly Finding[]): Finding[] {
   return findings.filter((finding) => finding.status === "open");
 }
@@ -19,6 +21,29 @@ export function rankDashboardFindings(findings: readonly Finding[]): Finding[] {
       right.confidence - left.confidence ||
       left.id.localeCompare(right.id)
   );
+}
+
+export function compactDashboardFindings(findings: readonly Finding[], limit = 3): Finding[] {
+  return rankDashboardFindings(findings).slice(0, limit);
+}
+
+export function filterDashboardFindings(
+  findings: readonly Finding[],
+  filter: FindingQueueFilter
+): Finding[] {
+  const query = filter.query.trim().toLocaleLowerCase();
+  return rankDashboardFindings(findings).filter((finding) => {
+    if (filter.severity !== "all" && finding.severity !== filter.severity) return false;
+    if (!query) return true;
+
+    const visibleText = [
+      finding.explanation,
+      ...finding.evidence.flatMap(({ notePath, locator }) => [notePath, locator])
+    ]
+      .join(" ")
+      .toLocaleLowerCase();
+    return visibleText.includes(query);
+  });
 }
 
 export function selectNextBestAction(findings: readonly Finding[]): Finding | undefined {
