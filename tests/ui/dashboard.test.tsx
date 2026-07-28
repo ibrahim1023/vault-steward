@@ -138,6 +138,10 @@ describe("dashboard model", () => {
     );
     const selected = screen.getByRole("button", { name: /critical.*missing target.*selected/i });
     expect(selected).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Medium")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /medium finding/i })).toHaveClass(
+      "finding-row-severity-medium"
+    );
     selected.focus();
     expect(selected).toHaveFocus();
     fireEvent.click(selected);

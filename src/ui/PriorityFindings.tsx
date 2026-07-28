@@ -28,10 +28,10 @@ export function PriorityFindings({
   const queue = expanded ? filteredFindings : compactDashboardFindings(filteredFindings);
 
   return (
-    <section aria-label="Priority findings">
+    <section className="priority-findings" aria-label="Priority findings">
       <h2>Priority findings</h2>
       {expanded ? (
-        <div>
+        <div className="finding-filters">
           <label>
             Severity
             <select
@@ -73,18 +73,19 @@ export function PriorityFindings({
               <li key={finding.id}>
                 <button
                   type="button"
+                  className={`finding-row finding-row-severity-${finding.severity}`}
                   aria-pressed={selected}
                   aria-label={`${finding.severity} finding: ${finding.explanation}${selected ? ", selected" : ""}`}
                   onClick={() => onSelect(finding.id)}
                 >
-                  <span>{capitalize(finding.severity)}</span>
-                  <span>{finding.explanation}</span>
+                  <span className="finding-row-severity">{capitalize(finding.severity)}</span>
+                  <span className="finding-row-summary">{finding.explanation}</span>
                   {evidence ? (
-                    <span>
+                    <span className="finding-row-source">
                       <span>{evidence.notePath}</span> <span>{evidence.locator}</span>
                     </span>
                   ) : (
-                    <span>No source evidence</span>
+                    <span className="finding-row-source">No source evidence</span>
                   )}
                 </button>
               </li>
