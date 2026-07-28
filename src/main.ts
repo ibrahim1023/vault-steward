@@ -473,6 +473,20 @@ export default class VaultStewardPlugin extends Plugin {
     return result;
   }
 
+  async openVaultNote(path: string): Promise<void> {
+    await this.app.workspace.openLinkText(path, "", false);
+  }
+
+  openProviderSettings(): void {
+    const settings = (
+      this.app as unknown as {
+        setting: { open(): void; openTabById(id: string): void };
+      }
+    ).setting;
+    settings.open();
+    settings.openTabById(this.manifest.id);
+  }
+
   private pluginDirectory(): string {
     return this.manifest.dir ?? `${this.app.vault.configDir}/plugins/${this.manifest.id}`;
   }
@@ -547,19 +561,18 @@ class VaultStewardStatusItemView extends ItemView {
           loadObservability: (scanId) => this.plugin.loadObservability(scanId),
           deleteScanTrace: (scanId) => this.plugin.deleteScanTrace(scanId),
           deleteAllTraceData: () => this.plugin.deleteAllTraceData(),
-          createProposal: (findingId, target) =>
-            this.plugin.createReferenceProposal(findingId, target),
-          reviewProposal: (proposalId, action) => this.plugin.reviewProposal(proposalId, action),
-          applyProposal: (proposalId) => this.plugin.applyProposal(proposalId),
+          prepareRepairs: () => this.plugin.prepareRecommendedRepairBatch(),
+          applyRepairs: (batch) => this.plugin.applyPreparedRepairBatch(batch),
+          openNote: (path) => this.plugin.openVaultNote(path),
+          markNotImportant: (finding) =>
+            this.plugin.submitFeedback(finding, "false-positive", "Not important"),
+          openProviderSettings: () => this.plugin.openProviderSettings(),
           policyStudio: {
             loadDraft: () => this.plugin.loadPolicyDraft(),
             previewDraft: (source) => this.plugin.previewPolicyDraft(source),
             saveDraft: (source) => this.plugin.savePolicyDraft(source)
           },
-          explainFinding: (finding) => this.plugin.explainFinding(finding),
           checkModelReadiness: () => this.plugin.checkModelReadiness(),
-          submitFeedback: (finding, verdict, label) =>
-            this.plugin.submitFeedback(finding, verdict, label),
           maintenance: {
             schedule: this.plugin.settings.maintenanceSchedule,
             state: this.plugin.getMaintenanceState(),

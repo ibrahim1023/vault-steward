@@ -12,7 +12,7 @@ describe("MoreTools", () => {
       </MoreTools>
     );
 
-    const summary = screen.getByText("More");
+    const summary = screen.getByText("Advanced");
     const details = summary.closest("details");
     expect(summary.closest("details")).not.toHaveAttribute("open");
     expect(summary.tagName).toBe("SUMMARY");

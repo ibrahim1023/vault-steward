@@ -1,278 +1,77 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { Finding } from "../../src/contracts/index.js";
+import type { PreparedReferenceRepair } from "../../src/review/prepare-repair-batch.js";
 import { VaultStewardWorkspace } from "../../src/ui/VaultStewardWorkspace.js";
 
-const finding = {
-  schemaVersion: 1 as const,
+const finding: Finding = {
+  schemaVersion: 1,
   id: "finding",
   scanId: "scan",
-  type: "broken-reference" as const,
-  severity: "medium" as const,
+  type: "broken-reference",
+  severity: "medium",
   evidence: [{ notePath: "Home.md", locator: "line:1", excerpt: "[[Missing]]" }],
   affectedNoteIds: ["Home.md"],
-  explanation: "Missing target",
+  explanation: "This link points to a note that does not exist.",
   suggestedFixes: [],
   confidence: 1,
-  status: "open" as const
+  status: "open"
+};
+
+const prepared: PreparedReferenceRepair = {
+  batch: {
+    schemaVersion: 1,
+    id: "batch-1",
+    scanId: "scan",
+    proposalIds: ["proposal-1"],
+    findingIds: ["finding"],
+    outcome: {
+      expectedFindingsResolved: 1,
+      notesEdited: 1,
+      notesCreated: 0,
+      notesDeleted: 0,
+      findingsLeftUnchanged: 2
+    }
+  },
+  proposals: [
+    {
+      schemaVersion: 1,
+      id: "proposal-1",
+      findingId: "finding",
+      scanId: "scan",
+      explanation: "Repair",
+      operations: [
+        {
+          kind: "replace-range",
+          path: "Home.md",
+          sourceRevision: "revision",
+          start: 0,
+          end: 11,
+          expected: "[[Missing]]",
+          replacement: "[[Target]]"
+        }
+      ]
+    }
+  ],
+  items: [
+    {
+      proposalId: "proposal-1",
+      findingId: "finding",
+      sourcePath: "Home.md",
+      locator: "line:1",
+      currentReference: "[[Missing]]",
+      replacementReference: "[[Target]]",
+      targetPath: "Target.md",
+      targetStatus: "verified-rename"
+    }
+  ]
 };
 
 describe("VaultStewardWorkspace", () => {
   afterEach(cleanup);
 
-  it("runs a scan and publishes findings through accessible live states", async () => {
-    render(
-      <VaultStewardWorkspace
-        vaultLabel="Test vault"
-        scan={async () => ({ scanId: "scan", findings: [finding] })}
-      />
-    );
-    const button = screen.getByRole("button", { name: "Run scan" });
-    fireEvent.click(button);
-    expect(button).toBeDisabled();
-    expect(screen.getByText("Scanning references...")).toBeInTheDocument();
-    await waitFor(() =>
-      expect(screen.getByRole("region", { name: "Finding detail" })).toHaveTextContent(
-        "Missing target"
-      )
-    );
-    expect(screen.getByText("Ready to scan")).toBeInTheDocument();
-  });
-
-  it("keeps the scan command available after a user-safe failure", async () => {
-    render(
-      <VaultStewardWorkspace
-        vaultLabel="Test vault"
-        scan={async () => Promise.reject(new Error("offline"))}
-      />
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Run scan" }));
-    await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent("The scan could not complete.")
-    );
-    expect(screen.getByRole("button", { name: "Run scan" })).toBeEnabled();
-  });
-
-  it("distinguishes a local-model failure from unavailable vault access", async () => {
-    render(
-      <VaultStewardWorkspace
-        vaultLabel="Test vault"
-        scan={async () => Promise.reject(new Error("required model provider is unavailable"))}
-      />
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Run scan" }));
-
-    await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent(
-        "Model analysis did not complete. Check the configured provider and model."
-      )
-    );
-    expect(screen.getAllByRole("alert")).toHaveLength(1);
-    expect(screen.queryByText("Vault access is unavailable")).not.toBeInTheDocument();
-  });
-
-  it("distinguishes a structured-output failure from an unavailable provider", async () => {
-    render(
-      <VaultStewardWorkspace
-        vaultLabel="Test vault"
-        scan={async () => Promise.reject(new Error("required model output could not be validated"))}
-      />
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Run scan" }));
-    await waitFor(() =>
-      expect(screen.getByRole("alert")).toHaveTextContent("Model output could not be validated")
-    );
-  });
-
-  it("shows a compact finding queue with the highest-priority detail selected by default", async () => {
-    const findings = [
-      {
-        ...finding,
-        id: "critical",
-        severity: "critical" as const,
-        explanation: "Critical finding"
-      },
-      { ...finding, id: "high", severity: "high" as const, explanation: "High finding" },
-      { ...finding, id: "medium", severity: "medium" as const, explanation: "Medium finding" },
-      { ...finding, id: "low", severity: "low" as const, explanation: "Low finding" }
-    ];
-    render(
-      <VaultStewardWorkspace
-        vaultLabel="Test vault"
-        scan={async () => ({ scanId: "scan", findings })}
-        loadFindings={() => findings}
-      />
-    );
-
-    const priorityFindings = within(screen.getByRole("region", { name: "Priority findings" }));
-    await waitFor(() =>
-      expect(
-        priorityFindings.getByRole("button", { name: /critical finding/i })
-      ).toBeInTheDocument()
-    );
-    expect(priorityFindings.getAllByRole("button", { name: /finding:/i })).toHaveLength(3);
-    expect(priorityFindings.queryByRole("button", { name: /low finding/i })).toBeNull();
-    expect(screen.getByRole("region", { name: "Finding detail" })).toHaveTextContent(
-      "Critical finding"
-    );
-
-    fireEvent.click(priorityFindings.getByRole("button", { name: "View all findings" }));
-    expect(priorityFindings.getByRole("button", { name: /low finding/i })).toBeInTheDocument();
-  });
-
-  it("resets hidden queue filters when returning to the compact queue", async () => {
-    const findings = [
-      {
-        ...finding,
-        id: "critical",
-        severity: "critical" as const,
-        explanation: "Critical finding"
-      },
-      { ...finding, id: "high", severity: "high" as const, explanation: "High finding" },
-      { ...finding, id: "medium", severity: "medium" as const, explanation: "Medium finding" },
-      { ...finding, id: "low", severity: "low" as const, explanation: "Low finding" }
-    ];
-    render(
-      <VaultStewardWorkspace
-        vaultLabel="Test vault"
-        scan={async () => ({ scanId: "scan", findings })}
-        loadFindings={() => findings}
-      />
-    );
-
-    const priorityFindings = within(screen.getByRole("region", { name: "Priority findings" }));
-    await waitFor(() =>
-      expect(priorityFindings.getByRole("button", { name: /critical finding/i })).toBeEnabled()
-    );
-    fireEvent.click(priorityFindings.getByRole("button", { name: "View all findings" }));
-    fireEvent.change(priorityFindings.getByLabelText("Finding severity filter"), {
-      target: { value: "low" }
-    });
-    fireEvent.change(priorityFindings.getByLabelText("Search findings"), {
-      target: { value: "low" }
-    });
-    expect(priorityFindings.getAllByRole("button", { name: /finding:/i })).toHaveLength(1);
-
-    fireEvent.click(priorityFindings.getByRole("button", { name: "Show priority findings" }));
-
-    expect(priorityFindings.getAllByRole("button", { name: /finding:/i })).toHaveLength(3);
-    expect(priorityFindings.getByRole("button", { name: /critical finding/i })).toBeInTheDocument();
-    expect(priorityFindings.queryByRole("button", { name: /low finding/i })).toBeNull();
-
-    fireEvent.click(priorityFindings.getByRole("button", { name: "View all findings" }));
-    expect(priorityFindings.getByLabelText("Finding severity filter")).toHaveValue("all");
-    expect(priorityFindings.getByLabelText("Search findings")).toHaveValue("");
-  });
-
-  it("selects the intended broken reference before preparing a repair", async () => {
-    const secondFinding = {
-      ...finding,
-      id: "second-finding",
-      explanation: "Old target needs repair",
-      evidence: [{ notePath: "Home.md", locator: "line:2", excerpt: "[[Old Target]]" }]
-    };
-    let selectedId: string | undefined;
-    render(
-      <VaultStewardWorkspace
-        vaultLabel="Test vault"
-        scan={async () => ({ scanId: "scan", findings: [finding, secondFinding] })}
-        loadFindings={() => [finding, secondFinding]}
-        createProposal={async (findingId) => {
-          selectedId = findingId;
-          throw new Error("stop after selection");
-        }}
-      />
-    );
-
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /old target needs repair/i })).toBeEnabled()
-    );
-    fireEvent.click(screen.getByRole("button", { name: /old target needs repair/i }));
-    expect(screen.queryByLabelText("Reference target")).toBeNull();
-    const reviewRepair = screen.getByRole("button", { name: "Review repair" });
-    expect(reviewRepair).toHaveAttribute("aria-expanded", "false");
-    expect(reviewRepair).toHaveAttribute("aria-controls", "reference-repair-setup");
-    fireEvent.click(reviewRepair);
-    expect(reviewRepair).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByLabelText("Reference target")).toHaveAttribute(
-      "id",
-      "reference-repair-target"
-    );
-    expect(
-      screen.getByLabelText("Reference target").closest("#reference-repair-setup")
-    ).not.toBeNull();
-    fireEvent.change(screen.getByLabelText("Reference target"), {
-      target: { value: "Vault Steward Test/Target" }
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Prepare reference repair" }));
-
-    await waitFor(() => expect(selectedId).toBe("second-finding"));
-    expect(screen.getByRole("alert")).toHaveTextContent("stop after selection");
-  });
-
-  it("closes repair setup when the selected finding changes", async () => {
-    const secondFinding = {
-      ...finding,
-      id: "second-finding",
-      explanation: "Second target needs repair"
-    };
-    render(
-      <VaultStewardWorkspace
-        vaultLabel="Test vault"
-        scan={async () => ({ scanId: "scan", findings: [finding, secondFinding] })}
-        loadFindings={() => [finding, secondFinding]}
-        createProposal={async () => {
-          throw new Error("not used");
-        }}
-      />
-    );
-
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Review repair" })).toBeEnabled()
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Review repair" }));
-    expect(screen.getByLabelText("Reference target")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /second target needs repair/i }));
-    expect(screen.queryByLabelText("Reference target")).toBeNull();
-  });
-
-  it("uses keyboard-native controls and announces scan state without exposing mutation", async () => {
-    render(
-      <VaultStewardWorkspace
-        vaultLabel="A deliberately long vault name for a narrow Obsidian pane"
-        scan={async () => ({ scanId: "scan", findings: [finding] })}
-      />
-    );
-
-    const command = screen.getByRole("button", { name: "Run scan" });
-    command.focus();
-    expect(command).toHaveFocus();
-    expect(screen.getByRole("status")).toHaveTextContent("Ready to scan");
-    expect(screen.queryByRole("button", { name: /approve|apply|dismiss|defer/i })).toBeNull();
-  });
-
-  it("keeps optional finding actions collapsed and explains when no automatic fix is safe", async () => {
-    render(
-      <VaultStewardWorkspace
-        vaultLabel="Test vault"
-        scan={async () => ({ scanId: "scan", findings: [{ ...finding, type: "task" }] })}
-        loadFindings={() => [{ ...finding, type: "task" }]}
-        explainFinding={async () => ({ ok: true, text: "Evidence", latencyMs: 1 })}
-        submitFeedback={async () => undefined}
-      />
-    );
-    await waitFor(() =>
-      expect(
-        screen.getByText("No safe automatic fix is available for this finding.")
-      ).toBeInTheDocument()
-    );
-    expect(screen.getByText("Explain evidence").closest("details")).not.toHaveAttribute("open");
-    expect(screen.getByText("Review feedback").closest("details")).not.toHaveAttribute("open");
-  });
-
-  it("orders advanced tools with model readiness before Policy Studio", async () => {
+  it("starts with one dominant action and keeps operational tools in Advanced", () => {
     render(
       <VaultStewardWorkspace
         vaultLabel="Test vault"
@@ -280,23 +79,179 @@ describe("VaultStewardWorkspace", () => {
         checkModelReadiness={async () => {
           throw new Error("not used");
         }}
-        policyStudio={{
-          loadDraft: async () => "",
-          previewDraft: async () => ({ ok: false, diagnostics: ["not used"] }),
-          saveDraft: async () => undefined
-        }}
       />
     );
 
-    const more = screen.getByText("More").closest("details");
-    expect(more).not.toBeNull();
-    const content = more!.querySelector(".more-tools-content");
-    expect(content).not.toBeNull();
-    const model = within(content as HTMLElement).getByRole("region", { name: "Model readiness" });
-    const policy = await within(content as HTMLElement).findByRole("region", {
-      name: "Policy Studio"
-    });
+    expect(screen.getByRole("button", { name: "Check vault" })).toBeEnabled();
+    expect(screen.queryByText("Vault health")).not.toBeInTheDocument();
+    expect(screen.queryByText("Priority findings")).not.toBeInTheDocument();
+    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Advanced").closest("details")).not.toHaveAttribute("open");
+  });
 
-    expect(model.compareDocumentPosition(policy) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  it("checks the vault and shows an exact prepared result", async () => {
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [finding] })}
+        loadFindings={() => [finding]}
+        prepareRepairs={async () => prepared}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    expect(screen.getByRole("button", { name: "Check vault" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("Checking your vault");
+
+    const recommendation = await screen.findByRole("region", { name: "Prepared result" });
+    expect(within(recommendation).getByText("Current")).toBeInTheDocument();
+    expect(within(recommendation).getByText("[[Missing]]")).toBeInTheDocument();
+    expect(within(recommendation).getByText("After")).toBeInTheDocument();
+    expect(within(recommendation).getByText("[[Target]]")).toBeInTheDocument();
+    expect(within(recommendation).getByText("Verified rename")).toBeInTheDocument();
+    expect(within(recommendation).getByText("Expected result")).toBeInTheDocument();
+    expect(within(recommendation).getByText("1 issue resolved")).toBeInTheDocument();
+    expect(within(recommendation).getByText("1 note edited")).toBeInTheDocument();
+    expect(within(recommendation).getByRole("button", { name: "Apply 1 fix" })).toBeEnabled();
+  });
+
+  it("uses one Apply click as approval and reports the actual result", async () => {
+    let resolveApply:
+      | ((value: {
+          ok: true;
+          appliedProposalIds: string[];
+          skippedProposalIds: string[];
+          failedProposalIds: string[];
+          notesEdited: number;
+          reindexed: boolean;
+        }) => void)
+      | undefined;
+    const applyRepairs = vi.fn(
+      () =>
+        new Promise<{
+          ok: true;
+          appliedProposalIds: string[];
+          skippedProposalIds: string[];
+          failedProposalIds: string[];
+          notesEdited: number;
+          reindexed: boolean;
+        }>((resolve) => {
+          resolveApply = resolve;
+        })
+    );
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [finding] })}
+        loadFindings={() => [finding]}
+        prepareRepairs={async () => prepared}
+        applyRepairs={applyRepairs}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    const apply = await screen.findByRole("button", { name: "Apply 1 fix" });
+    fireEvent.click(apply);
+    expect(apply).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("Applying approved fixes");
+    expect(applyRepairs).toHaveBeenCalledOnce();
+
+    resolveApply?.({
+      ok: true,
+      appliedProposalIds: ["proposal-1"],
+      skippedProposalIds: [],
+      failedProposalIds: [],
+      notesEdited: 1,
+      reindexed: true
+    });
+    expect(await screen.findByText("Your vault is updated")).toBeInTheDocument();
+    expect(screen.getByText("1 fix applied")).toBeInTheDocument();
+    expect(screen.getByText("1 note changed")).toBeInTheDocument();
+    expect(screen.getByText("Vault checked again")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Review next issue" })).toBeEnabled();
+  });
+
+  it("shows one actionable recovery message when the prepared batch is stale", async () => {
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [finding] })}
+        loadFindings={() => [finding]}
+        prepareRepairs={async () => prepared}
+        applyRepairs={async () => ({
+          ok: false,
+          reason: "stale",
+          appliedProposalIds: [],
+          skippedProposalIds: ["proposal-1"],
+          failedProposalIds: [],
+          notesEdited: 0,
+          reindexed: false
+        })}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apply 1 fix" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "A note changed after this preview. Check the vault again."
+    );
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Check vault again" })).toBeEnabled();
+  });
+
+  it("shows one concrete action for a finding without a safe repair", async () => {
+    const taskFinding = {
+      ...finding,
+      id: "task",
+      type: "task" as const,
+      explanation: "This overdue launch task needs an owner decision."
+    };
+    const openNote = vi.fn();
+    const markNotImportant = vi.fn(async () => undefined);
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [taskFinding] })}
+        loadFindings={() => [taskFinding]}
+        prepareRepairs={async () => null}
+        openNote={openNote}
+        markNotImportant={markNotImportant}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    expect(await screen.findByText(taskFinding.explanation)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open note" }));
+    expect(openNote).toHaveBeenCalledWith("Home.md");
+    fireEvent.click(screen.getByRole("button", { name: "Not important" }));
+    expect(markNotImportant).toHaveBeenCalledWith(taskFinding);
+    expect(await screen.findByText("Your vault looks clear")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /apply/i })).not.toBeInTheDocument();
+  });
+
+  it("runs a fresh scan when checking a clear vault again", async () => {
+    const scan = vi.fn(async () => ({ scanId: "scan", findings: [] }));
+    render(<VaultStewardWorkspace vaultLabel="Test vault" scan={scan} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    expect(await screen.findByText("Your vault looks clear")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Check again" }));
+
+    await waitFor(() => expect(scan).toHaveBeenCalledTimes(2));
+  });
+
+  it("preserves the last successful issue list after a provider failure", async () => {
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => Promise.reject(new Error("required model provider is unavailable"))}
+        loadFindings={() => [finding]}
+      />
+    );
+
+    await waitFor(() => expect(screen.getByText("View all issues (1)")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Model analysis did not complete. Check the configured provider and model."
+    );
+    fireEvent.click(screen.getByText("View all issues (1)"));
+    expect(screen.getByText(finding.explanation)).toBeInTheDocument();
   });
 });

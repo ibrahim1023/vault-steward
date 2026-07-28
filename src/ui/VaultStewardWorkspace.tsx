@@ -1,48 +1,38 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { Finding } from "../contracts/index.js";
-import type { Proposal } from "../contracts/proposal.js";
-import type { FindingLifecycleRecord, ScanHistoryRecord } from "../storage/repositories.js";
-import {
-  activeDashboardFindings,
-  selectDashboardFinding,
-  selectNextBestAction
-} from "./dashboard.js";
-import type { FindingQueueFilter } from "./dashboard.js";
-import { FindingDetail } from "./FindingDetail.js";
-import { FindingExplanation } from "./FindingExplanation.js";
-import { FindingFeedback } from "./FindingFeedback.js";
+import type { PreparedRepairBatch } from "../contracts/prepared-repair.js";
+import type { PreparedReferenceRepair } from "../review/prepare-repair-batch.js";
+import type { BatchApplyResult } from "../review/workflow.js";
+import type {
+  FindingLifecycleRecord,
+  ObservabilitySnapshot,
+  ScanHistoryRecord
+} from "../storage/repositories.js";
 import { HistoryView } from "./HistoryView.js";
-import { NextBestAction } from "./NextBestAction.js";
-import { PluginStatusView, type PluginStatus } from "./PluginStatusView.js";
-import { ModelReadinessView } from "./ModelReadinessView.js";
 import { MaintenanceScheduleView } from "./MaintenanceScheduleView.js";
 import { MaintenanceView } from "./MaintenanceView.js";
+import { ModelReadinessView } from "./ModelReadinessView.js";
 import { MoreTools } from "./MoreTools.js";
-import { PriorityFindings } from "./PriorityFindings.js";
-import { PolicyStudio } from "./PolicyStudio.js";
-import { ProposalReviewPanel } from "./ProposalReviewPanel.js";
-import { VaultHealthSummary } from "./VaultHealthSummary.js";
 import { ObservabilityView } from "./ObservabilityView.js";
-import type { ObservabilitySnapshot } from "../storage/repositories.js";
+import { PolicyStudio } from "./PolicyStudio.js";
+import { rankDashboardFindings } from "./dashboard.js";
 
-const DEFAULT_QUEUE_FILTER: FindingQueueFilter = {
-  severity: "all",
-  query: ""
-};
+type WorkspaceMode =
+  "ready" | "scanning" | "recommendation" | "applying" | "result" | "judgment" | "error";
 
 export function VaultStewardWorkspace({
   vaultLabel,
   scan,
   loadFindings,
-  createProposal,
-  reviewProposal,
-  applyProposal,
+  prepareRepairs,
+  applyRepairs,
+  openNote,
+  markNotImportant,
+  openProviderSettings,
   loadHistory,
   policyStudio,
-  explainFinding,
   checkModelReadiness,
-  submitFeedback,
   maintenance,
   inspectImpact,
   loadObservability,
@@ -57,30 +47,18 @@ export function VaultStewardWorkspace({
     limitations?: string[];
   }>;
   loadFindings?: () => Promise<Finding[]> | Finding[];
-  createProposal?: (
-    findingId: string,
-    target: string
-  ) => Promise<{ proposal: Proposal; sources: Record<string, string> }>;
-  reviewProposal?: (
-    proposalId: string,
-    action: "approved" | "dismissed" | "deferred"
-  ) => Promise<void>;
-  applyProposal?: (proposalId: string) => Promise<{ ok: true } | { ok: false; reason: string }>;
+  prepareRepairs?: () => Promise<PreparedReferenceRepair | null>;
+  applyRepairs?: (batch: PreparedRepairBatch) => Promise<BatchApplyResult>;
+  openNote?: (path: string) => void | Promise<void>;
+  markNotImportant?: (finding: Finding) => Promise<void>;
+  openProviderSettings?: () => void;
   loadHistory?: () => { scans: ScanHistoryRecord[]; lifecycle: FindingLifecycleRecord[] };
   policyStudio?: {
     loadDraft: () => Promise<string>;
     previewDraft: (source: string) => Promise<import("../policy/studio.js").PolicyPreview>;
     saveDraft: (source: string) => Promise<void>;
   };
-  explainFinding?: (
-    finding: Finding
-  ) => Promise<import("../agents/finding-explanation.js").FindingExplanation>;
   checkModelReadiness?: () => Promise<import("../model-provider/readiness.js").ModelReadiness>;
-  submitFeedback?: (
-    finding: Finding,
-    verdict: import("../feedback/review.js").FeedbackVerdict,
-    label: string
-  ) => Promise<void>;
   maintenance?: {
     schedule: import("../maintenance/scheduler.js").MaintenanceSchedule;
     state: import("../maintenance/scheduler.js").MaintenanceScheduleState;
@@ -91,146 +69,198 @@ export function VaultStewardWorkspace({
   deleteScanTrace?: (scanId: string) => Promise<void>;
   deleteAllTraceData?: () => Promise<void>;
 }) {
-  const [status, setStatus] = useState<PluginStatus>("ready");
+  const [mode, setMode] = useState<WorkspaceMode>("ready");
   const [findings, setFindings] = useState<Finding[]>([]);
+  const [prepared, setPrepared] = useState<PreparedReferenceRepair | null>(null);
+  const [actualResult, setActualResult] = useState<BatchApplyResult | null>(null);
+  const [judgment, setJudgment] = useState<Finding>();
+  const [dismissedFindingIds, setDismissedFindingIds] = useState<Set<string>>(() => new Set());
   const [errorMessage, setErrorMessage] = useState<string>();
-  const [repairMessage, setRepairMessage] = useState<string>();
-  const [target, setTarget] = useState("");
-  const [selectedFindingId, setSelectedFindingId] = useState<string>();
-  const [queueExpanded, setQueueExpanded] = useState(false);
-  const [queueFilter, setQueueFilter] = useState<FindingQueueFilter>(DEFAULT_QUEUE_FILTER);
-  const [repairSetupOpen, setRepairSetupOpen] = useState(false);
-  const [review, setReview] = useState<{
-    proposal: Proposal;
-    sources: Record<string, string>;
-    status: "pending" | "approved" | "dismissed" | "deferred" | "applied" | "stale";
-  }>();
   const history = loadHistory?.();
-  const actionableFindings = activeDashboardFindings(findings);
-  const selectedFinding = useMemo(
-    () =>
-      selectDashboardFinding(actionableFindings, selectedFindingId) ??
-      selectNextBestAction(actionableFindings),
-    [actionableFindings, selectedFindingId]
+  const activeFindings = rankDashboardFindings(
+    findings.filter((finding) => finding.status === "open" && !dismissedFindingIds.has(finding.id))
   );
-  const lastCompletedAt = history?.scans.find((item) => item.status === "completed")?.finishedAt;
 
   useEffect(() => {
     if (!loadFindings) return;
     Promise.resolve(loadFindings())
       .then(setFindings)
-      .catch(() => setErrorMessage("The persisted review queue is unavailable."));
+      .catch(() => setErrorMessage("The saved issue list is unavailable."));
   }, [loadFindings]);
 
-  useEffect(() => {
-    setRepairSetupOpen(false);
-  }, [selectedFinding?.id]);
+  const chooseNext = async (
+    nextFindings: Finding[],
+    dismissedIds: ReadonlySet<string> = dismissedFindingIds
+  ) => {
+    const active = rankDashboardFindings(
+      nextFindings.filter((finding) => finding.status === "open" && !dismissedIds.has(finding.id))
+    );
+    const nextPrepared = prepareRepairs ? await prepareRepairs() : null;
+    if (nextPrepared) {
+      setPrepared(nextPrepared);
+      setJudgment(undefined);
+      setMode("recommendation");
+      return;
+    }
+    setPrepared(null);
+    if (active[0]) {
+      setJudgment(active[0]);
+      setMode("judgment");
+      return;
+    }
+    setJudgment(undefined);
+    setActualResult(null);
+    setMode("result");
+  };
 
-  const runScan = async () => {
-    setStatus("scanning");
+  const checkVault = async () => {
+    setMode("scanning");
     setErrorMessage(undefined);
-    setRepairMessage(undefined);
     try {
       const result = await scan();
-      setFindings(loadFindings ? await loadFindings() : result.findings);
-      setStatus("ready");
+      const nextFindings = loadFindings ? await loadFindings() : result.findings;
+      setFindings(nextFindings);
+      await chooseNext(nextFindings);
     } catch (error) {
-      setStatus("error");
+      setMode("error");
       setErrorMessage(scanFailureMessage(error));
     }
   };
 
-  const repairControls =
-    selectedFinding?.type === "broken-reference" && createProposal ? (
-      <div className="repair-setup">
-        <button
-          type="button"
-          aria-expanded={repairSetupOpen}
-          aria-controls="reference-repair-setup"
-          onClick={() => setRepairSetupOpen(true)}
-        >
-          Review repair
-        </button>
-        {repairSetupOpen ? (
-          <div id="reference-repair-setup">
-            <label htmlFor="reference-repair-target">Reference target</label>
-            <input
-              id="reference-repair-target"
-              value={target}
-              onChange={(event) => setTarget(event.target.value)}
-            />
-            <button
-              type="button"
-              disabled={!target}
-              onClick={() => {
-                setRepairMessage(undefined);
-                void createProposal(selectedFinding.id, target)
-                  .then(({ proposal, sources }) =>
-                    setReview({ proposal, sources, status: "pending" })
-                  )
-                  .catch((error: unknown) => setRepairMessage(repairFailureMessage(error)));
-              }}
-            >
-              Prepare reference repair
-            </button>
-            {repairMessage ? <p role="alert">{repairMessage}</p> : null}
-          </div>
-        ) : null}
-      </div>
-    ) : null;
+  const applyPrepared = async () => {
+    if (!prepared || !applyRepairs) {
+      setMode("error");
+      setErrorMessage("Applying fixes is unavailable. Check the plugin installation.");
+      return;
+    }
+    setMode("applying");
+    setErrorMessage(undefined);
+    try {
+      const result = await applyRepairs(prepared.batch);
+      if (!result.ok) {
+        setMode("error");
+        setErrorMessage(batchFailureMessage(result.reason));
+        return;
+      }
+      setActualResult(result);
+      setMode("result");
+      if (loadFindings) setFindings(await loadFindings());
+    } catch {
+      setMode("error");
+      setErrorMessage("The approved fixes could not be applied. Your notes were not changed.");
+    }
+  };
+
+  const reviewNext = async () => {
+    setErrorMessage(undefined);
+    try {
+      const nextFindings = loadFindings
+        ? await loadFindings()
+        : findings.filter((finding) => !prepared?.batch.findingIds.includes(finding.id));
+      setFindings(nextFindings);
+      await chooseNext(nextFindings);
+    } catch {
+      setMode("error");
+      setErrorMessage("The next issue could not be prepared. Check the vault again.");
+    }
+  };
+
+  const dismissJudgment = async (finding: Finding) => {
+    setErrorMessage(undefined);
+    try {
+      await markNotImportant?.(finding);
+      const nextDismissedIds = new Set(dismissedFindingIds);
+      nextDismissedIds.add(finding.id);
+      setDismissedFindingIds(nextDismissedIds);
+      await chooseNext(findings, nextDismissedIds);
+    } catch {
+      setMode("error");
+      setErrorMessage("This issue could not be marked as unimportant. Try again.");
+    }
+  };
 
   return (
-    <section className="vault-steward-dashboard" aria-label="Vault Steward workspace">
-      <PluginStatusView
-        vaultLabel={vaultLabel}
-        status={status}
-        {...(errorMessage ? { errorMessage } : {})}
-      />
-      <button type="button" onClick={runScan} disabled={status === "scanning"}>
-        Run scan
-      </button>
-      <VaultHealthSummary
-        vaultLabel={vaultLabel}
-        findings={actionableFindings}
-        {...(lastCompletedAt ? { lastCompletedAt } : {})}
-      />
-      <NextBestAction
-        finding={selectNextBestAction(actionableFindings)}
-        onOpen={setSelectedFindingId}
-      />
-      <div className="review-workbench">
-        <PriorityFindings
-          findings={actionableFindings}
-          selectedFindingId={selectedFinding?.id}
-          onSelect={setSelectedFindingId}
-          expanded={queueExpanded}
-          filter={queueFilter}
-          onFilterChange={setQueueFilter}
-          onToggleExpanded={() => {
-            if (queueExpanded) setQueueFilter(DEFAULT_QUEUE_FILTER);
-            setQueueExpanded(!queueExpanded);
-          }}
+    <section className="vault-steward" aria-label="Vault Steward workspace">
+      <header className="steward-header">
+        <div>
+          <h1>Vault Steward</h1>
+          <p>{vaultLabel}</p>
+        </div>
+        <span className="steward-local">Local-first review</span>
+      </header>
+
+      {mode === "ready" ? (
+        <section className="steward-start" aria-label="Ready to check">
+          <h2>Keep your vault trustworthy</h2>
+          <p>
+            Check links, tasks, decisions, and note consistency. Vault Steward prepares the clearest
+            next action for you.
+          </p>
+          {activeFindings.length > 0 ? (
+            <p className="last-check">
+              Last check: {formatCount(activeFindings.length, "issue")} still needs attention.
+            </p>
+          ) : null}
+          <button className="steward-primary" type="button" onClick={checkVault}>
+            Check vault
+          </button>
+        </section>
+      ) : null}
+
+      {mode === "scanning" ? (
+        <section className="steward-progress" aria-label="Checking vault">
+          <p role="status" aria-live="polite">
+            Checking your vault and preparing the best next action...
+          </p>
+          <button className="steward-primary" type="button" disabled>
+            Check vault
+          </button>
+        </section>
+      ) : null}
+
+      {prepared && (mode === "recommendation" || mode === "applying") ? (
+        <PreparedResult
+          prepared={prepared}
+          applying={mode === "applying"}
+          onApply={applyPrepared}
         />
-        <FindingDetail finding={selectedFinding}>
-          {repairControls}
-          {selectedFinding && selectedFinding.type !== "broken-reference" ? (
-            <p className="no-safe-fix">No safe automatic fix is available for this finding.</p>
-          ) : null}
-          {selectedFinding && explainFinding ? (
-            <details className="finding-disclosure">
-              <summary>Explain evidence</summary>
-              <FindingExplanation finding={selectedFinding} explain={explainFinding} />
-            </details>
-          ) : null}
-          {selectedFinding && submitFeedback ? (
-            <details className="finding-disclosure">
-              <summary>Review feedback</summary>
-              <FindingFeedback finding={selectedFinding} submit={submitFeedback} />
-            </details>
-          ) : null}
-        </FindingDetail>
-      </div>
+      ) : null}
+
+      {mode === "applying" ? (
+        <p className="applying-status" role="status" aria-live="polite">
+          Applying approved fixes and checking the vault again...
+        </p>
+      ) : null}
+
+      {mode === "result" ? (
+        <ResultView result={actualResult} onNext={actualResult ? reviewNext : checkVault} />
+      ) : null}
+
+      {mode === "judgment" && judgment ? (
+        <JudgmentView
+          finding={judgment}
+          {...(openNote ? { openNote } : {})}
+          onNotImportant={dismissJudgment}
+        />
+      ) : null}
+
+      {mode === "error" && errorMessage ? (
+        <section className="steward-error" aria-label="Action needed">
+          <p role="alert">{errorMessage}</p>
+          <button className="steward-primary" type="button" onClick={checkVault}>
+            Check vault again
+          </button>
+        </section>
+      ) : null}
+
+      <IssueList findings={activeFindings} />
+
       <MoreTools>
+        {openProviderSettings ? (
+          <button type="button" onClick={openProviderSettings}>
+            Provider settings
+          </button>
+        ) : null}
         {checkModelReadiness ? <ModelReadinessView checkReadiness={checkModelReadiness} /> : null}
         {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
         {maintenance ? <MaintenanceScheduleView {...maintenance} /> : null}
@@ -247,47 +277,223 @@ export function VaultStewardWorkspace({
           <ObservabilityView
             scans={history.scans}
             loadObservability={loadObservability}
-            {...(selectedFinding ? { selectedFindingId: selectedFinding.id } : {})}
+            {...(judgment ? { selectedFindingId: judgment.id } : {})}
             {...(deleteScanTrace ? { deleteScanTrace } : {})}
             {...(deleteAllTraceData ? { deleteAllTraceData } : {})}
           />
         ) : null}
       </MoreTools>
-      {review && reviewProposal && applyProposal ? (
-        <ProposalReviewPanel
-          proposal={review.proposal}
-          sources={review.sources}
-          status={review.status}
-          onAction={async (id, action) => {
-            await reviewProposal(id, action);
-            setReview({ ...review, status: action });
-          }}
-          onApply={async (id) => {
-            const result = await applyProposal(id);
-            if (result.ok) setReview({ ...review, status: "applied" });
-            return result;
-          }}
-        />
+    </section>
+  );
+}
+
+function PreparedResult({
+  prepared,
+  applying,
+  onApply
+}: {
+  prepared: PreparedReferenceRepair;
+  applying: boolean;
+  onApply: () => Promise<void>;
+}) {
+  const count = prepared.batch.proposalIds.length;
+  return (
+    <section className="prepared-result" aria-label="Prepared result">
+      <div className="prepared-heading">
+        <div>
+          <p className="steward-eyebrow">Ready for your approval</p>
+          <h2>{formatCount(count, "safe fix")} prepared</h2>
+        </div>
+        <span className="target-status">Evidence checked</span>
+      </div>
+      <p className="prepared-intro">
+        Review the exact result below. Vault Steward will apply only these changes.
+      </p>
+      <div className="repair-items">
+        {prepared.items.map((item) => (
+          <article className="repair-item" key={item.proposalId}>
+            <div className="repair-source">
+              <strong>{item.sourcePath}</strong>
+              <span>{item.locator}</span>
+            </div>
+            <p className="target-status">
+              {item.targetStatus === "verified-rename"
+                ? "Verified rename"
+                : "AI suggestion - target exists"}
+            </p>
+            <div className="repair-change">
+              <section>
+                <h3>Current</h3>
+                <pre className="repair-reference current-reference">{item.currentReference}</pre>
+              </section>
+              <section>
+                <h3>After</h3>
+                <pre className="repair-reference after-reference">{item.replacementReference}</pre>
+              </section>
+            </div>
+          </article>
+        ))}
+      </div>
+      <section className="expected-result" aria-label="Expected result">
+        <h3>Expected result</h3>
+        <ul>
+          <li>{formatCount(prepared.batch.outcome.expectedFindingsResolved, "issue")} resolved</li>
+          <li>{formatCount(prepared.batch.outcome.notesEdited, "note")} edited</li>
+          <li>
+            {formatCount(prepared.batch.outcome.findingsLeftUnchanged, "issue")} left unchanged
+          </li>
+        </ul>
+      </section>
+      <button
+        className="steward-primary"
+        type="button"
+        disabled={applying}
+        onClick={() => void onApply()}
+      >
+        Apply {count} {count === 1 ? "fix" : "fixes"}
+      </button>
+      <p className="approval-note">Nothing changes until you select Apply.</p>
+    </section>
+  );
+}
+
+function ResultView({
+  result,
+  onNext
+}: {
+  result: BatchApplyResult | null;
+  onNext: () => Promise<void>;
+}) {
+  if (!result)
+    return (
+      <section className="steward-result" aria-label="Check result">
+        <p className="steward-eyebrow">Check complete</p>
+        <h2>Your vault looks clear</h2>
+        <p>No issues need your attention right now.</p>
+        <button className="steward-primary" type="button" onClick={() => void onNext()}>
+          Check again
+        </button>
+      </section>
+    );
+
+  return (
+    <section className="steward-result" aria-label="Apply result">
+      <p className="steward-eyebrow">Finished</p>
+      <h2>Your vault is updated</h2>
+      <ul>
+        <li>{formatCount(result.appliedProposalIds.length, "fix")} applied</li>
+        <li>{formatCount(result.notesEdited, "note")} changed</li>
+        <li>{result.reindexed ? "Vault checked again" : "Vault check needs to be retried"}</li>
+      </ul>
+      <button className="steward-primary" type="button" onClick={() => void onNext()}>
+        Review next issue
+      </button>
+    </section>
+  );
+}
+
+function JudgmentView({
+  finding,
+  openNote,
+  onNotImportant
+}: {
+  finding: Finding;
+  openNote?: (path: string) => void | Promise<void>;
+  onNotImportant: (finding: Finding) => Promise<void>;
+}) {
+  const paths = [
+    ...new Set(
+      finding.affectedNoteIds.length
+        ? finding.affectedNoteIds
+        : finding.evidence.map((item) => item.notePath)
+    )
+  ];
+  const multiple = paths.length > 1;
+  return (
+    <section className="judgment-view" aria-label="Issue to review">
+      <p className="steward-eyebrow">Needs your judgment</p>
+      <h2>{finding.explanation}</h2>
+      {paths[0] ? <p className="judgment-source">{paths.join(" and ")}</p> : null}
+      <div className="judgment-actions">
+        {paths[0] ? (
+          <button
+            className="steward-primary"
+            type="button"
+            onClick={() => {
+              for (const path of paths) void openNote?.(path);
+            }}
+          >
+            {multiple ? "Review both notes" : "Open note"}
+          </button>
+        ) : null}
+        <button type="button" onClick={() => void onNotImportant(finding)}>
+          Not important
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function IssueList({ findings }: { findings: readonly Finding[] }) {
+  const [open, setOpen] = useState(false);
+  if (findings.length === 0) return null;
+  return (
+    <section className="issue-list" aria-label="All issues">
+      <button
+        className="issue-toggle"
+        type="button"
+        aria-expanded={open}
+        aria-controls="vault-steward-all-issues"
+        onClick={() => setOpen(!open)}
+      >
+        View all issues ({findings.length})
+      </button>
+      {open ? (
+        <ul id="vault-steward-all-issues">
+          {findings.map((finding) => (
+            <li key={finding.id}>
+              <strong>{finding.severity}</strong>
+              <span>{finding.explanation}</span>
+              <small>{finding.evidence[0]?.notePath ?? "Vault-wide"}</small>
+            </li>
+          ))}
+        </ul>
       ) : null}
     </section>
   );
 }
 
+function formatCount(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
 function scanFailureMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
   if (message.includes("model output"))
-    return "Model output could not be validated. Try the scan again or check model readiness.";
+    return "Model output could not be validated. Try again or review provider settings.";
   if (message.includes("model provider"))
     return "Model analysis did not complete. Check the configured provider and model.";
   if (message.includes("Vault reader") || message.includes("vault read"))
     return "The active vault could not be read.";
   if (message.includes("database")) return "The local Vault Steward database is unavailable.";
   if (message.includes("active policy"))
-    return "The active policy file is invalid. Fix it in Policy Studio.";
-  return "The scan could not complete.";
+    return "The active policy is invalid. Open Advanced to review it.";
+  return "The vault check could not complete. Try again.";
 }
 
-function repairFailureMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message.trim() : "";
-  return message || "A safe proposal could not be created.";
+function batchFailureMessage(reason: BatchApplyResult["reason"]): string {
+  switch (reason) {
+    case "stale":
+      return "A note changed after this preview. Check the vault again.";
+    case "recovery-required":
+      return "A write could not be rolled back. Open Advanced for recovery guidance.";
+    case "write-failed":
+      return "The approved fixes could not be written. Your previous note content was restored.";
+    case "invalid":
+      return "The prepared fixes are no longer valid. Check the vault again.";
+    case "canceled":
+      return "Applying fixes was canceled. Check the vault again.";
+    default:
+      return "The approved fixes could not be applied. Check the vault again.";
+  }
 }
