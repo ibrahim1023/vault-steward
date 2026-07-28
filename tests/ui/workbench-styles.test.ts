@@ -17,4 +17,13 @@ describe("focused review workbench styles", () => {
     );
     expect(styles).not.toContain("@media (max-width: 680px)");
   });
+
+  it("lets source-aware queue rows grow and wrap inside Obsidian panes", () => {
+    const styles = readFileSync(resolve(root, "styles.css"), "utf8");
+
+    expect(styles).toMatch(
+      /\[aria-label="Priority findings"\] button\.finding-row\s*\{[\s\S]*?display: grid;[\s\S]*?height: auto;[\s\S]*?white-space: normal;/
+    );
+    expect(styles).toMatch(/\.finding-row-source\s*\{[\s\S]*?overflow-wrap: anywhere;/);
+  });
 });

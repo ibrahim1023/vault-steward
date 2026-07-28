@@ -84,9 +84,15 @@
   align-items: start;
 }
 
-.finding-row {
+.vault-steward-dashboard [aria-label="Priority findings"] button.finding-row {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 3px;
+  height: auto;
+  min-height: 0;
+  align-items: start;
+  justify-items: start;
+  white-space: normal;
   border-left: 3px solid var(--background-modifier-border);
 }
 
@@ -101,6 +107,7 @@
 .finding-row-source {
   color: var(--text-muted);
   font-size: 0.875rem;
+  overflow-wrap: anywhere;
 }
 
 .finding-row-severity-critical,
