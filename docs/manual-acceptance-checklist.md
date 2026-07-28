@@ -39,6 +39,10 @@ section.
 - [ ] A baseline scan completes without a vault-access, database, or model error.
 - [ ] The dashboard has a clear ready state and does not duplicate status text.
 - [ ] Vault health counts are readable and match the visible priority findings.
+- [ ] The first-run order is Run scan, inspect health, select a top-three finding, review detail, expand `View all findings`, then open `More` only for advanced tools.
+- [ ] The compact queue initially shows only the top three ranked findings.
+- [ ] The selected queue row and finding detail use the teal selection treatment.
+- [ ] Every queue row has a readable text severity label; severity meaning is not conveyed by color alone.
 - [ ] The broken reference in `Work/Partner Enablement.md` appears.
 - [ ] The broken anchor in `Research/Customer Interviews.md` appears.
 - [ ] The missing embed in `Research/Customer Interviews.md` appears.
@@ -55,7 +59,10 @@ section.
 ## Finding Navigation And Detail
 
 - [ ] Clicking a priority finding changes the selected detail only.
+- [ ] `View all findings` expands the queue and exposes the severity filter and finding search.
+- [ ] Severity and text filtering narrow the expanded queue without changing the selected finding until another result is selected.
 - [ ] The selected broken reference exposes a reference-repair action.
+- [ ] The reference target and `Prepare reference repair` remain hidden until `Review repair` is selected.
 - [ ] A selected task, policy, or decision finding does not display a misleading repair control.
 - [ ] Non-repairable findings clearly state that no safe automatic fix is available.
 - [ ] Evidence paths and line references fit the sidebar without confusing truncation.
@@ -64,6 +71,7 @@ section.
 ## Safe Reference Repair
 
 - [ ] `Work/Partner Enablement.md` is selected as the repair source.
+- [ ] `Review repair` is selected before repair setup is shown.
 - [ ] `Guides/Partner Onboarding Checklist` is accepted as the replacement target.
 - [ ] Preparing a repair produces a proposal and readable diff preview.
 - [ ] The diff changes only `[[Guides/Partner Migration Checklist]]`.
@@ -101,6 +109,7 @@ section.
 - [ ] A fixed decision becomes resolved only after a later completed scan.
 - [ ] Restoring a defect records a recurrence after the next completed scan.
 - [ ] History lists scans in a readable order.
+- [ ] `More` remains closed until activated and contains readiness, policy, maintenance, history, and observability tools.
 - [ ] Scan and finding lifecycle metadata remains legible in a narrow sidebar.
 - [ ] Observability opens and allows selecting a completed scan.
 - [ ] Agent timeline, finding lineage, and configuration fingerprint are visible.
@@ -135,9 +144,11 @@ section.
 - [ ] Keyboard focus remains visible for every interactive control.
 - [ ] `Tab`, `Shift+Tab`, `Enter`, and `Space` work through the main review flow.
 - [ ] Collapsible sections work by keyboard.
+- [ ] `More` opens and closes by keyboard without losing focus.
 - [ ] Error messages are announced once, not duplicated.
 - [ ] No important text, button, or input is clipped in the narrow sidebar.
 - [ ] No section has excessive spacing or unclear hierarchy.
+- [ ] At narrow sidebar width, the queue stacks above the selected finding detail.
 
 ## Issues Found
 

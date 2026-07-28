@@ -16,6 +16,11 @@ Local vault -> deterministic parser and graph -> policy and integrity checks
             -> review queue -> explicit approved change
 ```
 
+The review workspace is a focused interface: it starts with vault health, the
+three highest-priority findings, and one selected detail. Expand the full queue
+when needed; readiness, policy, maintenance, history, and observability tools
+remain under **More** so they do not crowd the initial review path.
+
 The deterministic core owns parsing, policies, evidence validation, finding normalization, persistence, diffs, and apply decisions. The selected model may classify, extract candidates, or rank cited evidence through typed contracts. A model result cannot directly modify a vault, choose severity, change policy, approve a proposal, or apply an edit.
 
 ## Privacy And Safety

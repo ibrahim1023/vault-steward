@@ -24,10 +24,32 @@ Record the Obsidian version, macOS/Windows/Linux version, model provider/model
 name, and whether the plugin was freshly installed or upgraded. A failed model
 readiness check is a setup failure, not a finding-quality result.
 
-## Baseline Scan
+## First Review Flow
 
 Run a scan without editing any fixture. It must complete and render a usable
-dashboard. Confirm that the queue contains findings covering:
+focused review interface. Follow this first-run flow before opening advanced
+tools:
+
+```text
+Run scan -> inspect health -> select one of the top three -> review detail ->
+expand View all findings -> open More only for readiness/policy/maintenance/history/observability.
+```
+
+Confirm the health summary is readable and the compact queue initially exposes
+only the top three ranked findings. Select one of those findings and verify that
+only the selected detail changes. The selected row and detail use the teal
+selection treatment, while the visible severity label communicates severity
+without relying on its color. Select **View all findings**, then use the
+severity filter and finding search to narrow the expanded queue before choosing
+another result.
+
+Open **More** only after the focused review flow. It must reveal readiness,
+policy, maintenance, history, and observability tools without displacing the
+queue or detail before it is opened. Confirm that the workbench stacks the
+queue above the selected detail at a narrow sidebar width and that no controls
+or source paths are clipped.
+
+Confirm that the queue contains findings covering:
 
 - the broken reference in `Work/Partner Enablement.md`;
 - the broken anchor and missing embed in `Research/Customer Interviews.md`;
@@ -40,21 +62,23 @@ The semantic-analysis stage may add evidence-backed entity, contradiction,
 staleness, or decision findings. Treat those as review candidates rather than
 fixed-count assertions: model output can vary by provider, model, and hardware.
 
-For each result, assess whether the title, severity, evidence path, line number,
-and plain-language explanation make sense without opening source code. Note
-anything that requires excessive scrolling, truncates a path, duplicates status
-text, or hides the next action.
+For each result, assess whether the title, severity label, evidence path, line
+number, and plain-language explanation make sense without opening source code.
+Note anything that requires excessive scrolling, truncates a path, duplicates
+status text, or hides the next action.
 
 ## Review And Repair
 
 1. Select the `Work/Partner Enablement.md` broken-reference finding, not one of
    the other reference errors.
-2. In **Reference target**, enter `Guides/Partner Onboarding Checklist`.
-3. Select **Prepare reference repair** and inspect the diff. It should replace
+2. Select **Review repair**. The target input and preparation control must stay
+   hidden until this explicit action.
+3. In **Reference target**, enter `Guides/Partner Onboarding Checklist`.
+4. Select **Prepare reference repair** and inspect the diff. It should replace
    only `[[Guides/Partner Migration Checklist]]`.
-4. Approve and apply the proposal. Confirm that the note changes only after
+5. Approve and apply the proposal. Confirm that the note changes only after
    approval and that the success state is visible.
-5. Run another scan. The repaired finding should resolve while unrelated
+6. Run another scan. The repaired finding should resolve while unrelated
    findings remain.
 
 ### Stale-proposal protection
@@ -110,11 +134,11 @@ because another scan occurred. Then complete these state changes one at a time:
 2. Fix or remove the malformed task in `Work/Launch Readiness.md`.
 3. Run a scan after each edit.
 
-Open **History** and verify that prior scans remain visible, the relevant
+Open **More**, then open **History** and verify that prior scans remain visible, the relevant
 findings become resolved only after a later completed scan, and recurrence is
 shown if you restore a defect and scan again.
 
-Open **Observability**. Switch between two scans, inspect the agent timeline,
+Open **Observability** from **More**. Switch between two scans, inspect the agent timeline,
 finding lineage, and the configuration fingerprint. Confirm that this view
 shows metadata and evidence locators rather than raw note bodies or model
 prompts. Test deletion of one scan trace, then use a fresh scan before testing
@@ -122,7 +146,7 @@ the destructive **Delete all trace data** control.
 
 ## Maintenance And Impact
 
-In **Maintenance**, ensure the grouped queue is legible and does not overflow
+Open **More**, then open **Maintenance**. Ensure the grouped queue is legible and does not overflow
 the sidebar. Enter these paths exactly, one at a time:
 
 - `Projects/Northstar Launch.md`

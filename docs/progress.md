@@ -2,8 +2,8 @@
 
 ## Current Phase
 
-Phase 18 OpenAI Responses API support is complete. Phase 19 focused review
-workbench design is approved and awaiting implementation planning.
+Phase 19 focused review workbench has passed its automated completion gate and
+is awaiting the manual Obsidian acceptance audit.
 
 ## Completed Work
 
@@ -62,9 +62,15 @@ Phase 16 is complete on `feat/phase-16-advanced-quality`; promotion to `developm
 - Security hardening on 2026-07-20 rejects local-provider redirects, bounds provider configuration and response reads, binds approval/apply to validated persisted proposal digests, and enforces vault-reader/scanner resource and canonical-path limits.
 - Phase 17 adds an explicit OpenAI provider option beside the default loopback Ollama/llama.cpp providers. OpenAI requests use a fixed API origin, bounded JSON-mode Responses API calls with `store: false`, a local API key, and a required cloud-data acknowledgement; keys remain excluded from traces, fingerprints, diagnostics, and portable exports.
 - Phase 18 migrates the OpenAI adapter to the current Responses API request and response contract: `input`, `instructions`, JSON mode under `text.format`, `max_output_tokens`, `store: false`, and aggregate `output_text` parsing.
-- The approved Phase 19 workbench design reduces first-use cognitive load with a
-  top-three teal review queue, selected-finding detail, progressive repair
-  setup, and one collapsed More section for advanced tools.
+- Phase 19 implements a focused review workbench: vault health, a top-three
+  teal-selected queue, selected-finding detail, progressive repair setup, and
+  one collapsed More section for readiness, policy, maintenance, history, and
+  observability tools. The automated gate passed on 2026-07-28: formatting,
+  linting, type checking, build, 144 unit/component tests, 21 integration
+  tests, 3 end-to-end tests, 3 automated acceptance tests, deterministic smoke
+  evaluation, production dependency audit, and packaged-plugin install smoke.
+  Manual Obsidian desktop acceptance in the Northstar Acceptance vault remains
+  required and was not performed in this task; do not mark Phase 19 complete.
 
 ## Important Decisions
 
@@ -80,8 +86,9 @@ Phase 16 is complete on `feat/phase-16-advanced-quality`; promotion to `developm
 
 ## Verification Status
 
-The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 15 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 36 replay/evaluation tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 16 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 128 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 48 evaluation/replay/quality tests, deterministic smoke/full evaluations, generated synthetic baseline evaluation, retrieval report, fixture-baseline evaluation, performance and operational smoke reports, and a production dependency audit with no moderate-or-higher vulnerabilities. Manual desktop installation and accessibility acceptance remains governed by the existing protocol before wider distribution.
+The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 15 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 36 replay/evaluation tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 16 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 128 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 48 evaluation/replay/quality tests, deterministic smoke/full evaluations, generated synthetic baseline evaluation, retrieval report, fixture-baseline evaluation, performance and operational smoke reports, and a production dependency audit with no moderate-or-higher vulnerabilities. Phase 19 passed its automated gate on 2026-07-28; its manual desktop acceptance remains required before broader distribution.
 
 ## Next Recommended Task
 
-Review and plan the approved focused review workbench milestone from `development`.
+Perform the pending Phase 19 manual desktop acceptance audit in the Northstar
+Acceptance vault. Record its results before promoting the branch.
