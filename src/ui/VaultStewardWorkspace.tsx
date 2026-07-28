@@ -144,7 +144,7 @@ export function VaultStewardWorkspace({
             setRepairMessage(undefined);
             void createProposal(selectedFinding.id, target)
               .then(({ proposal, sources }) => setReview({ proposal, sources, status: "pending" }))
-              .catch(() => setRepairMessage("A safe proposal could not be created."));
+              .catch((error: unknown) => setRepairMessage(repairFailureMessage(error)));
           }}
         >
           Prepare reference repair
@@ -246,4 +246,9 @@ function scanFailureMessage(error: unknown): string {
   if (message.includes("active policy"))
     return "The active policy file is invalid. Fix it in Policy Studio.";
   return "The scan could not complete.";
+}
+
+function repairFailureMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message.trim() : "";
+  return message || "A safe proposal could not be created.";
 }

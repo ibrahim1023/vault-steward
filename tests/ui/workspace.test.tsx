@@ -115,7 +115,7 @@ describe("VaultStewardWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Prepare reference repair" }));
 
     await waitFor(() => expect(selectedId).toBe("second-finding"));
-    expect(screen.getByRole("alert")).toHaveTextContent("A safe proposal could not be created.");
+    expect(screen.getByRole("alert")).toHaveTextContent("stop after selection");
   });
 
   it("uses keyboard-native controls and announces scan state without exposing mutation", async () => {

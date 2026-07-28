@@ -51,4 +51,32 @@ describe("finding explanation", () => {
       )
     ).resolves.toEqual({ ok: true, text: "The cited owner field is empty.", latencyMs: 3 });
   });
+
+  it("replaces a structured prompt echo with a grounded plain-language explanation", async () => {
+    await expect(
+      explainFinding(
+        {
+          config: {
+            kind: "ollama",
+            endpoint: "http://127.0.0.1",
+            model: "test",
+            timeoutMs: 1,
+            maxResponseBytes: 1
+          },
+          capabilities: [],
+          generate: async () => ({
+            text: JSON.stringify({ type: "policy", evidence: finding.evidence }),
+            model: "test",
+            provider: "ollama",
+            latencyMs: 3
+          })
+        },
+        finding
+      )
+    ).resolves.toEqual({
+      ok: true,
+      text: "The cited evidence owner:  appears in Project.md (line:2). Owner is required.",
+      latencyMs: 3
+    });
+  });
 });
