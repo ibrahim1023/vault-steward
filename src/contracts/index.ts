@@ -68,3 +68,5 @@ export type VaultStewardError = {
 export type ToolResult<T> =
   | { ok: true; value: T; correlationId: string }
   | { ok: false; error: VaultStewardError; correlationId: string };
+
+export * from "./prepared-repair.js";
