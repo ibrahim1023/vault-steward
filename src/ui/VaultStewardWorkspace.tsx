@@ -26,6 +26,11 @@ import { VaultHealthSummary } from "./VaultHealthSummary.js";
 import { ObservabilityView } from "./ObservabilityView.js";
 import type { ObservabilitySnapshot } from "../storage/repositories.js";
 
+const DEFAULT_QUEUE_FILTER: FindingQueueFilter = {
+  severity: "all",
+  query: ""
+};
+
 export function VaultStewardWorkspace({
   vaultLabel,
   scan,
@@ -93,10 +98,7 @@ export function VaultStewardWorkspace({
   const [target, setTarget] = useState("");
   const [selectedFindingId, setSelectedFindingId] = useState<string>();
   const [queueExpanded, setQueueExpanded] = useState(false);
-  const [queueFilter, setQueueFilter] = useState<FindingQueueFilter>({
-    severity: "all",
-    query: ""
-  });
+  const [queueFilter, setQueueFilter] = useState<FindingQueueFilter>(DEFAULT_QUEUE_FILTER);
   const [repairSetupOpen, setRepairSetupOpen] = useState(false);
   const [review, setReview] = useState<{
     proposal: Proposal;
@@ -141,19 +143,22 @@ export function VaultStewardWorkspace({
   const repairControls =
     selectedFinding?.type === "broken-reference" && createProposal ? (
       <div className="repair-setup">
-        <button type="button" onClick={() => setRepairSetupOpen(true)}>
+        <button
+          type="button"
+          aria-expanded={repairSetupOpen}
+          aria-controls="reference-repair-setup"
+          onClick={() => setRepairSetupOpen(true)}
+        >
           Review repair
         </button>
         {repairSetupOpen ? (
-          <div>
-            <label>
-              Reference target{" "}
-              <input
-                aria-label="Reference target"
-                value={target}
-                onChange={(event) => setTarget(event.target.value)}
-              />
-            </label>
+          <div id="reference-repair-setup">
+            <label htmlFor="reference-repair-target">Reference target</label>
+            <input
+              id="reference-repair-target"
+              value={target}
+              onChange={(event) => setTarget(event.target.value)}
+            />
             <button
               type="button"
               disabled={!target}
@@ -201,7 +206,10 @@ export function VaultStewardWorkspace({
           expanded={queueExpanded}
           filter={queueFilter}
           onFilterChange={setQueueFilter}
-          onToggleExpanded={() => setQueueExpanded((expanded) => !expanded)}
+          onToggleExpanded={() => {
+            if (queueExpanded) setQueueFilter(DEFAULT_QUEUE_FILTER);
+            setQueueExpanded(!queueExpanded);
+          }}
         />
         <FindingDetail finding={selectedFinding}>
           {repairControls}
@@ -223,8 +231,8 @@ export function VaultStewardWorkspace({
         </FindingDetail>
       </div>
       <MoreTools>
-        {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
         {checkModelReadiness ? <ModelReadinessView checkReadiness={checkModelReadiness} /> : null}
+        {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
         {maintenance ? <MaintenanceScheduleView {...maintenance} /> : null}
         {inspectImpact ? (
           <MaintenanceView findings={findings} inspectImpact={inspectImpact} />

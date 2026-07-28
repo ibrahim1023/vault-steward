@@ -139,9 +139,11 @@ describe("dashboard model", () => {
     const selected = screen.getByRole("button", { name: /critical.*missing target.*selected/i });
     expect(selected).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("Medium")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /medium finding/i })).toHaveClass(
-      "finding-row-severity-medium"
-    );
+    expect(
+      screen.getByRole("button", {
+        name: /medium finding: missing target, source home\.md, line:1/i
+      })
+    ).toHaveClass("finding-row-severity-medium");
     selected.focus();
     expect(selected).toHaveFocus();
     fireEvent.click(selected);
@@ -213,6 +215,12 @@ describe("dashboard model", () => {
       "aria-pressed",
       "true"
     );
+
+    fireEvent.change(screen.getByLabelText("Search findings"), {
+      target: { value: "does not exist" }
+    });
+    expect(screen.getByText("No findings match the current filters.")).toBeInTheDocument();
+    expect(screen.queryByText("No findings need review.")).toBeNull();
   });
 
   it("does not expose an action button without a finding", () => {

@@ -25,7 +25,7 @@ export function PriorityFindings({
   onToggleExpanded?: () => void;
 }) {
   const filteredFindings = filterDashboardFindings(findings, filter);
-  const queue = expanded ? filteredFindings : compactDashboardFindings(filteredFindings);
+  const queue = expanded ? filteredFindings : compactDashboardFindings(findings);
 
   return (
     <section className="priority-findings" aria-label="Priority findings">
@@ -63,7 +63,11 @@ export function PriorityFindings({
         </div>
       ) : null}
       {queue.length === 0 ? (
-        <p>No findings need review.</p>
+        <p>
+          {findings.length === 0
+            ? "No findings need review."
+            : "No findings match the current filters."}
+        </p>
       ) : (
         <ul>
           {queue.map((finding) => {
@@ -75,7 +79,11 @@ export function PriorityFindings({
                   type="button"
                   className={`finding-row finding-row-severity-${finding.severity}`}
                   aria-pressed={selected}
-                  aria-label={`${finding.severity} finding: ${finding.explanation}${selected ? ", selected" : ""}`}
+                  aria-label={`${finding.severity} finding: ${finding.explanation}, ${
+                    evidence
+                      ? `source ${evidence.notePath}, ${evidence.locator}`
+                      : "no source evidence"
+                  }${selected ? ", selected" : ""}`}
                   onClick={() => onSelect(finding.id)}
                 >
                   <span className="finding-row-severity">{capitalize(finding.severity)}</span>

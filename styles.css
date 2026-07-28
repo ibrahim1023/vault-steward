@@ -9,6 +9,8 @@
   max-width: 960px;
   padding: 12px;
   color: var(--text-normal);
+  container-name: steward-workspace;
+  container-type: inline-size;
 }
 
 .vault-steward-dashboard section,
@@ -266,13 +268,13 @@
   display: contents;
 }
 
-@media (max-width: 480px) {
+@container steward-workspace (max-width: 480px) {
   .observability-timeline li {
     grid-template-columns: 1fr 1fr;
   }
 }
 
-@media (max-width: 680px) {
+@container steward-workspace (max-width: 680px) {
   .review-workbench {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -287,7 +289,7 @@
   }
 }
 
-@media (max-width: 480px) {
+@container steward-workspace (max-width: 480px) {
   .vault-steward-dashboard ul[aria-label="Finding counts"] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

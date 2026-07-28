@@ -32,7 +32,7 @@ section.
 - [ ] The `Open Vault Steward status` command-palette command opens the workspace.
 - [ ] With Ollama or llama.cpp selected, the configured endpoint is loopback-only and points to the running provider.
 - [ ] With OpenAI selected, the provider is visibly identified as OpenAI, the API-key field is masked, and the cloud-data acknowledgement is required.
-- [ ] `Check readiness` reports readiness before the first scan.
+- [ ] `More` is opened for `Check readiness` during setup, then closed before the first scan.
 
 ## Baseline Scan
 

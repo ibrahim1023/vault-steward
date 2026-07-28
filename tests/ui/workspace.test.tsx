@@ -121,6 +121,50 @@ describe("VaultStewardWorkspace", () => {
     expect(priorityFindings.getByRole("button", { name: /low finding/i })).toBeInTheDocument();
   });
 
+  it("resets hidden queue filters when returning to the compact queue", async () => {
+    const findings = [
+      {
+        ...finding,
+        id: "critical",
+        severity: "critical" as const,
+        explanation: "Critical finding"
+      },
+      { ...finding, id: "high", severity: "high" as const, explanation: "High finding" },
+      { ...finding, id: "medium", severity: "medium" as const, explanation: "Medium finding" },
+      { ...finding, id: "low", severity: "low" as const, explanation: "Low finding" }
+    ];
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings })}
+        loadFindings={() => findings}
+      />
+    );
+
+    const priorityFindings = within(screen.getByRole("region", { name: "Priority findings" }));
+    await waitFor(() =>
+      expect(priorityFindings.getByRole("button", { name: /critical finding/i })).toBeEnabled()
+    );
+    fireEvent.click(priorityFindings.getByRole("button", { name: "View all findings" }));
+    fireEvent.change(priorityFindings.getByLabelText("Finding severity filter"), {
+      target: { value: "low" }
+    });
+    fireEvent.change(priorityFindings.getByLabelText("Search findings"), {
+      target: { value: "low" }
+    });
+    expect(priorityFindings.getAllByRole("button", { name: /finding:/i })).toHaveLength(1);
+
+    fireEvent.click(priorityFindings.getByRole("button", { name: "Show priority findings" }));
+
+    expect(priorityFindings.getAllByRole("button", { name: /finding:/i })).toHaveLength(3);
+    expect(priorityFindings.getByRole("button", { name: /critical finding/i })).toBeInTheDocument();
+    expect(priorityFindings.queryByRole("button", { name: /low finding/i })).toBeNull();
+
+    fireEvent.click(priorityFindings.getByRole("button", { name: "View all findings" }));
+    expect(priorityFindings.getByLabelText("Finding severity filter")).toHaveValue("all");
+    expect(priorityFindings.getByLabelText("Search findings")).toHaveValue("");
+  });
+
   it("selects the intended broken reference before preparing a repair", async () => {
     const secondFinding = {
       ...finding,
@@ -146,7 +190,18 @@ describe("VaultStewardWorkspace", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /old target needs repair/i }));
     expect(screen.queryByLabelText("Reference target")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Review repair" }));
+    const reviewRepair = screen.getByRole("button", { name: "Review repair" });
+    expect(reviewRepair).toHaveAttribute("aria-expanded", "false");
+    expect(reviewRepair).toHaveAttribute("aria-controls", "reference-repair-setup");
+    fireEvent.click(reviewRepair);
+    expect(reviewRepair).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText("Reference target")).toHaveAttribute(
+      "id",
+      "reference-repair-target"
+    );
+    expect(
+      screen.getByLabelText("Reference target").closest("#reference-repair-setup")
+    ).not.toBeNull();
     fireEvent.change(screen.getByLabelText("Reference target"), {
       target: { value: "Vault Steward Test/Target" }
     });
@@ -215,5 +270,33 @@ describe("VaultStewardWorkspace", () => {
     );
     expect(screen.getByText("Explain evidence").closest("details")).not.toHaveAttribute("open");
     expect(screen.getByText("Review feedback").closest("details")).not.toHaveAttribute("open");
+  });
+
+  it("orders advanced tools with model readiness before Policy Studio", async () => {
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [] })}
+        checkModelReadiness={async () => {
+          throw new Error("not used");
+        }}
+        policyStudio={{
+          loadDraft: async () => "",
+          previewDraft: async () => ({ ok: false, diagnostics: ["not used"] }),
+          saveDraft: async () => undefined
+        }}
+      />
+    );
+
+    const more = screen.getByText("More").closest("details");
+    expect(more).not.toBeNull();
+    const content = more!.querySelector(".more-tools-content");
+    expect(content).not.toBeNull();
+    const model = within(content as HTMLElement).getByRole("region", { name: "Model readiness" });
+    const policy = await within(content as HTMLElement).findByRole("region", {
+      name: "Policy Studio"
+    });
+
+    expect(model.compareDocumentPosition(policy) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   });
 });

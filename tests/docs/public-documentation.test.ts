@@ -43,4 +43,17 @@ describe("public documentation", () => {
     expect(commands).toContain("eval:synthetic");
     expect(commands.every((command) => command in packageJson.scripts)).toBe(true);
   });
+
+  it("documents the readiness check through More before the focused review flow", () => {
+    const suite = readFileSync(resolve(root, "docs/manual-acceptance-suite.md"), "utf8");
+    const checklist = readFileSync(resolve(root, "docs/manual-acceptance-checklist.md"), "utf8");
+
+    expect(suite).toMatch(
+      /open \*\*More\*\*, run\s+\*\*Check readiness\*\*, then close \*\*More\*\* before the first scan/
+    );
+    expect(suite).not.toContain("Follow this first-run flow before opening advanced tools");
+    expect(checklist).toContain(
+      "`More` is opened for `Check readiness` during setup, then closed before the first scan"
+    );
+  });
 });

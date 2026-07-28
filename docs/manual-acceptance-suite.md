@@ -17,8 +17,8 @@ Track the run in [manual-acceptance-checklist.md](manual-acceptance-checklist.md
 3. Enable Vault Steward and configure either a loopback local model endpoint or
    the OpenAI provider. For OpenAI, enter the API key and enable the cloud-data
    acknowledgement before a scan.
-4. Open Vault Steward from the left-ribbon shield icon and run **Check
-   readiness** before the first scan.
+4. Open Vault Steward from the left-ribbon shield icon, open **More**, run
+   **Check readiness**, then close **More** before the first scan.
 
 Record the Obsidian version, macOS/Windows/Linux version, model provider/model
 name, and whether the plugin was freshly installed or upgraded. A failed model
@@ -27,12 +27,11 @@ readiness check is a setup failure, not a finding-quality result.
 ## First Review Flow
 
 Run a scan without editing any fixture. It must complete and render a usable
-focused review interface. Follow this first-run flow before opening advanced
-tools:
+focused review interface. Keep **More** closed during this first-run flow:
 
 ```text
 Run scan -> inspect health -> select one of the top three -> review detail ->
-expand View all findings -> open More only for readiness/policy/maintenance/history/observability.
+expand View all findings.
 ```
 
 Confirm the health summary is readable and the compact queue initially exposes
@@ -43,9 +42,9 @@ without relying on its color. Select **View all findings**, then use the
 severity filter and finding search to narrow the expanded queue before choosing
 another result.
 
-Open **More** only after the focused review flow. It must reveal readiness,
-policy, maintenance, history, and observability tools without displacing the
-queue or detail before it is opened. Confirm that the workbench stacks the
+Reopen **More** after the focused review flow when readiness, policy,
+maintenance, history, or observability tools are needed. It must not displace
+the queue or detail before it is opened. Confirm that the workbench stacks the
 queue above the selected detail at a narrow sidebar width and that no controls
 or source paths are clipped.
 
