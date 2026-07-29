@@ -75,6 +75,18 @@ export function AIDebugConsole({ snapshot }: { snapshot: ObservabilitySnapshot }
         <dt>Retrieval spans</dt><dd>{snapshot.timeline.filter((span) => span.kind === "retrieval").length}</dd>
         <dt>Validation spans</dt><dd>{snapshot.timeline.filter((span) => span.kind === "validation").length}</dd>
       </dl>
+      <h3>Opted-in redacted snapshots</h3>
+      {snapshot.snapshots.length === 0 ? <p>No opted-in redacted snapshots are retained.</p> : (
+        <ul className="debug-snapshot-list">
+          {snapshot.snapshots.map((item) => (
+            <li key={`${item.category}:${item.createdAt}`}>
+              <strong>{item.category}</strong> <span>{item.byteCount} bytes</span>
+              <code>{JSON.stringify(item.metadata)}</code>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p>Replay one synthetic fixture case with <code>npm run evals -- --replay --manifest &lt;manifest&gt; --case &lt;case-id&gt;</code>.</p>
     </details>
   );
 }

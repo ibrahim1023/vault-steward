@@ -45,6 +45,7 @@ const snapshot: ObservabilitySnapshot = {
       modelOutputSnapshots: { enabled: false, count: 0, bytes: 0 }
     }
   },
+  snapshots: [],
   metrics: {
     scanDurationMs: 25,
     agentDurationMs: 0,

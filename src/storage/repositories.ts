@@ -220,6 +220,13 @@ export type TraceInventory = {
   };
 };
 
+export type TraceSnapshotView = {
+  category: "prompt" | "model-output";
+  createdAt: string;
+  byteCount: number;
+  metadata: Record<string, string | number | boolean>;
+};
+
 export type OperationalTraceMetrics = {
   scanDurationMs: number | null;
   agentDurationMs: number;
@@ -246,6 +253,7 @@ export type ObservabilitySnapshot = {
   lineage: FindingLineageView[];
   configuration: TraceConfigurationRecord | null;
   inventory: TraceInventory;
+  snapshots: TraceSnapshotView[];
   metrics: OperationalTraceMetrics;
 };
 
@@ -710,8 +718,27 @@ export class VaultStewardRepository {
       lineage,
       configuration: selectedScanId ? this.getTraceConfiguration(selectedScanId) : null,
       inventory: this.getTraceInventory(),
+      snapshots: selectedScanId ? this.listTraceSnapshots(selectedScanId) : [],
       metrics: this.getOperationalTraceMetrics(selectedScanId, timeline)
     };
+  }
+
+  private listTraceSnapshots(scanId: string): TraceSnapshotView[] {
+    return (
+      this.database.exec(
+        "SELECT category, snapshot_json, byte_count, created_at FROM trace_snapshots WHERE scan_id = ? ORDER BY created_at, id",
+        [scanId]
+      )[0]?.values ?? []
+    ).flatMap((row) => {
+      const [category, source, byteCount, createdAt] = row;
+      const metadata = typeof source === "string" ? safeMetadata(source) : null;
+      return (category === "prompt" || category === "model-output") &&
+        typeof byteCount === "number" &&
+        typeof createdAt === "string" &&
+        metadata !== null
+        ? [{ category, createdAt, byteCount, metadata }]
+        : [];
+    });
   }
 
   private getOperationalTraceMetrics(

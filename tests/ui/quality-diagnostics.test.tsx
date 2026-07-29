@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { AIDebugConsole, QualityDiagnostics } from "../../src/ui/QualityDiagnostics.js";
 import type { ObservabilitySnapshot } from "../../src/storage/repositories.js";
 
-const snapshot: ObservabilitySnapshot = { scanId: null, timeline: [], lineage: [], configuration: null, inventory: { spans: 0, agentExecutions: 0, findingLineage: 0, retentionDays: 30, categories: { promptSnapshots: { enabled: false, count: 0, bytes: 0 }, modelOutputSnapshots: { enabled: false, count: 0, bytes: 0 } } }, metrics: { scanDurationMs: null, agentDurationMs: 0, p50ScanDurationMs: null, p95ScanDurationMs: null, parseFailures: 0, indexFailures: 0, retrievalFailures: 0, validationFailures: 0, cacheHitRate: null, queueDepth: 0, databaseBytes: 0, modelLoadTimeMs: null, tokenUsage: 0, retries: 0, incompleteRate: 0, staleProposals: 0, applyFailures: 0 } };
+const snapshot: ObservabilitySnapshot = { scanId: null, timeline: [], lineage: [], configuration: null, inventory: { spans: 0, agentExecutions: 0, findingLineage: 0, retentionDays: 30, categories: { promptSnapshots: { enabled: false, count: 0, bytes: 0 }, modelOutputSnapshots: { enabled: false, count: 0, bytes: 0 } } }, snapshots: [], metrics: { scanDurationMs: null, agentDurationMs: 0, p50ScanDurationMs: null, p95ScanDurationMs: null, parseFailures: 0, indexFailures: 0, retrievalFailures: 0, validationFailures: 0, cacheHitRate: null, queueDepth: 0, databaseBytes: 0, modelLoadTimeMs: null, tokenUsage: 0, retries: 0, incompleteRate: 0, staleProposals: 0, applyFailures: 0 } };
 
 describe("quality diagnostics", () => {
   it("shows local-only unavailable states without vault content", () => {

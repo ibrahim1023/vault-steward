@@ -241,6 +241,7 @@ export default class VaultStewardPlugin extends Plugin {
             modelOutputSnapshots: { enabled: false, count: 0, bytes: 0 }
           }
         },
+        snapshots: [],
         metrics: {
           scanDurationMs: null,
           agentDurationMs: 0,

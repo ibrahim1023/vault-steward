@@ -97,4 +97,26 @@ describe("observability repository", () => {
       "Trace snapshot is invalid."
     );
   });
+
+  it("exposes only opted-in structured snapshot metadata", async () => {
+    const repository = await createRepository();
+    repository.saveScan({
+      id: "scan-snapshot",
+      vaultFingerprint: "vault",
+      startedAt: "2026-07-29T00:00:00.000Z",
+      finishedAt: "2026-07-29T00:00:01.000Z",
+      status: "completed",
+      configHash: "config",
+      inputHash: "input",
+      parserVersion: "scanner-v1"
+    });
+    repository.setTracePreferences(
+      { retentionDays: 30, storePromptSnapshots: true, storeModelOutputSnapshots: false, redactExcerpts: true, excludedFolders: [] },
+      "2026-07-29T00:00:00.000Z"
+    );
+    repository.saveTraceSnapshot("scan-snapshot", "prompt", '{"agent":"entity","version":"v1"}');
+    expect(repository.getObservabilitySnapshot("scan-snapshot").snapshots).toEqual([
+      expect.objectContaining({ category: "prompt", metadata: { agent: "entity", version: "v1" } })
+    ]);
+  });
 });

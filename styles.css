@@ -479,6 +479,22 @@
   border-left: 3px solid var(--steward-amber);
 }
 
+.debug-snapshot-list {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.debug-snapshot-list li {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  overflow-wrap: anywhere;
+}
+
 .observability-configuration span {
   display: contents;
 }
