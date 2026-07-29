@@ -10,10 +10,12 @@ Completed on 2026-07-16: ribbon and command-palette launch, governed scanning, m
 
 ## Decision
 
-**Internal testing only.** The package and deterministic safety controls remain
-usable for development, but broader distribution is blocked until the revised
-simple AI-guided Phase 19 flow passes manual macOS acceptance. Its automated
-gate passed on 2026-07-28; the earlier dashboard workbench is not the release
+**Development promotion, not release acceptance.** The package and deterministic
+safety controls are approved to advance `development` so Phase 20 work can
+continue. Broader distribution remains blocked until the revised simple
+AI-guided Phase 19 flow passes manual macOS acceptance, OpenAI has a passing
+release-corpus report, and the combined provider gate passes. Its automated
+gate passed on 2026-07-29; the earlier dashboard workbench is not the release
 candidate.
 
 ## Reviewed Controls
@@ -43,5 +45,6 @@ candidate.
 - The revised prepared-batch UI and bounded recommender have automated coverage
   but remain unaccepted in Obsidian desktop.
 - Model quality gates need calibration on representative local fixtures before wider distribution.
-- The committed corpus and regression harness pass deterministic tests, but live
-  Ollama and OpenAI reports have not yet both been recorded.
+- The committed corpus and regression harness pass deterministic tests, and
+  `gemma3:12b` passes the Ollama report; the acknowledged OpenAI report and
+  combined provider gate remain pending.

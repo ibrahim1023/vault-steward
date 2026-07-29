@@ -2,9 +2,10 @@
 
 ## Current Phase
 
-The revised Phase 19 simple AI-guided review flow has passed its automated gate.
-Manual Obsidian acceptance remains required before the branch can be promoted to
-`development`.
+The revised Phase 19 simple AI-guided review flow has passed its automated gate
+and is approved for promotion to `development` so Phase 20 work can begin.
+Manual Obsidian acceptance remains deferred and blocks release, marketplace
+submission, and any release-accepted claim.
 
 ## Completed Work
 
@@ -58,8 +59,10 @@ Manual Obsidian acceptance remains required before the branch can be promoted to
 
 ## Current Work
 
-Phase 19 implementation and automated verification are complete. Manual macOS
-acceptance, live provider release reports, and promotion remain pending.
+Phase 19 implementation and automated verification are complete. The branch is
+being promoted to `development` for Phase 20 work under an explicit manual
+acceptance exception. Manual macOS acceptance, the acknowledged OpenAI report,
+and the combined provider gate remain pending release blockers.
 
 - Security hardening on 2026-07-20 rejects local-provider redirects, bounds provider configuration and response reads, binds approval/apply to validated persisted proposal digests, and enforces vault-reader/scanner resource and canonical-path limits.
 - Phase 17 adds an explicit OpenAI provider option beside the default loopback Ollama/llama.cpp providers. OpenAI requests use a fixed API origin, bounded JSON-mode Responses API calls with `store: false`, a local API key, and a required cloud-data acknowledgement; keys remain excluded from traces, fingerprints, diagnostics, and portable exports.
@@ -91,8 +94,9 @@ acceptance, live provider release reports, and promotion remain pending.
 
 - The result-first flow has automated coverage, but it has not yet completed the
   required Obsidian desktop, narrow-pane, light/dark theme, keyboard, VoiceOver,
-  Ollama, and OpenAI manual acceptance matrix. The branch remains unsuitable for
-  promotion or release until that evidence is recorded.
+  Ollama, and OpenAI manual acceptance matrix. The code may advance
+  `development` for Phase 20 work, but it remains unsuitable for release until
+  that evidence is recorded.
 - Agent quality thresholds are initial calibration targets and need representative local-vault review before a broader release.
 - The marketplace corpus harness and live Ollama report are passing, but they do
   not substitute for the pending OpenAI execution or manual Obsidian
@@ -104,6 +108,6 @@ The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type che
 
 ## Next Recommended Task
 
-Install the packaged Phase 19 build into the Northstar Acceptance vault and run
-the result-first manual desktop matrix, then produce both live provider corpus
-reports before promoting the branch.
+Complete the deferred Phase 19 manual desktop matrix and acknowledged OpenAI
+provider report before any release candidate or marketplace submission. Phase
+20 development may proceed in parallel.
