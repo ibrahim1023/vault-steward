@@ -27,6 +27,7 @@
     "eval:marketplace:ollama": "tsx scripts/run-marketplace-release-eval.ts --provider ollama",
     "eval:marketplace:openai": "tsx scripts/run-marketplace-release-eval.ts --provider openai",
     "eval:marketplace:gate": "tsx scripts/check-marketplace-release.ts",
+    "release:quality": "tsx scripts/generate-release-quality-report.ts",
     "perf:smoke": "tsx scripts/run-performance.ts",
     "ops:smoke": "tsx scripts/run-operational-baseline.ts",
     "security:check": "npm audit --omit=dev --audit-level=moderate"

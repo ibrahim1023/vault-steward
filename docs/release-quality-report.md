@@ -32,6 +32,12 @@ unsupported-finding rate, safe-repair validity, median and p95 latency, retries,
 incomplete cases/scans, and unsafe-remediation count. Reports contain no API
 keys or vault excerpts.
 
+Generate the current local, redacted gate summary with `npm run release:quality`.
+It writes the ignored `evals/reports/release-quality.json` artifact and defaults
+to **no-go** unless fixture evaluation, both provider reports, and manual
+Obsidian acceptance are all supplied as passing evidence. The command never
+uploads or publishes the artifact.
+
 ### Current Ollama Measurement
 
 The `gemma3:12b` governed-pipeline run against corpus fingerprint

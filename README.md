@@ -116,6 +116,10 @@ retries, and failure codes. They exclude API keys and vault excerpts. The
 current release status and unmet evidence are recorded in the
 [release quality report](docs/release-quality-report.md).
 
+Reproducible synthetic and fixture benchmark instructions are in
+[BENCHMARKS.md](BENCHMARKS.md). Benchmark results remain local and describe only
+the recorded model, configuration, fixture, and hardware conditions.
+
 Fixture replay writes a redacted local record to `evals/reports/replay.json`. Controlled comparisons accept the same fixture manifest with exactly one changed configuration value: model, prompt, threshold, retrieval, policy, or agent. Live scans retain metadata rather than historical source by default, so they report replay eligibility instead of reconstructing old notes.
 
 Generated scale evaluation currently measures the deterministic reference family against exact synthetic ground truth. Retrieval metrics, policy coverage, model comparisons, and calibration describe recorded conditions only; they do not select a model or alter product behavior. See [evaluation methodology](EVALS.md) and [observability and retained data](OBSERVABILITY.md).
