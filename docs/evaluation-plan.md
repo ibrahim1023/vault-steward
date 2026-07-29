@@ -23,10 +23,14 @@ The initial deterministic `reference-integrity` baseline records evidence validi
 
 The `model-quality` report grades the split model-assisted fixtures with deterministic candidate, citation, schema, severity, false-positive/negative, precision, recall, F1, and unsupported-claim metrics. Reports contain only case IDs, aggregate metrics, versions, and split labels; they never contain note bodies, prompt text, or raw model output.
 
-The versioned Northstar release corpus adds 23 realistic cases over one
+The versioned Northstar release corpus adds 26 realistic cases over one
 product/project workflow. It explicitly labels positive findings, hard
 negatives, abstentions, source ranges, severity, and repair eligibility.
-Ollama and OpenAI run independently against the same fingerprint. Release
+The runner executes the governed scan over the complete immutable fixture
+snapshot. Deterministic checks own task, reference, decision, and policy
+outcomes; model output is accepted only through semantic-agent validators and
+the bounded reference-target selector. Ollama and OpenAI run independently
+against the same fingerprint. Release
 thresholds are precision 0.90, recall 0.85, F1 0.87, evidence validity 1.00,
 unsupported-finding rate at most 0.05, safe-repair validity 1.00, zero
 incomplete scans, and zero unsafe remediations.

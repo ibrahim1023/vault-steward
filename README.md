@@ -98,7 +98,10 @@ npm run eval:retrieval
 npm run evals -- --manifest evals/manifests/ci-regression.json --compare evals/baselines/evaluation-main.json
 ```
 
-Marketplace release validation uses the versioned 23-case Northstar corpus.
+Marketplace release validation uses the versioned 26-case Northstar corpus.
+The evaluator runs the actual governed scan: deterministic code owns task,
+reference, decision, and policy findings; providers handle semantic agent
+routes and bounded reference-target ranking.
 Run each provider independently; neither provider is release-validated until
 its report passes and the combined gate succeeds:
 

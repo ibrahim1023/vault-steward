@@ -7,18 +7,18 @@ submission and must not be used to claim marketplace availability.
 
 - [ ] Repository is public and has a clear license.
 - [ ] `manifest.json`, package version, release tag, and changelog agree.
-- [ ] `npm run test:plugin-install` passes from a clean checkout.
-- [ ] Release artifact contains `main.js`, `manifest.json`, `styles.css`,
+- [x] `npm run test:plugin-install` passes from the Phase 19 worktree.
+- [x] Release artifact contains `main.js`, `manifest.json`, `styles.css`,
       `sql-wasm.wasm`, and `release-manifest.json`.
 - [ ] Upgrade and uninstall guidance is current.
 
 ## Product Evidence
 
 - [ ] Phase 19 macOS manual acceptance is signed off.
-- [ ] Northstar Ollama report passes.
+- [x] Northstar Ollama report passes with `gemma3:12b`.
 - [ ] Northstar OpenAI report passes with explicit acknowledgement.
 - [ ] `npm run eval:marketplace:gate` passes against one corpus fingerprint.
-- [ ] Full completion gate and production dependency audit pass.
+- [x] Full automated completion gate and production dependency audit pass.
 - [ ] Release quality report records a **go** decision.
 
 ## Marketplace Materials

@@ -73,10 +73,12 @@ acceptance, live provider release reports, and promotion remain pending.
   before the first write, re-indexes after success, and reports the actual
   result.
 - Marketplace evidence now uses one versioned Northstar product/project
-  workflow with 23 reviewed positive, hard-negative, and abstention cases.
+  workflow with 26 reviewed positive, hard-negative, and abstention cases.
   Provider-neutral contracts, redacted Ollama/OpenAI reports, unsafe-remediation
-  rejection, and a combined same-fingerprint gate are implemented. Live
-  provider reports are still pending.
+  rejection, and a combined same-fingerprint gate are implemented. The release
+  runner now executes the real governed scan and bounded repair recommender
+  instead of asking a model to classify deterministic findings. `gemma3:12b`
+  passes the Ollama report; the OpenAI report remains pending.
 
 ## Important Decisions
 
@@ -92,13 +94,13 @@ acceptance, live provider release reports, and promotion remain pending.
   Ollama, and OpenAI manual acceptance matrix. The branch remains unsuitable for
   promotion or release until that evidence is recorded.
 - Agent quality thresholds are initial calibration targets and need representative local-vault review before a broader release.
-- The marketplace corpus harness is deterministic and tested, but it does not
-  substitute for the pending live Ollama/OpenAI executions or manual Obsidian
+- The marketplace corpus harness and live Ollama report are passing, but they do
+  not substitute for the pending OpenAI execution or manual Obsidian
   acceptance.
 
 ## Verification Status
 
-The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 15 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 36 replay/evaluation tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 16 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 128 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 48 evaluation/replay/quality tests, deterministic smoke/full evaluations, generated synthetic baseline evaluation, retrieval report, fixture-baseline evaluation, performance and operational smoke reports, and a production dependency audit with no moderate-or-higher vulnerabilities. The revised Phase 19 automated gate passed on 2026-07-28: formatting, linting, type checking, build, packaged install smoke, 161 unit/component tests, 25 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, and a production dependency audit with no vulnerabilities.
+The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 15 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 36 replay/evaluation tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 16 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 128 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 48 evaluation/replay/quality tests, deterministic smoke/full evaluations, generated synthetic baseline evaluation, retrieval report, fixture-baseline evaluation, performance and operational smoke reports, and a production dependency audit with no moderate-or-higher vulnerabilities. The revised Phase 19 automated gate passed again on 2026-07-29 after the governed release-evaluator correction: formatting, linting, type checking, build, packaged install smoke, 224 unit/component tests, 25 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, a passing 26-case `gemma3:12b` Ollama release report, and a production dependency audit with no vulnerabilities.
 
 ## Next Recommended Task
 

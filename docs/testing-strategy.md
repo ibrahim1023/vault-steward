@@ -38,7 +38,7 @@ failure.
 ## Marketplace Release Corpus
 
 `evals/release/northstar-v1.json` is the versioned product/project-management
-release corpus. It uses the realistic desktop acceptance vault and contains 23
+release corpus. It uses the realistic desktop acceptance vault and contains 26
 hand-labelled positive, hard-negative, and abstention cases. Every case records
 source ranges, expected finding type, severity, evidence IDs, and repair
 eligibility. The loader rejects duplicate IDs, invalid paths, missing source
