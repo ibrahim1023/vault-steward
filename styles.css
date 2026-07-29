@@ -453,6 +453,32 @@
   overflow-wrap: anywhere;
 }
 
+.lineage-chain,
+.health-trend-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lineage-chain li {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 8px;
+  padding: 6px 8px;
+  border-left: 2px solid var(--steward-green);
+  background: var(--background-primary);
+  overflow-wrap: anywhere;
+}
+
+.quality-diagnostics section,
+.ai-debug-console {
+  margin-top: 12px;
+  padding-left: 10px;
+  border-left: 3px solid var(--steward-amber);
+}
+
 .observability-configuration span {
   display: contents;
 }

@@ -115,24 +115,16 @@ export function ObservabilityView({
               <p>No metadata-only lineage is available for this selection.</p>
             ) : (
               lineage.map((item) => (
-                <dl key={item.findingId} className="observability-lineage">
-                  <dt>Evidence</dt>
-                  <dd>{item.evidenceLocators.join(", ")}</dd>
-                  <dt>Parsed artifacts</dt>
-                  <dd>{item.parsedArtifactIds.join(", ")}</dd>
-                  <dt>Retrieval</dt>
-                  <dd>{item.retrievalMetadata.join(", ") || "not run"}</dd>
-                  <dt>Agent execution</dt>
-                  <dd>{item.agentExecutionId ?? "not run"}</dd>
-                  <dt>Validation</dt>
-                  <dd>{item.validatorId}</dd>
-                  <dt>Policy</dt>
-                  <dd>{item.policyEvaluationId ?? "not run"}</dd>
-                  <dt>Coordinator</dt>
-                  <dd>{item.coordinatorDecisionId}</dd>
-                  <dt>Proposal source</dt>
-                  <dd>{item.proposalSourceId ?? "not applicable"}</dd>
-                </dl>
+                <ol key={item.findingId} className="lineage-chain" aria-label={`Lineage for ${item.findingId}`}>
+                  <li><strong>Source</strong><span>{item.evidenceLocators.join(", ")}</span></li>
+                  <li><strong>Parsed</strong><span>{item.parsedArtifactIds.join(", ")}</span></li>
+                  <li><strong>Retrieved</strong><span>{item.retrievalMetadata.join(", ") || "not run"}</span></li>
+                  <li><strong>Agent</strong><span>{item.agentExecutionId ?? "not run"}</span></li>
+                  <li><strong>Validated</strong><span>{item.validatorId}</span></li>
+                  <li><strong>Policy</strong><span>{item.policyEvaluationId ?? "not run"}</span></li>
+                  <li><strong>Coordinator</strong><span>{item.coordinatorDecisionId}</span></li>
+                  <li><strong>Proposal</strong><span>{item.proposalSourceId ?? "not applicable"}</span></li>
+                </ol>
               ))
             )}
           </section>

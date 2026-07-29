@@ -16,6 +16,7 @@ import { ModelReadinessView } from "./ModelReadinessView.js";
 import { MoreTools } from "./MoreTools.js";
 import { ObservabilityView } from "./ObservabilityView.js";
 import { PromptRegistryView } from "./PromptRegistryView.js";
+import { AIDebugConsole, QualityDiagnostics } from "./QualityDiagnostics.js";
 import { PolicyStudio } from "./PolicyStudio.js";
 import { rankDashboardFindings } from "./dashboard.js";
 
@@ -307,6 +308,16 @@ export function VaultStewardWorkspace({
           />
         ) : null}
         <PromptRegistryView />
+        {history && loadObservability ? (
+          <QualityDiagnostics
+            scans={history.scans}
+            lifecycle={history.lifecycle}
+            snapshot={loadObservability(history.scans[0]?.id)}
+          />
+        ) : null}
+        {history && loadObservability ? (
+          <AIDebugConsole snapshot={loadObservability(history.scans[0]?.id)} />
+        ) : null}
       </MoreTools>
     </section>
   );
