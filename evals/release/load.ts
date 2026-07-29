@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { readdir, readFile } from "node:fs/promises";
+import { relative, resolve } from "node:path";
 
+import type { VaultFile } from "../../src/vault-adapter/types.js";
 import { type ReleaseCorpus, type ReleaseCorpusCase, validateReleaseCorpus } from "./contracts.js";
 
 export type LoadedReleaseCase = {
@@ -12,12 +13,13 @@ export type LoadedReleaseCase = {
 export async function loadReleaseCorpus(
   root: string,
   path = "evals/release/northstar-v1.json"
-): Promise<{ corpus: ReleaseCorpus; cases: LoadedReleaseCase[] }> {
+): Promise<{ corpus: ReleaseCorpus; cases: LoadedReleaseCase[]; files: VaultFile[] }> {
   const corpusPath = safeResolve(root, path, "evals/release/");
   const value = JSON.parse(await readFile(corpusPath, "utf8")) as unknown;
   if (!validateReleaseCorpus(value)) throw new Error("Release corpus is invalid.");
 
   const fixtureRoot = safeResolve(root, value.fixtureRoot, "fixtures/");
+  const files = await loadFixtureFiles(fixtureRoot);
   const cases = await Promise.all(
     value.cases.map(async (item) => ({
       item,
@@ -40,12 +42,13 @@ export async function loadReleaseCorpus(
       )
     }))
   );
-  return { corpus: value, cases };
+  return { corpus: value, cases, files };
 }
 
 export function fingerprintReleaseCorpus(input: {
   corpus: ReleaseCorpus;
   cases: readonly LoadedReleaseCase[];
+  files: readonly VaultFile[];
 }): string {
   return createHash("sha256")
     .update(
@@ -58,10 +61,39 @@ export function fingerprintReleaseCorpus(input: {
             locator,
             excerpt
           }))
-        )
+        ),
+        files: input.files.map(({ path, content, revision }) => ({ path, content, revision }))
       })
     )
     .digest("hex");
+}
+
+async function loadFixtureFiles(root: string): Promise<VaultFile[]> {
+  const files = await walkMarkdownFiles(root);
+  return Promise.all(
+    files
+      .sort((left, right) => left.localeCompare(right))
+      .map(async (path) => {
+        const content = await readFile(path, "utf8");
+        return {
+          path: relative(root, path).replaceAll("\\", "/"),
+          content,
+          revision: createHash("sha256").update(content).digest("hex")
+        };
+      })
+  );
+}
+
+async function walkMarkdownFiles(directory: string): Promise<string[]> {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const nested = await Promise.all(
+    entries.map((entry) => {
+      const path = resolve(directory, entry.name);
+      if (entry.isDirectory()) return walkMarkdownFiles(path);
+      return Promise.resolve(entry.isFile() && entry.name.endsWith(".md") ? [path] : []);
+    })
+  );
+  return nested.flat();
 }
 
 function safeResolve(root: string, path: string, requiredPrefix: string): string {

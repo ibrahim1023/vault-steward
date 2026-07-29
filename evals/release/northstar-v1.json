@@ -86,8 +86,8 @@
         {
           "id": "e1",
           "notePath": "Work/Partner Enablement.md",
-          "startLine": 14,
-          "endLine": 20
+          "startLine": 19,
+          "endLine": 19
         },
         {
           "id": "e2",
@@ -106,7 +106,7 @@
         "decision": "finding",
         "findingType": "broken-reference",
         "severity": "medium",
-        "citedEvidenceIds": ["e1", "e2"],
+        "citedEvidenceIds": ["e1"],
         "repairEligibility": "eligible",
         "candidateTargetId": "target-1"
       }
@@ -121,8 +121,8 @@
         {
           "id": "e1",
           "notePath": "Work/Partner Enablement.md",
-          "startLine": 14,
-          "endLine": 17
+          "startLine": 16,
+          "endLine": 16
         },
         {
           "id": "e2",
@@ -156,7 +156,7 @@
         {
           "id": "e1",
           "notePath": "Notes/Working Agreement.md",
-          "startLine": 14,
+          "startLine": 19,
           "endLine": 19
         }
       ],
@@ -180,8 +180,8 @@
         {
           "id": "e1",
           "notePath": "Research/Customer Interviews.md",
-          "startLine": 35,
-          "endLine": 40
+          "startLine": 38,
+          "endLine": 38
         },
         {
           "id": "e2",
@@ -195,7 +195,7 @@
         "decision": "finding",
         "findingType": "broken-reference",
         "severity": "medium",
-        "citedEvidenceIds": ["e1", "e2"],
+        "citedEvidenceIds": ["e1"],
         "repairEligibility": "ineligible",
         "candidateTargetId": null
       }
@@ -210,8 +210,8 @@
         {
           "id": "e1",
           "notePath": "Research/Customer Interviews.md",
-          "startLine": 35,
-          "endLine": 38
+          "startLine": 37,
+          "endLine": 37
         },
         {
           "id": "e2",
@@ -240,8 +240,8 @@
         {
           "id": "e1",
           "notePath": "Research/Customer Interviews.md",
-          "startLine": 35,
-          "endLine": 40
+          "startLine": 39,
+          "endLine": 39
         }
       ],
       "candidateTargets": [],
@@ -264,8 +264,8 @@
         {
           "id": "e1",
           "notePath": "Work/Launch Readiness.md",
-          "startLine": 13,
-          "endLine": 17
+          "startLine": 16,
+          "endLine": 16
         }
       ],
       "candidateTargets": [],
@@ -288,8 +288,8 @@
         {
           "id": "e1",
           "notePath": "Work/Launch Readiness.md",
-          "startLine": 13,
-          "endLine": 16
+          "startLine": 15,
+          "endLine": 15
         }
       ],
       "candidateTargets": [],
@@ -312,8 +312,8 @@
         {
           "id": "e1",
           "notePath": "Work/Launch Readiness.md",
-          "startLine": 16,
-          "endLine": 18
+          "startLine": 17,
+          "endLine": 17
         }
       ],
       "candidateTargets": [],
@@ -321,6 +321,78 @@
         "decision": "finding",
         "findingType": "task-orphaned",
         "severity": "low",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "rota-task-overdue",
+      "family": "task",
+      "label": "positive",
+      "task": "Determine whether the incomplete support rota task is due before 2026-07-29",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 17,
+          "endLine": 17
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-overdue",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "duplicate-task-staging-overdue",
+      "family": "task",
+      "label": "positive",
+      "task": "Determine whether the incomplete staging migration task is due before 2026-07-29",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 18,
+          "endLine": 18
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-overdue",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "duplicate-task-production-overdue",
+      "family": "task",
+      "label": "positive",
+      "task": "Determine whether the incomplete production migration task is due before 2026-07-29",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 19,
+          "endLine": 19
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-overdue",
+        "severity": "medium",
         "citedEvidenceIds": ["e1"],
         "repairEligibility": "ineligible",
         "candidateTargetId": null
@@ -336,7 +408,7 @@
         {
           "id": "e1",
           "notePath": "Work/Launch Readiness.md",
-          "startLine": 18,
+          "startLine": 19,
           "endLine": 19
         }
       ],
@@ -360,8 +432,8 @@
         {
           "id": "e1",
           "notePath": "Work/Launch Readiness.md",
-          "startLine": 19,
-          "endLine": 21
+          "startLine": 20,
+          "endLine": 20
         }
       ],
       "candidateTargets": [],
@@ -384,8 +456,8 @@
         {
           "id": "e1",
           "notePath": "Work/Launch Readiness.md",
-          "startLine": 20,
-          "endLine": 22
+          "startLine": 21,
+          "endLine": 21
         }
       ],
       "candidateTargets": [],

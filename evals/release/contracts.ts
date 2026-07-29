@@ -81,6 +81,13 @@ export type ReleaseProviderReport = {
     incompleteScans: number;
     unsafeRemediations: number;
   };
+  execution: {
+    scanDurationMs: number;
+    modelInvocations: number;
+    deterministicFindingCount: number;
+    semanticFindingCount: number;
+    repairRecommendations: number;
+  };
   cases: Array<{
     id: string;
     outcome: "passed" | "failed" | "incomplete";
@@ -151,7 +158,13 @@ export function createReleaseDecisionValidator(
 }
 
 export function validateReleaseProviderReport(value: unknown): value is ReleaseProviderReport {
-  if (!isRecord(value) || !isRecord(value.thresholds) || !isRecord(value.metrics)) return false;
+  if (
+    !isRecord(value) ||
+    !isRecord(value.thresholds) ||
+    !isRecord(value.metrics) ||
+    !isRecord(value.execution)
+  )
+    return false;
   return (
     value.schemaVersion === 1 &&
     isSafeId(value.reportId) &&
@@ -165,6 +178,7 @@ export function validateReleaseProviderReport(value: unknown): value is ReleaseP
     ["passed", "failed", "incomplete"].includes(value.status as string) &&
     Object.values(value.thresholds).every(isFiniteNonNegative) &&
     Object.values(value.metrics).every(isFiniteNonNegative) &&
+    Object.values(value.execution).every(isFiniteNonNegative) &&
     Array.isArray(value.cases) &&
     value.cases.every(
       (item) =>

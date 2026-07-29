@@ -11,9 +11,9 @@ import { fingerprintReleaseCorpus, loadReleaseCorpus } from "../../evals/release
 const root = resolve(import.meta.dirname, "../..");
 
 describe("marketplace provider evaluation", () => {
-  it("grades the same labelled corpus without persisting evidence or secrets", async () => {
+  it("grades the actual governed scan and bounded repair path without persisting content", async () => {
     const loaded = await loadReleaseCorpus(root);
-    const provider = providerFor(decisionsFor(loaded.corpus.cases));
+    const provider = governedProvider();
     const report = await evaluateReleaseProvider({
       ...loaded,
       provider,
@@ -21,7 +21,7 @@ describe("marketplace provider evaluation", () => {
       now: () => new Date("2026-07-29T00:00:00.000Z")
     });
 
-    expect(report.status).toBe("passed");
+    expect(report.status, JSON.stringify(report, null, 2)).toBe("passed");
     expect(report.cases).toHaveLength(loaded.corpus.cases.length);
     expect(report.metrics).toMatchObject({
       precision: 1,
@@ -34,34 +34,84 @@ describe("marketplace provider evaluation", () => {
       incompleteScans: 0,
       unsafeRemediations: 0
     });
+    expect(report.execution).toMatchObject({
+      deterministicFindingCount: 14,
+      semanticFindingCount: 0,
+      repairRecommendations: 1
+    });
     expect(JSON.stringify(report)).not.toMatch(
       /workspace configuration|permission-template|api key|raw output/i
     );
   });
 
-  it("fails the release when a provider proposes an unsafe repair", async () => {
+  it("does not let model output invent deterministic findings", async () => {
     const loaded = await loadReleaseCorpus(root);
-    const decisions = decisionsFor(loaded.corpus.cases);
-    decisions.set("brief-reference-valid", {
-      decision: "finding",
-      citedEvidenceIds: ["e1"],
-      repairEligibility: "eligible",
-      candidateTargetId: "target-1"
+    const provider = governedProvider({
+      agentOutput: {
+        candidates: [
+          {
+            type: "task",
+            severity: "critical",
+            evidence: [],
+            explanation: "Invented deterministic finding."
+          }
+        ]
+      }
     });
     const report = await evaluateReleaseProvider({
       ...loaded,
-      provider: providerFor(decisions),
+      provider,
+      corpusFingerprint: fingerprintReleaseCorpus(loaded)
+    });
+
+    expect(report.status).toBe("passed");
+    expect(report.metrics.unsupportedFindingRate).toBe(0);
+    expect(report.execution.semanticFindingCount).toBe(0);
+  });
+
+  it("fails the release when bounded repair selection abstains", async () => {
+    const loaded = await loadReleaseCorpus(root);
+    const report = await evaluateReleaseProvider({
+      ...loaded,
+      provider: governedProvider({ repairCandidateId: null }),
       corpusFingerprint: fingerprintReleaseCorpus(loaded)
     });
 
     expect(report.status).toBe("failed");
-    expect(report.metrics.unsafeRemediations).toBe(1);
-    expect(report.metrics.unsupportedFindingRate).toBeGreaterThan(0);
+    expect(report.metrics.safeRepairValidity).toBe(0);
+    expect(report.metrics.unsafeRemediations).toBe(0);
+  });
+
+  it("fails when any labelled case disagrees even if aggregate thresholds pass", async () => {
+    const loaded = await loadReleaseCorpus(root);
+    const cases = loaded.cases.map((item) =>
+      item.item.id === "project-owner-missing"
+        ? {
+            ...item,
+            item: {
+              ...item.item,
+              expected: { ...item.item.expected, severity: "critical" as const }
+            }
+          }
+        : item
+    );
+    const report = await evaluateReleaseProvider({
+      ...loaded,
+      cases,
+      provider: governedProvider(),
+      corpusFingerprint: fingerprintReleaseCorpus(loaded)
+    });
+
+    expect(report.metrics.precision).toBe(1);
+    expect(report.status).toBe("failed");
+    expect(report.cases.find((item) => item.id === "project-owner-missing")?.outcome).toBe(
+      "failed"
+    );
   });
 
   it("marks provider failures incomplete and requires both passing provider reports", async () => {
     const loaded = await loadReleaseCorpus(root);
-    const failedProvider = providerFor(new Map(), true);
+    const failedProvider = governedProvider({ fail: true });
     const incomplete = await evaluateReleaseProvider({
       ...loaded,
       provider: failedProvider,
@@ -70,10 +120,9 @@ describe("marketplace provider evaluation", () => {
     expect(incomplete.status).toBe("incomplete");
     expect(incomplete.metrics.incompleteScans).toBe(1);
 
-    const decisions = decisionsFor(loaded.corpus.cases);
     const ollama = await evaluateReleaseProvider({
       ...loaded,
-      provider: providerFor(decisions),
+      provider: governedProvider(),
       corpusFingerprint: fingerprintReleaseCorpus(loaded)
     });
     const openai = {
@@ -97,31 +146,13 @@ describe("marketplace provider evaluation", () => {
   });
 });
 
-function decisionsFor(
-  cases: readonly {
-    id: string;
-    expected: {
-      decision: string;
-      citedEvidenceIds: string[];
-      repairEligibility: string;
-      candidateTargetId: string | null;
-    };
-  }[]
-): Map<string, unknown> {
-  return new Map(
-    cases.map((item) => [
-      item.id,
-      {
-        decision: item.expected.decision,
-        citedEvidenceIds: item.expected.citedEvidenceIds,
-        repairEligibility: item.expected.repairEligibility,
-        candidateTargetId: item.expected.candidateTargetId
-      }
-    ])
-  );
-}
-
-function providerFor(decisions: Map<string, unknown>, fail = false): ModelProvider {
+function governedProvider(
+  options: {
+    fail?: boolean;
+    agentOutput?: unknown;
+    repairCandidateId?: string | null;
+  } = {}
+): ModelProvider {
   return {
     config: {
       kind: "ollama",
@@ -132,12 +163,30 @@ function providerFor(decisions: Map<string, unknown>, fail = false): ModelProvid
     },
     capabilities: ["structured-output"],
     async generate(request: LocalGenerationRequest) {
-      if (fail) throw new Error("provider unavailable");
-      const id = /Case: ([a-z0-9-]+)/.exec(request.prompt)?.[1];
-      const decision = id ? decisions.get(id) : undefined;
-      if (!decision) throw new Error("missing test decision");
+      if (options.fail) throw new Error("provider unavailable");
+      if (request.prompt.includes('"task":"select-reference-target"')) {
+        const parsed = JSON.parse(request.prompt) as {
+          request: { candidates: Array<{ id: string; path: string }> };
+        };
+        const selected =
+          options.repairCandidateId === undefined
+            ? (parsed.request.candidates.find(
+                (candidate) => candidate.path === "Guides/Partner Onboarding Checklist.md"
+              )?.id ?? null)
+            : options.repairCandidateId;
+        return {
+          text: JSON.stringify({
+            schemaVersion: 1,
+            candidateId: selected,
+            reason: selected ? "The candidate is the intended checklist." : "No supported match."
+          }),
+          model: "release-test-model",
+          provider: "ollama",
+          latencyMs: 1
+        };
+      }
       return {
-        text: JSON.stringify(decision),
+        text: JSON.stringify(options.agentOutput ?? { candidates: [] }),
         model: "release-test-model",
         provider: "ollama",
         latencyMs: 1

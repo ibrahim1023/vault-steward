@@ -28,6 +28,10 @@ describe("Northstar release corpus", () => {
     expect(loaded.cases.every((item) => item.evidence.every((evidence) => evidence.excerpt))).toBe(
       true
     );
+    expect(loaded.files.length).toBeGreaterThanOrEqual(10);
+    expect(loaded.files.every((file) => file.path.endsWith(".md") && file.content.length > 0)).toBe(
+      true
+    );
     expect(fingerprintReleaseCorpus(loaded)).toMatch(/^[a-f0-9]{64}$/);
   });
 
@@ -103,6 +107,13 @@ describe("Northstar release corpus", () => {
         incompleteCases: 0,
         incompleteScans: 0,
         unsafeRemediations: 0
+      },
+      execution: {
+        scanDurationMs: 10,
+        modelInvocations: 2,
+        deterministicFindingCount: 11,
+        semanticFindingCount: 0,
+        repairRecommendations: 1
       },
       cases: [
         {

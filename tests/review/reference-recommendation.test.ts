@@ -90,6 +90,15 @@ describe("bounded reference repair recommendations", () => {
     expect(selectCandidate).not.toHaveBeenCalled();
   });
 
+  it("does not turn a missing anchor into a whole-note replacement", () => {
+    expect(
+      buildReferenceTargetCandidates({
+        finding: finding("scan-1", "[[Guides/Current Guide#Missing Heading]]"),
+        snapshot: snapshot()
+      })
+    ).toEqual([]);
+  });
+
   it("accepts only a known candidate ID from typed provider output", async () => {
     await expect(
       recommendReferenceRepair({
@@ -239,11 +248,22 @@ describe("bounded reference repair recommendations", () => {
       },
       capabilities: ["structured-output"],
       generate: vi.fn(async ({ prompt }: { prompt: string }) => {
-        const parsed = JSON.parse(prompt) as Record<string, unknown>;
+        const parsed = JSON.parse(prompt) as {
+          request: Record<string, unknown>;
+          responseContract: Record<string, unknown>;
+        };
         expect(parsed).toMatchObject({
-          task: "select-reference-target",
-          scanId: "scan-1",
-          candidates: [{ id: "path:Guides/Similar Guide.md" }]
+          request: {
+            task: "select-reference-target",
+            scanId: "scan-1",
+            candidates: [{ id: "path:Guides/Similar Guide.md" }]
+          },
+          responseContract: {
+            exactKeys: ["schemaVersion", "candidateId", "reason"],
+            candidateId: {
+              allowed: ["path:Guides/Similar Guide.md", null]
+            }
+          }
         });
         return {
           text: JSON.stringify({

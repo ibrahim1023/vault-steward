@@ -151,7 +151,25 @@ export async function selectReferenceCandidateWithProviders(
   const result = await generateStructured(
     providers,
     {
-      prompt: JSON.stringify(request),
+      prompt: JSON.stringify({
+        request,
+        responseContract: {
+          exactKeys: ["schemaVersion", "candidateId", "reason"],
+          schemaVersion: 1,
+          candidateId: {
+            allowed: [...request.candidates.map((candidate) => candidate.id), null]
+          },
+          reason: {
+            type: "string",
+            maxLength: 500
+          }
+        },
+        responseRules: [
+          "Return exactly one JSON object and no commentary.",
+          "Choose a candidate only when the evidence supports that existing target.",
+          "Use candidateId null when uncertain."
+        ]
+      }),
       maxOutputTokens: 256
     },
     isSelection
@@ -224,8 +242,15 @@ function addCandidate(
 }
 
 function wikiTarget(excerpt: string): string | null {
+  if (hasWikiAnchor(excerpt)) return null;
   const match = /^!?\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|[^\]]+)?\]\]$/.exec(excerpt.trim());
   return match?.[1] ? stripExtension(match[1].trim()) : null;
+}
+
+function hasWikiAnchor(excerpt: string): boolean {
+  const match = /^!?\[\[([^\]]+)\]\]$/.exec(excerpt.trim());
+  const target = match?.[1]?.split("|", 1)[0];
+  return target?.includes("#") ?? false;
 }
 
 function stringValues(value: unknown): string[] {
