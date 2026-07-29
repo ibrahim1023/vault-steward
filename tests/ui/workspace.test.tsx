@@ -226,6 +226,78 @@ describe("VaultStewardWorkspace", () => {
     expect(screen.queryByRole("button", { name: /apply/i })).not.toBeInTheDocument();
   });
 
+  it("advances through multiple locally dismissed judgment findings", async () => {
+    const firstTask = {
+      ...finding,
+      id: "task-1",
+      type: "task" as const,
+      explanation: "The first task needs review."
+    };
+    const secondTask = {
+      ...finding,
+      id: "task-2",
+      type: "task" as const,
+      explanation: "The second task needs review."
+    };
+    const thirdTask = {
+      ...finding,
+      id: "task-3",
+      type: "task" as const,
+      explanation: "The third task needs review."
+    };
+    const markNotImportant = vi.fn(async () => undefined);
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [firstTask, secondTask, thirdTask] })}
+        loadFindings={() => [firstTask, secondTask, thirdTask]}
+        prepareRepairs={async () => null}
+        markNotImportant={markNotImportant}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    expect(await screen.findByText(firstTask.explanation)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Not important" }));
+    expect(await screen.findByText(secondTask.explanation)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Not important" }));
+    expect(await screen.findByText(thirdTask.explanation)).toBeInTheDocument();
+    expect(markNotImportant).toHaveBeenNthCalledWith(1, firstTask);
+    expect(markNotImportant).toHaveBeenNthCalledWith(2, secondTask);
+  });
+
+  it("continues to the next judgment when repair preparation is unavailable", async () => {
+    const firstTask = {
+      ...finding,
+      id: "task-1",
+      type: "task" as const,
+      explanation: "The first task needs review."
+    };
+    const secondTask = {
+      ...finding,
+      id: "task-2",
+      type: "task" as const,
+      explanation: "The second task needs review."
+    };
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [firstTask, secondTask] })}
+        loadFindings={() => [firstTask, secondTask]}
+        prepareRepairs={async () => {
+          throw new Error("provider selection timed out");
+        }}
+        markNotImportant={async () => undefined}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    expect(await screen.findByText(firstTask.explanation)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Not important" }));
+    expect(await screen.findByText(secondTask.explanation)).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("runs a fresh scan when checking a clear vault again", async () => {
     const scan = vi.fn(async () => ({ scanId: "scan", findings: [] }));
     render(<VaultStewardWorkspace vaultLabel="Test vault" scan={scan} />);

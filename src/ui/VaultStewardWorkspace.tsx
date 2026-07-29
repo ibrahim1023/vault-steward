@@ -95,7 +95,14 @@ export function VaultStewardWorkspace({
     const active = rankDashboardFindings(
       nextFindings.filter((finding) => finding.status === "open" && !dismissedIds.has(finding.id))
     );
-    const nextPrepared = prepareRepairs ? await prepareRepairs() : null;
+    let nextPrepared: PreparedReferenceRepair | null = null;
+    try {
+      nextPrepared = prepareRepairs ? await prepareRepairs() : null;
+    } catch {
+      // A repair recommendation is optional. Keep the review loop usable when
+      // the provider cannot rank a bounded repair candidate.
+      nextPrepared = null;
+    }
     if (nextPrepared) {
       setPrepared(nextPrepared);
       setJudgment(undefined);
