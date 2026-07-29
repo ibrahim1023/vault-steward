@@ -244,6 +244,8 @@ function bodyFor(config: LocalProviderConfig, request: LocalGenerationRequest): 
         prompt: request.prompt,
         stream: false,
         format: "json",
+        // Thinking-capable Ollama models otherwise enable it by default.
+        think: false,
         options: { num_predict: request.maxOutputTokens }
       }
     : { prompt: request.prompt, n_predict: request.maxOutputTokens };

@@ -81,7 +81,10 @@ describe("local model providers", () => {
       fetcher
     );
     await provider.generate({ prompt: "x", maxOutputTokens: 5 });
-    expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({ format: "json" });
+    expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({
+      format: "json",
+      think: false
+    });
     expect(fetcher.mock.calls[0]?.[1]).toMatchObject({ redirect: "error" });
   });
 

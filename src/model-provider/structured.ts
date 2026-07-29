@@ -22,7 +22,10 @@ export async function generateStructured<T>(
       try {
         const generation = await provider.generate({
           ...request,
-          prompt: attempt === 0 ? request.prompt : `${request.prompt}\nReturn valid JSON only.`
+          prompt:
+            attempt === 0
+              ? request.prompt
+              : `${request.prompt}\nPrevious output was invalid. Return exactly one JSON object matching the requested schema. Do not include commentary, Markdown fences, or thinking.`
         });
         const value = parse(generation.text);
         const trace: ModelTrace = {
@@ -54,9 +57,50 @@ export async function generateStructured<T>(
 }
 
 function parse(text: string): unknown {
+  const direct = parseJson(text.trim());
+  if (direct !== null) return direct;
+
+  for (const match of text.matchAll(/```(?:json)?\s*([\s\S]*?)\s*```/gi)) {
+    const value = parseJson(match[1]?.trim() ?? "");
+    if (value !== null) return value;
+  }
+
+  return parseFirstJsonValue(text);
+}
+
+function parseJson(text: string): unknown {
   try {
     return JSON.parse(text) as unknown;
   } catch {
     return null;
   }
+}
+
+function parseFirstJsonValue(text: string): unknown {
+  candidate: for (let start = 0; start < text.length; start++) {
+    if (text[start] !== "{" && text[start] !== "[") continue;
+    let depth = 1;
+    let quote = false;
+    let escaped = false;
+    for (let index = start + 1; index < text.length; index++) {
+      const character = text[index];
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (character === "\\") escaped = true;
+        else if (character === '"') quote = false;
+        continue;
+      }
+      if (character === '"') {
+        quote = true;
+        continue;
+      }
+      if (character === "{" || character === "[") depth += 1;
+      if (character === "}" || character === "]") depth -= 1;
+      if (depth !== 0) continue;
+      const value = parseJson(text.slice(start, index + 1));
+      if (value !== null) return value;
+      continue candidate;
+    }
+  }
+  return null;
 }
