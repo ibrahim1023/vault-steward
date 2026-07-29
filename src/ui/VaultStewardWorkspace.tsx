@@ -75,6 +75,7 @@ export function VaultStewardWorkspace({
   const [actualResult, setActualResult] = useState<BatchApplyResult | null>(null);
   const [judgment, setJudgment] = useState<Finding>();
   const [dismissedFindingIds, setDismissedFindingIds] = useState<Set<string>>(() => new Set());
+  const [dismissing, setDismissing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>();
   const history = loadHistory?.();
   const activeFindings = rankDashboardFindings(
@@ -90,18 +91,21 @@ export function VaultStewardWorkspace({
 
   const chooseNext = async (
     nextFindings: Finding[],
-    dismissedIds: ReadonlySet<string> = dismissedFindingIds
+    dismissedIds: ReadonlySet<string> = dismissedFindingIds,
+    includeRepairRecommendation = true
   ) => {
     const active = rankDashboardFindings(
       nextFindings.filter((finding) => finding.status === "open" && !dismissedIds.has(finding.id))
     );
     let nextPrepared: PreparedReferenceRepair | null = null;
-    try {
-      nextPrepared = prepareRepairs ? await prepareRepairs() : null;
-    } catch {
-      // A repair recommendation is optional. Keep the review loop usable when
-      // the provider cannot rank a bounded repair candidate.
-      nextPrepared = null;
+    if (includeRepairRecommendation) {
+      try {
+        nextPrepared = prepareRepairs ? await prepareRepairs() : null;
+      } catch {
+        // A repair recommendation is optional. Keep the review loop usable when
+        // the provider cannot rank a bounded repair candidate.
+        nextPrepared = null;
+      }
     }
     if (nextPrepared) {
       setPrepared(nextPrepared);
@@ -173,16 +177,20 @@ export function VaultStewardWorkspace({
   };
 
   const dismissJudgment = async (finding: Finding) => {
+    if (dismissing) return;
+    setDismissing(true);
     setErrorMessage(undefined);
     try {
       await markNotImportant?.(finding);
       const nextDismissedIds = new Set(dismissedFindingIds);
       nextDismissedIds.add(finding.id);
       setDismissedFindingIds(nextDismissedIds);
-      await chooseNext(findings, nextDismissedIds);
+      await chooseNext(findings, nextDismissedIds, false);
     } catch {
       setMode("error");
       setErrorMessage("This issue could not be marked as unimportant. Try again.");
+    } finally {
+      setDismissing(false);
     }
   };
 
@@ -247,6 +255,7 @@ export function VaultStewardWorkspace({
         <JudgmentView
           finding={judgment}
           {...(openNote ? { openNote } : {})}
+          dismissing={dismissing}
           onNotImportant={dismissJudgment}
         />
       ) : null}
@@ -402,10 +411,12 @@ function ResultView({
 function JudgmentView({
   finding,
   openNote,
+  dismissing,
   onNotImportant
 }: {
   finding: Finding;
   openNote?: (path: string) => void | Promise<void>;
+  dismissing: boolean;
   onNotImportant: (finding: Finding) => Promise<void>;
 }) {
   const paths = [
@@ -433,7 +444,7 @@ function JudgmentView({
             {multiple ? "Review both notes" : "Open note"}
           </button>
         ) : null}
-        <button type="button" onClick={() => void onNotImportant(finding)}>
+        <button type="button" disabled={dismissing} onClick={() => void onNotImportant(finding)}>
           Not important
         </button>
       </div>

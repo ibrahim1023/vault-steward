@@ -266,6 +266,40 @@ describe("VaultStewardWorkspace", () => {
     expect(markNotImportant).toHaveBeenNthCalledWith(2, secondTask);
   });
 
+  it("advances immediately without waiting for another repair recommendation", async () => {
+    const firstTask = {
+      ...finding,
+      id: "task-1",
+      type: "task" as const,
+      explanation: "The first task needs review."
+    };
+    const secondTask = {
+      ...finding,
+      id: "task-2",
+      type: "task" as const,
+      explanation: "The second task needs review."
+    };
+    const prepareRepairs = vi
+      .fn<() => Promise<PreparedReferenceRepair | null>>()
+      .mockResolvedValueOnce(null)
+      .mockImplementationOnce(() => new Promise<null>(() => undefined));
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [firstTask, secondTask] })}
+        loadFindings={() => [firstTask, secondTask]}
+        prepareRepairs={prepareRepairs}
+        markNotImportant={async () => undefined}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    expect(await screen.findByText(firstTask.explanation)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Not important" }));
+    expect(await screen.findByText(secondTask.explanation)).toBeInTheDocument();
+    expect(prepareRepairs).toHaveBeenCalledOnce();
+  });
+
   it("continues to the next judgment when repair preparation is unavailable", async () => {
     const firstTask = {
       ...finding,
