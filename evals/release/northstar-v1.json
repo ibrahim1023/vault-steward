@@ -1,0 +1,618 @@
+{
+  "schemaVersion": 1,
+  "id": "northstar-release-v1",
+  "persona": "product-project-team",
+  "fixtureRoot": "fixtures/desktop-acceptance-vault",
+  "cases": [
+    {
+      "schemaVersion": 1,
+      "id": "project-owner-missing",
+      "family": "policy",
+      "label": "positive",
+      "task": "Find an open project whose frontmatter has no owner",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Projects/Northstar Launch.md",
+          "startLine": 1,
+          "endLine": 9
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "policy-missing-owner",
+        "severity": "high",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "decision-rationale-missing",
+      "family": "decision",
+      "label": "positive",
+      "task": "Find an open decision whose frontmatter has no rationale",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Decisions/ADR-004-Launch-window.md",
+          "startLine": 1,
+          "endLine": 8
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "decision-missing-rationale",
+        "severity": "low",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "decision-rationale-present",
+      "family": "decision",
+      "label": "hard-negative",
+      "task": "Find an open decision whose frontmatter has no rationale",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Decisions/ADR-005-Validation-first.md",
+          "startLine": 1,
+          "endLine": 9
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "partner-checklist-missing",
+      "family": "reference",
+      "label": "positive",
+      "task": "Find a missing internal wiki target and select the listed existing replacement only when it is the intended checklist",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Partner Enablement.md",
+          "startLine": 14,
+          "endLine": 20
+        },
+        {
+          "id": "e2",
+          "notePath": "Guides/Partner Onboarding Checklist.md",
+          "startLine": 1,
+          "endLine": 8
+        }
+      ],
+      "candidateTargets": [
+        {
+          "id": "target-1",
+          "notePath": "Guides/Partner Onboarding Checklist.md"
+        }
+      ],
+      "expected": {
+        "decision": "finding",
+        "findingType": "broken-reference",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1", "e2"],
+        "repairEligibility": "eligible",
+        "candidateTargetId": "target-1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "brief-reference-valid",
+      "family": "reference",
+      "label": "hard-negative",
+      "task": "Find a missing internal wiki target",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Partner Enablement.md",
+          "startLine": 14,
+          "endLine": 17
+        },
+        {
+          "id": "e2",
+          "notePath": "Product/Northstar Brief.md",
+          "startLine": 1,
+          "endLine": 8
+        }
+      ],
+      "candidateTargets": [
+        {
+          "id": "target-1",
+          "notePath": "Product/Northstar Brief.md"
+        }
+      ],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "external-style-target",
+      "family": "reference",
+      "label": "positive",
+      "task": "Find a wiki target that is external or unsupported inside the vault",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Notes/Working Agreement.md",
+          "startLine": 14,
+          "endLine": 19
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "invalid-reference",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "brief-anchor-missing",
+      "family": "reference",
+      "label": "positive",
+      "task": "Find a wiki reference whose target note exists but whose heading anchor does not",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Research/Customer Interviews.md",
+          "startLine": 35,
+          "endLine": 40
+        },
+        {
+          "id": "e2",
+          "notePath": "Product/Northstar Brief.md",
+          "startLine": 30,
+          "endLine": 40
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "broken-reference",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1", "e2"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "success-anchor-valid",
+      "family": "reference",
+      "label": "hard-negative",
+      "task": "Find a wiki reference whose target note exists but whose heading anchor does not",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Research/Customer Interviews.md",
+          "startLine": 35,
+          "endLine": 38
+        },
+        {
+          "id": "e2",
+          "notePath": "Product/Northstar Brief.md",
+          "startLine": 24,
+          "endLine": 29
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "interview-embed-missing",
+      "family": "reference",
+      "label": "positive",
+      "task": "Find an embedded note whose internal target is missing",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Research/Customer Interviews.md",
+          "startLine": 35,
+          "endLine": 40
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "broken-reference",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "analytics-task-overdue",
+      "family": "task",
+      "label": "positive",
+      "task": "Find an incomplete task whose due date has passed",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 13,
+          "endLine": 17
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-overdue",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "completed-task-not-overdue",
+      "family": "task",
+      "label": "hard-negative",
+      "task": "Find an incomplete task whose due date has passed",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 13,
+          "endLine": 16
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "rota-task-orphaned",
+      "family": "task",
+      "label": "positive",
+      "task": "Find an incomplete task that has a project but no owner",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 16,
+          "endLine": 18
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-orphaned",
+        "severity": "low",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "duplicate-task-id",
+      "family": "task",
+      "label": "positive",
+      "task": "Find two tasks that use the same block identifier",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 18,
+          "endLine": 19
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-duplicated",
+        "severity": "low",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "abandoned-task-open",
+      "family": "task",
+      "label": "positive",
+      "task": "Find an incomplete task explicitly marked abandoned",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 19,
+          "endLine": 21
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-abandoned",
+        "severity": "low",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "task-date-malformed",
+      "family": "task",
+      "label": "positive",
+      "task": "Find a task whose due date is not a valid date",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 20,
+          "endLine": 22
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-malformed",
+        "severity": "low",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "task-guidance-not-task",
+      "family": "task",
+      "label": "hard-negative",
+      "task": "Find a malformed or incomplete task",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Notes/Working Agreement.md",
+          "startLine": 7,
+          "endLine": 12
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "non-goal-not-work-item",
+      "family": "task",
+      "label": "hard-negative",
+      "task": "Find an overdue or abandoned task",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Product/Northstar Brief.md",
+          "startLine": 30,
+          "endLine": 34
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "launch-window-consistent",
+      "family": "contradiction",
+      "label": "hard-negative",
+      "task": "Find a direct contradiction about the approved launch window",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Decisions/ADR-004-Launch-window.md",
+          "startLine": 17,
+          "endLine": 21
+        },
+        {
+          "id": "e2",
+          "notePath": "Projects/Northstar Launch.md",
+          "startLine": 19,
+          "endLine": 25
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "validation-order-consistent",
+      "family": "contradiction",
+      "label": "hard-negative",
+      "task": "Find a direct contradiction about whether validation precedes invitations",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Product/Northstar Brief.md",
+          "startLine": 18,
+          "endLine": 22
+        },
+        {
+          "id": "e2",
+          "notePath": "Decisions/ADR-005-Validation-first.md",
+          "startLine": 17,
+          "endLine": 21
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "research-implication-insufficient",
+      "family": "contradiction",
+      "label": "abstention",
+      "task": "Find a contradiction between customer concerns and the proposed guided setup",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Research/Customer Interviews.md",
+          "startLine": 14,
+          "endLine": 25
+        },
+        {
+          "id": "e2",
+          "notePath": "Product/Northstar Brief.md",
+          "startLine": 18,
+          "endLine": 22
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "support-risk-insufficient",
+      "family": "staleness",
+      "label": "abstention",
+      "task": "Decide whether the project risk is stale from the supplied evidence alone",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Projects/Northstar Launch.md",
+          "startLine": 43,
+          "endLine": 48
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "retrospective-template-current",
+      "family": "staleness",
+      "label": "hard-negative",
+      "task": "Find evidence that this open template is stale or superseded",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Notes/Launch Retrospective Template.md",
+          "startLine": 1,
+          "endLine": 12
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "partner-scope-insufficient",
+      "family": "policy",
+      "label": "abstention",
+      "task": "Decide whether partner enablement violates launch scope from the supplied evidence alone",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Partner Enablement.md",
+          "startLine": 7,
+          "endLine": 12
+        },
+        {
+          "id": "e2",
+          "notePath": "Projects/Northstar Launch.md",
+          "startLine": 27,
+          "endLine": 33
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    }
+  ]
+}
