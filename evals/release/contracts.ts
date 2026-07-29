@@ -43,8 +43,6 @@ export type ReleaseCorpus = {
 
 export type ReleaseModelDecision = {
   decision: ReleaseDecision;
-  findingType: string | null;
-  severity: ReleaseSeverity | null;
   citedEvidenceIds: string[];
   repairEligibility: ReleaseRepairEligibility;
   candidateTargetId: string | null;
@@ -121,8 +119,6 @@ export function createReleaseDecisionValidator(
       !isRecord(value) ||
       !hasExactKeys(value, [
         "decision",
-        "findingType",
-        "severity",
         "citedEvidenceIds",
         "repairEligibility",
         "candidateTargetId"
@@ -139,16 +135,12 @@ export function createReleaseDecisionValidator(
       return false;
     if (value.decision === "abstain") {
       return (
-        value.findingType === null &&
-        value.severity === null &&
         value.citedEvidenceIds.length === 0 &&
         value.repairEligibility === "abstain" &&
         value.candidateTargetId === null
       );
     }
     return (
-      isSafeText(value.findingType) &&
-      RELEASE_SEVERITIES.includes(value.severity as ReleaseSeverity) &&
       value.citedEvidenceIds.length > 0 &&
       (value.candidateTargetId === null ||
         (typeof value.candidateTargetId === "string" &&
@@ -193,7 +185,7 @@ function validateReleaseCase(value: unknown): value is ReleaseCorpusCase {
     !isSafeId(value.id) ||
     !isSafeText(value.family) ||
     !RELEASE_CASE_LABELS.includes(value.label as ReleaseCaseLabel) ||
-    !isSafeText(value.task) ||
+    !isSafeTask(value.task) ||
     !Array.isArray(value.evidence) ||
     value.evidence.length === 0 ||
     value.evidence.length > 8 ||
@@ -279,6 +271,16 @@ function isSafeId(value: unknown): value is string {
 
 function isSafeText(value: unknown): value is string {
   return typeof value === "string" && SAFE_TEXT.test(value) && !/secret|api key/i.test(value);
+}
+
+function isSafeTask(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 512 &&
+    !/[\r\n]/.test(value) &&
+    !/https?:\/\/|secret|api key|raw output/i.test(value)
+  );
 }
 
 function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {

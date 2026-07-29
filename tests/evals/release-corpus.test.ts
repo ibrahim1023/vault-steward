@@ -49,15 +49,19 @@ describe("Northstar release corpus", () => {
     if (!repair) throw new Error("Expected a repair case.");
     const validate = createReleaseDecisionValidator(repair);
 
-    expect(validate(repair.expected)).toBe(true);
-    expect(validate({ ...repair.expected, citedEvidenceIds: ["unknown"] })).toBe(false);
-    expect(validate({ ...repair.expected, candidateTargetId: "unknown" })).toBe(false);
-    expect(validate({ ...repair.expected, extra: "field" })).toBe(false);
+    const decision = {
+      decision: "finding",
+      citedEvidenceIds: repair.expected.citedEvidenceIds,
+      repairEligibility: repair.expected.repairEligibility,
+      candidateTargetId: repair.expected.candidateTargetId
+    };
+    expect(validate(decision)).toBe(true);
+    expect(validate({ ...decision, citedEvidenceIds: ["unknown"] })).toBe(false);
+    expect(validate({ ...decision, candidateTargetId: "unknown" })).toBe(false);
+    expect(validate({ ...decision, extra: "field" })).toBe(false);
     expect(
       validate({
         decision: "abstain",
-        findingType: null,
-        severity: null,
         citedEvidenceIds: [],
         repairEligibility: "abstain",
         candidateTargetId: null

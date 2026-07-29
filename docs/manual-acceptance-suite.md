@@ -115,7 +115,7 @@ Verify:
 
 ## Provider Release Corpus
 
-Run the same committed 22-case corpus independently after the interactive
+Run the same committed 23-case corpus independently after the interactive
 provider checks:
 
 ```bash

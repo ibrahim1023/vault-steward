@@ -73,7 +73,7 @@ acceptance, live provider release reports, and promotion remain pending.
   before the first write, re-indexes after success, and reports the actual
   result.
 - Marketplace evidence now uses one versioned Northstar product/project
-  workflow with 22 reviewed positive, hard-negative, and abstention cases.
+  workflow with 23 reviewed positive, hard-negative, and abstention cases.
   Provider-neutral contracts, redacted Ollama/OpenAI reports, unsafe-remediation
   rejection, and a combined same-fingerprint gate are implemented. Live
   provider reports are still pending.

@@ -13,9 +13,7 @@ const root = resolve(import.meta.dirname, "../..");
 describe("marketplace provider evaluation", () => {
   it("grades the same labelled corpus without persisting evidence or secrets", async () => {
     const loaded = await loadReleaseCorpus(root);
-    const provider = providerFor(
-      new Map(loaded.corpus.cases.map((item) => [item.id, item.expected]))
-    );
+    const provider = providerFor(decisionsFor(loaded.corpus.cases));
     const report = await evaluateReleaseProvider({
       ...loaded,
       provider,
@@ -43,11 +41,9 @@ describe("marketplace provider evaluation", () => {
 
   it("fails the release when a provider proposes an unsafe repair", async () => {
     const loaded = await loadReleaseCorpus(root);
-    const decisions = new Map(loaded.corpus.cases.map((item) => [item.id, item.expected]));
+    const decisions = decisionsFor(loaded.corpus.cases);
     decisions.set("brief-reference-valid", {
       decision: "finding",
-      findingType: "broken-reference",
-      severity: "medium",
       citedEvidenceIds: ["e1"],
       repairEligibility: "eligible",
       candidateTargetId: "target-1"
@@ -74,7 +70,7 @@ describe("marketplace provider evaluation", () => {
     expect(incomplete.status).toBe("incomplete");
     expect(incomplete.metrics.incompleteScans).toBe(1);
 
-    const decisions = new Map(loaded.corpus.cases.map((item) => [item.id, item.expected]));
+    const decisions = decisionsFor(loaded.corpus.cases);
     const ollama = await evaluateReleaseProvider({
       ...loaded,
       provider: providerFor(decisions),
@@ -100,6 +96,30 @@ describe("marketplace provider evaluation", () => {
     ).toThrow("did not pass");
   });
 });
+
+function decisionsFor(
+  cases: readonly {
+    id: string;
+    expected: {
+      decision: string;
+      citedEvidenceIds: string[];
+      repairEligibility: string;
+      candidateTargetId: string | null;
+    };
+  }[]
+): Map<string, unknown> {
+  return new Map(
+    cases.map((item) => [
+      item.id,
+      {
+        decision: item.expected.decision,
+        citedEvidenceIds: item.expected.citedEvidenceIds,
+        repairEligibility: item.expected.repairEligibility,
+        candidateTargetId: item.expected.candidateTargetId
+      }
+    ])
+  );
+}
 
 function providerFor(decisions: Map<string, unknown>, fail = false): ModelProvider {
   return {

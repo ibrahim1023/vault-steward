@@ -12,7 +12,7 @@ Run the deterministic suites with `npm run eval:smoke` and `npm run eval:full`. 
 
 The first release candidate uses
 `evals/release/northstar-v1.json`: 22 reviewed product/project cases over the
-realistic Northstar acceptance fixture. Cases include positive findings, hard
+realistic Northstar acceptance fixture. Its 23 cases include positive findings, hard
 negatives, required abstentions, exact evidence ranges, expected severity, and
 safe-repair eligibility.
 
