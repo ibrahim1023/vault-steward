@@ -1,14 +1,51 @@
+export const TRACE_KINDS = [
+  "governed-scan",
+  "scanner",
+  "parser",
+  "indexing",
+  "retrieval",
+  "agent",
+  "validation",
+  "policy",
+  "coordinator",
+  "finding",
+  "proposal",
+  "apply"
+] as const;
+
+export type TraceKind = (typeof TRACE_KINDS)[number];
+
 export type TraceSpan = {
   schemaVersion: 1;
   id: string;
   scanId: string;
   parentSpanId?: string;
-  kind: string;
+  kind: TraceKind;
   startedAt: string;
   completedAt?: string;
   outcome: "success" | "failure";
   correlationId: string;
   attributes: Record<string, string | number | boolean>;
+};
+
+export type TraceExport = {
+  schemaVersion: 1;
+  scanId: string;
+  exportedAt: string;
+  timeline: ReadonlyArray<{
+    id: string;
+    parentSpanId: string | null;
+    kind: TraceKind;
+    startedAt: string;
+    completedAt: string | null;
+    outcome: "success" | "failure";
+    durationMs: number | null;
+    retryCount: number;
+    fileCount: number | null;
+    errorCode: string | null;
+    attributes: Record<string, string | number | boolean>;
+  }>;
+  configuration: { fingerprint: string; values: Record<string, string | number | boolean> } | null;
 };
 export type AgentExecutionTrace = {
   schemaVersion: 1;
@@ -57,6 +94,39 @@ export function validateTraceMetadata(value: unknown): boolean {
       ([key, item]) => validateTraceMetadata(key) && validateTraceMetadata(item)
     );
   return false;
+}
+
+export function validateTraceExport(value: unknown): value is TraceExport {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<TraceExport>;
+  return (
+    candidate.schemaVersion === 1 &&
+    typeof candidate.scanId === "string" &&
+    candidate.scanId.length > 0 &&
+    typeof candidate.exportedAt === "string" &&
+    Array.isArray(candidate.timeline) &&
+    candidate.timeline.every(
+      (span) =>
+        !!span &&
+        typeof span === "object" &&
+        typeof span.id === "string" &&
+        (typeof span.parentSpanId === "string" || span.parentSpanId === null) &&
+        typeof span.kind === "string" &&
+        TRACE_KINDS.includes(span.kind as TraceKind) &&
+        typeof span.startedAt === "string" &&
+        (typeof span.completedAt === "string" || span.completedAt === null) &&
+        (span.outcome === "success" || span.outcome === "failure") &&
+        (typeof span.durationMs === "number" || span.durationMs === null) &&
+        typeof span.retryCount === "number" &&
+        (typeof span.fileCount === "number" || span.fileCount === null) &&
+        (typeof span.errorCode === "string" || span.errorCode === null) &&
+        validateTraceMetadata(span.attributes)
+    ) &&
+    (candidate.configuration === null ||
+      (!!candidate.configuration &&
+        typeof candidate.configuration.fingerprint === "string" &&
+        validateTraceMetadata(candidate.configuration.values)))
+  );
 }
 
 export function validateFindingLineage(lineage: FindingLineage): boolean {

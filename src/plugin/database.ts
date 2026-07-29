@@ -193,8 +193,12 @@ function recordStageSpans(
 ): void {
   const agentLatencyMs = scan.modelTraces.reduce((total, trace) => total + trace.latencyMs, 0);
   const retryCount = scan.modelTraces.reduce((total, trace) => total + trace.retries, 0);
-  const stages: Array<{ kind: string; attributes: Record<string, string | number | boolean> }> = [
+  const stages: Array<{
+    kind: import("../contracts/trace.js").TraceKind;
+    attributes: Record<string, string | number | boolean>;
+  }> = [
     { kind: "scanner", attributes: { fileCount: scan.files.length } },
+    { kind: "parser", attributes: { parseProductCount: scan.parseProducts.length } },
     { kind: "indexing", attributes: { parseProductCount: scan.parseProducts.length } },
     { kind: "retrieval", attributes: { notRun: true } },
     {
@@ -208,7 +212,9 @@ function recordStageSpans(
     { kind: "validation", attributes: { candidateCount: scan.findings.length } },
     { kind: "policy", attributes: { notRun: true } },
     { kind: "coordinator", attributes: { findingCount: scan.findings.length } },
-    { kind: "finding", attributes: { findingCount: scan.findings.length } }
+    { kind: "finding", attributes: { findingCount: scan.findings.length } },
+    { kind: "proposal", attributes: { notRun: true } },
+    { kind: "apply", attributes: { notRun: true } }
   ];
   for (const stage of stages) {
     repository.saveTraceSpan({

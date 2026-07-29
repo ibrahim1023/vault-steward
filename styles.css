@@ -410,6 +410,12 @@
   overflow-wrap: anywhere;
 }
 
+.observability-timeline small {
+  grid-column: 1 / -1;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
 .observability-lineage,
 .observability-configuration {
   display: grid;

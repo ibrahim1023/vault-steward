@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import { serializeTraceExport } from "../observability/trace-export.js";
 import type { ScanHistoryRecord, ObservabilitySnapshot } from "../storage/repositories.js";
 
 export function ObservabilityView({
@@ -18,6 +19,7 @@ export function ObservabilityView({
   const [scanId, setScanId] = useState(scans[0]?.id);
   const [confirming, setConfirming] = useState<"scan" | "all">();
   const [error, setError] = useState<string>();
+  const [exported, setExported] = useState(false);
   const snapshot = useMemo(() => {
     try {
       return loadObservability(scanId);
@@ -42,6 +44,20 @@ export function ObservabilityView({
       setConfirming(undefined);
     } catch {
       setError("Local trace data could not be deleted.");
+    }
+  };
+
+  const exportTrace = async () => {
+    if (!snapshot) return;
+    try {
+      const payload = serializeTraceExport(snapshot, new Date().toISOString());
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard is unavailable.");
+      await navigator.clipboard.writeText(payload);
+      setExported(true);
+      setError(undefined);
+    } catch {
+      setExported(false);
+      setError("The privacy-safe trace export could not be copied locally.");
     }
   };
 
@@ -75,7 +91,9 @@ export function ObservabilityView({
               <ul className="observability-timeline">
                 {snapshot.timeline.map((span) => (
                   <li key={span.id}>
-                    <strong>{span.kind}</strong>
+                    <strong style={{ paddingLeft: `${span.parentSpanId ? 12 : 0}px` }}>
+                      {span.kind}
+                    </strong>
                     <span>{span.outcome}</span>
                     <span>
                       {span.durationMs === null ? "not completed" : `${span.durationMs} ms`}
@@ -83,6 +101,9 @@ export function ObservabilityView({
                     {span.retryCount > 0 ? <span>{span.retryCount} retries</span> : null}
                     {span.fileCount !== null ? <span>{span.fileCount} files</span> : null}
                     {span.errorCode ? <code>{span.errorCode}</code> : null}
+                    {Object.keys(span.attributes).length > 0 ? (
+                      <small>{Object.entries(span.attributes).map(([key, value]) => `${key}: ${value}`).join(", ")}</small>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -136,6 +157,12 @@ export function ObservabilityView({
           </section>
           <section aria-label="Stored trace data">
             <h3>Stored data</h3>
+            <p>
+              <button type="button" onClick={() => void exportTrace()}>
+                Copy privacy-safe JSON export
+              </button>
+              {exported ? <span role="status">Trace JSON copied locally.</span> : null}
+            </p>
             <p>
               {snapshot.inventory.spans} spans, {snapshot.inventory.agentExecutions} agent
               executions, and {snapshot.inventory.findingLineage} lineage records.

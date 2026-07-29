@@ -2,12 +2,14 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { ObservabilityView } from "../../src/ui/ObservabilityView.js";
+import type { ObservabilitySnapshot } from "../../src/storage/repositories.js";
 
-const snapshot = {
+const snapshot: ObservabilitySnapshot = {
   scanId: "scan-1",
   timeline: [
     {
       id: "scan-1:scanner",
+      parentSpanId: null,
       kind: "scanner",
       startedAt: "2026-07-16T00:00:00.000Z",
       completedAt: "2026-07-16T00:00:00.025Z",
@@ -15,7 +17,8 @@ const snapshot = {
       durationMs: 25,
       retryCount: 0,
       fileCount: 2,
-      errorCode: null
+      errorCode: null,
+      attributes: { fileCount: 2 }
     }
   ],
   lineage: [

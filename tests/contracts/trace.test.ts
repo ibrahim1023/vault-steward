@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   validateFindingLineage,
+  validateTraceExport,
   validateTraceMetadata,
   validateTracePreferences
 } from "../../src/contracts/trace.js";
@@ -63,6 +64,40 @@ describe("trace contracts", () => {
         storeModelOutputSnapshots: false,
         redactExcerpts: true,
         excludedFolders: ["../escape"]
+      })
+    ).toBe(false);
+  });
+  it("accepts only content-free, known-kind trace exports", () => {
+    expect(
+      validateTraceExport({
+        schemaVersion: 1,
+        scanId: "scan-1",
+        exportedAt: "2026-07-29T00:00:00.000Z",
+        timeline: [
+          {
+            id: "root",
+            parentSpanId: null,
+            kind: "governed-scan",
+            startedAt: "2026-07-29T00:00:00.000Z",
+            completedAt: null,
+            outcome: "success",
+            durationMs: null,
+            retryCount: 0,
+            fileCount: null,
+            errorCode: null,
+            attributes: { fileCount: 2 }
+          }
+        ],
+        configuration: null
+      })
+    ).toBe(true);
+    expect(
+      validateTraceExport({
+        schemaVersion: 1,
+        scanId: "scan-1",
+        exportedAt: "now",
+        timeline: [],
+        configuration: { fingerprint: "x", values: { unsafe: "note body\ntext" } }
       })
     ).toBe(false);
   });

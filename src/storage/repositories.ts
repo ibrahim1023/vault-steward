@@ -8,6 +8,7 @@ import type {
 } from "../contracts/index.js";
 import {
   type AgentExecutionTrace,
+  type TraceKind,
   type FindingLineage,
   type TracePreferences,
   type TraceSpan,
@@ -179,7 +180,8 @@ export type ReviewerFeedbackRecord = {
 
 export type TraceTimelineEntry = {
   id: string;
-  kind: string;
+  parentSpanId: string | null;
+  kind: TraceKind;
   startedAt: string;
   completedAt: string | null;
   outcome: "success" | "failure";
@@ -187,6 +189,7 @@ export type TraceTimelineEntry = {
   retryCount: number;
   fileCount: number | null;
   errorCode: string | null;
+  attributes: Record<string, string | number | boolean>;
 };
 
 export type FindingLineageView = {
@@ -778,14 +781,15 @@ export class VaultStewardRepository {
   private listTraceTimeline(scanId: string): TraceTimelineEntry[] {
     return (
       this.database.exec(
-        "SELECT id, kind, started_at, completed_at, outcome, attributes_json FROM trace_spans WHERE scan_id = ? ORDER BY started_at, id",
+        "SELECT id, parent_span_id, kind, started_at, completed_at, outcome, attributes_json FROM trace_spans WHERE scan_id = ? ORDER BY started_at, id",
         [scanId]
       )[0]?.values ?? []
     ).flatMap((row) => {
-      const [id, kind, startedAt, completedAt, outcome, attributesJson] = row;
+      const [id, parentSpanId, kind, startedAt, completedAt, outcome, attributesJson] = row;
       const attributes = typeof attributesJson === "string" ? safeMetadata(attributesJson) : null;
       if (
         typeof id !== "string" ||
+        (typeof parentSpanId !== "string" && parentSpanId !== null) ||
         typeof kind !== "string" ||
         typeof startedAt !== "string" ||
         (typeof completedAt !== "string" && completedAt !== null) ||
@@ -796,14 +800,16 @@ export class VaultStewardRepository {
       return [
         {
           id,
-          kind,
+          parentSpanId,
+          kind: kind as TraceKind,
           startedAt,
           completedAt,
           outcome,
           durationMs: durationBetween(startedAt, completedAt),
           retryCount: numericAttribute(attributes, "retryCount"),
           fileCount: nullableNumericAttribute(attributes, "fileCount"),
-          errorCode: stringAttribute(attributes, "errorCode")
+          errorCode: stringAttribute(attributes, "errorCode"),
+          attributes
         }
       ];
     });

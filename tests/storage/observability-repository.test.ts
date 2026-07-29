@@ -62,7 +62,15 @@ describe("observability repository", () => {
     });
 
     expect(repository.getObservabilitySnapshot("scan-1")).toMatchObject({
-      timeline: [expect.objectContaining({ kind: "scanner", durationMs: 25, fileCount: 2 })],
+      timeline: [
+        expect.objectContaining({
+          kind: "scanner",
+          parentSpanId: "scan-1:root",
+          durationMs: 25,
+          fileCount: 2,
+          attributes: { fileCount: 2 }
+        })
+      ],
       configuration: {
         fingerprint: "a".repeat(64),
         values: { model: "llama3.1:8b", parser: "scanner-v1" }
