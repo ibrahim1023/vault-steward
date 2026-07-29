@@ -8,6 +8,20 @@ Vault Steward audits Markdown knowledge bases for broken references, schema prob
 
 Vault Steward is for people and teams who keep durable project knowledge in an Obsidian vault and need to find maintenance problems before they become misleading or expensive. It is not a chat-with-your-vault tool: its primary job is integrity, governance, and evidence-backed review.
 
+## Field Engineering Foundations
+
+Vault Steward supports an FDE-style product-validation loop: encode one real
+customer workflow as a versioned fixture, label expected findings and
+non-findings, run the same workflow across provider profiles, inspect evidence
+and execution lineage, and turn field failures into regression gates.
+
+The repository already includes realistic workflow fixtures, deterministic and
+model-quality evals, local traces, finding lineage, replay metadata, explicit
+approval records, provider comparison reports, and release-quality checks.
+These are foundations for fast customer-specific validation, not a claim of
+completed multi-customer pilots, a policy-pack catalog, or a published FDE case
+study.
+
 ## How It Works
 
 ```text
@@ -84,7 +98,7 @@ npm run eval:retrieval
 npm run evals -- --manifest evals/manifests/ci-regression.json --compare evals/baselines/evaluation-main.json
 ```
 
-Marketplace release validation uses the versioned 22-case Northstar corpus.
+Marketplace release validation uses the versioned 23-case Northstar corpus.
 Run each provider independently; neither provider is release-validated until
 its report passes and the combined gate succeeds:
 

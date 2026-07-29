@@ -14,7 +14,7 @@ and OpenAI remain required.
 - Platform under validation: macOS with Obsidian desktop
 - Local-first provider: Ollama
 - Optional cloud provider: OpenAI after explicit acknowledgement
-- Corpus: `northstar-release-v1`, 22 reviewed cases
+- Corpus: `northstar-release-v1`, 23 reviewed cases
 
 ## Automated Evidence
 
@@ -22,7 +22,7 @@ and OpenAI remain required.
 | -------------------------------------------- | --------------------------- | -------------------------------------- |
 | Corpus contract and source-range validation  | Passing                     | `tests/evals/release-corpus.test.ts`   |
 | Provider grading and unsafe-repair rejection | Passing                     | `tests/evals/release-provider.test.ts` |
-| Ollama live corpus report                    | Pending                     | `evals/reports/northstar-ollama.json`  |
+| Ollama live corpus report                    | Failing                     | `gemma3:12b`, 2026-07-29               |
 | OpenAI live corpus report                    | Pending                     | `evals/reports/northstar-openai.json`  |
 | Combined provider gate                       | Pending                     | `npm run eval:marketplace:gate`        |
 | Full repository completion gate              | Pending after final changes | Command record                         |
@@ -31,6 +31,30 @@ Provider reports must include precision, recall, F1, evidence validity,
 unsupported-finding rate, safe-repair validity, median and p95 latency, retries,
 incomplete cases/scans, and unsafe-remediation count. Reports contain no API
 keys or vault excerpts.
+
+### Current Ollama Measurement
+
+The `gemma3:12b` run against corpus fingerprint
+`a24e6482f16b2ad8c68394f9d27830c76487c609f2b1648fd8e1a5b2374a88c3`
+did not pass:
+
+| Metric                   |   Result |
+| ------------------------ | -------: |
+| Precision                |    0.643 |
+| Recall                   |    0.818 |
+| F1                       |    0.720 |
+| Evidence validity        |    0.778 |
+| Unsupported-finding rate |    0.357 |
+| Safe-repair validity     |    1.000 |
+| Median latency           | 3,056 ms |
+| p95 latency              | 3,595 ms |
+| Retries                  |        1 |
+| Incomplete cases/scans   |    1 / 1 |
+| Unsafe remediations      |        1 |
+
+This profile must not be described as release-supported. The failed measurement
+is evidence for model, prompt, and evaluator refinement; it is not a reason to
+lower the safety, evidence, or remediation thresholds.
 
 ## Manual macOS Evidence
 
