@@ -14,7 +14,11 @@ export function proposeFix(
   if (finding.type !== "broken-reference" || !evidence || evidence.notePath !== source.path)
     return { applicable: false, reason: "No deterministic fix is available for this finding." };
   const reference = /^\[\[([^\]|#]+)(#[^\]|]+)?(?:\|([^\]]+))?\]\]$/.exec(evidence.excerpt);
-  if (!reference || !/^[^/\\][^\\]*$/.test(target) || /[\[\]#|]/.test(target))
+  if (
+    !reference ||
+    !/^[^/\\][^\\]*$/.test(target) ||
+    ["[", "]", "#", "|"].some((character) => target.includes(character))
+  )
     return { applicable: false, reason: "The reference replacement is unsafe or ambiguous." };
   const start = source.content.indexOf(evidence.excerpt);
   if (start < 0)

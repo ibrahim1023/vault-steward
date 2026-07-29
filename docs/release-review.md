@@ -12,8 +12,9 @@ Completed on 2026-07-16: ribbon and command-palette launch, governed scanning, m
 
 **Internal testing only.** The package and deterministic safety controls remain
 usable for development, but broader distribution is blocked until the revised
-simple AI-guided Phase 19 flow passes its automated gate and manual macOS
-acceptance. The earlier dashboard workbench is not the release candidate.
+simple AI-guided Phase 19 flow passes manual macOS acceptance. Its automated
+gate passed on 2026-07-28; the earlier dashboard workbench is not the release
+candidate.
 
 ## Reviewed Controls
 
@@ -37,6 +38,6 @@ acceptance. The earlier dashboard workbench is not the release candidate.
 
 ## Remaining Limitations
 
-- The revised prepared-batch UI and bounded recommender remain under
-  implementation until the Phase 19 gate passes.
+- The revised prepared-batch UI and bounded recommender have automated coverage
+  but remain unaccepted in Obsidian desktop.
 - Model quality gates need calibration on representative local fixtures before wider distribution.

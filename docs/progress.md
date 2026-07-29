@@ -2,9 +2,9 @@
 
 ## Current Phase
 
-Phase 19 is being revised into the approved simple AI-guided review flow. The
-previous dashboard-oriented automated result remains historical evidence only;
-the revised flow must pass a new automated gate and manual Obsidian acceptance.
+The revised Phase 19 simple AI-guided review flow has passed its automated gate.
+Manual Obsidian acceptance remains required before the branch can be promoted to
+`development`.
 
 ## Completed Work
 
@@ -58,7 +58,8 @@ the revised flow must pass a new automated gate and manual Obsidian acceptance.
 
 ## Current Work
 
-Phase 19 implementation is in progress; completion and promotion remain pending.
+Phase 19 implementation and automated verification are complete. Manual macOS
+acceptance and promotion remain pending.
 
 - Security hardening on 2026-07-20 rejects local-provider redirects, bounds provider configuration and response reads, binds approval/apply to validated persisted proposal digests, and enforces vault-reader/scanner resource and canonical-path limits.
 - Phase 17 adds an explicit OpenAI provider option beside the default loopback Ollama/llama.cpp providers. OpenAI requests use a fixed API origin, bounded JSON-mode Responses API calls with `store: false`, a local API key, and a required cloud-data acknowledgement; keys remain excluded from traces, fingerprints, diagnostics, and portable exports.
@@ -67,8 +68,9 @@ Phase 19 implementation is in progress; completion and promotion remain pending.
   `ready -> scanning -> recommendation -> applying -> result`, exact
   Current/After previews, deterministic expected outcomes, bounded AI target
   selection, all-member batch preflight, and a separate Advanced surface. The
-  older automated gate did not exercise this revised contract and cannot mark
-  Phase 19 complete.
+  one-click Apply action records individual approvals, checks every proposal
+  before the first write, re-indexes after success, and reports the actual
+  result.
 
 ## Important Decisions
 
@@ -79,17 +81,17 @@ Phase 19 implementation is in progress; completion and promotion remain pending.
 
 ## Risks
 
-- The result-first prepared-batch contract and bounded repair recommender are
-  under implementation. Until their new automated and manual gates pass, the
-  branch remains unsuitable for promotion or release.
+- The result-first flow has automated coverage, but it has not yet completed the
+  required Obsidian desktop, narrow-pane, light/dark theme, keyboard, VoiceOver,
+  Ollama, and OpenAI manual acceptance matrix. The branch remains unsuitable for
+  promotion or release until that evidence is recorded.
 - Agent quality thresholds are initial calibration targets and need representative local-vault review before a broader release.
 
 ## Verification Status
 
-The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 15 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 36 replay/evaluation tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 16 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 128 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 48 evaluation/replay/quality tests, deterministic smoke/full evaluations, generated synthetic baseline evaluation, retrieval report, fixture-baseline evaluation, performance and operational smoke reports, and a production dependency audit with no moderate-or-higher vulnerabilities. The earlier Phase 19 dashboard implementation passed its own automated gate on 2026-07-28, but it is being superseded before manual acceptance.
+The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 15 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 36 replay/evaluation tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 16 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 128 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 48 evaluation/replay/quality tests, deterministic smoke/full evaluations, generated synthetic baseline evaluation, retrieval report, fixture-baseline evaluation, performance and operational smoke reports, and a production dependency audit with no moderate-or-higher vulnerabilities. The revised Phase 19 automated gate passed on 2026-07-28: formatting, linting, type checking, build, packaged install smoke, 161 unit/component tests, 25 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, and a production dependency audit with no vulnerabilities.
 
 ## Next Recommended Task
 
-Implement and verify the revised Phase 19 contracts, batch apply workflow, and
-simple workspace. Then run the new Northstar desktop acceptance suite before
-promoting the branch.
+Install the packaged Phase 19 build into the Northstar Acceptance vault and run
+the result-first manual desktop matrix before promoting the branch.
