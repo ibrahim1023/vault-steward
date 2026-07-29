@@ -56,7 +56,6 @@ export async function evaluateReleaseProvider(input: {
     matchesFinding(loaded, result.value)
   );
   const falsePositives = actualFindings.length - truePositives.length;
-  const falseNegatives = positive.length - truePositives.length;
   const precision = ratio(truePositives.length, actualFindings.length);
   const recall = ratio(truePositives.length, positive.length);
   const f1 = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);

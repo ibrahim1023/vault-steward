@@ -6,21 +6,30 @@ Use deterministic graders first. Keep development, CI, held-out, and human-revie
 
 ## Evaluation Inventory
 
-| Component                 | Core metrics                                         | Initial gate                                            |
-| ------------------------- | ---------------------------------------------------- | ------------------------------------------------------- |
-| entity candidates         | precision, recall, evidence validity                 | evidence validity 100%; precision >= 0.90 on golden set |
-| contradiction candidates  | evidence validity, supported-claim precision, recall | validity 100%; precision >= 0.85                        |
-| staleness candidates      | precision/recall, policy adherence                   | precision >= 0.80; zero policy bypasses                 |
-| decision candidates       | extraction F1, citation validity                     | citation validity 100%; F1 >= 0.85                      |
-| coordinator ranking       | NDCG@10, duplicate suppression, severity invariants  | no duplicate or severity invariant failures             |
-| agent workflow            | route, handoff, tool-argument, termination accuracy  | 100% schema/tool-permission/loop-limit compliance       |
-| local-provider resilience | malformed-output recovery, timeout recovery          | fail closed; no state corruption                        |
+| Component                  | Core metrics                                                   | Initial gate                                            |
+| -------------------------- | -------------------------------------------------------------- | ------------------------------------------------------- |
+| entity candidates          | precision, recall, evidence validity                           | evidence validity 100%; precision >= 0.90 on golden set |
+| contradiction candidates   | evidence validity, supported-claim precision, recall           | validity 100%; precision >= 0.85                        |
+| staleness candidates       | precision/recall, policy adherence                             | precision >= 0.80; zero policy bypasses                 |
+| decision candidates        | extraction F1, citation validity                               | citation validity 100%; F1 >= 0.85                      |
+| coordinator ranking        | NDCG@10, duplicate suppression, severity invariants            | no duplicate or severity invariant failures             |
+| agent workflow             | route, handoff, tool-argument, termination accuracy            | 100% schema/tool-permission/loop-limit compliance       |
+| local-provider resilience  | malformed-output recovery, timeout recovery                    | fail closed; no state corruption                        |
+| marketplace release corpus | precision, recall, F1, evidence, repairs, provider reliability | both providers pass; zero unsafe remediations           |
 
 Thresholds are starting gates to calibrate against expert review before a general release. Regression fails when a safety invariant breaks, a gate falls below threshold, or a primary metric drops by more than 0.03 absolute from its versioned baseline without an approved update.
 
 The initial deterministic `reference-integrity` baseline records evidence validity, precision, and recall of 1.0 against the synthetic fixture dataset. It runs through `npm run eval:smoke` and `npm run eval:full`.
 
 The `model-quality` report grades the split model-assisted fixtures with deterministic candidate, citation, schema, severity, false-positive/negative, precision, recall, F1, and unsupported-claim metrics. Reports contain only case IDs, aggregate metrics, versions, and split labels; they never contain note bodies, prompt text, or raw model output.
+
+The versioned Northstar release corpus adds 22 realistic cases over one
+product/project workflow. It explicitly labels positive findings, hard
+negatives, abstentions, source ranges, severity, and repair eligibility.
+Ollama and OpenAI run independently against the same fingerprint. Release
+thresholds are precision 0.90, recall 0.85, F1 0.87, evidence validity 1.00,
+unsupported-finding rate at most 0.05, safe-repair validity 1.00, zero
+incomplete scans, and zero unsafe remediations.
 
 ## Dataset and Infrastructure Layout
 
@@ -77,6 +86,19 @@ Confidence calibration uses only adjudicated human labels and groups samples by 
 ## Runtime Efficiency Metrics
 
 Report input/output tokens, token per valid finding, repeated-context ratio, retrieved-context utilization, model latency, tool calls, retries, and incomplete-rate. Default budgets from `docs/ai-system.md` are hard limits; a 20% increase in p95 token use or latency versus baseline is an investigation gate.
+
+## Marketplace Provider Commands
+
+```bash
+OLLAMA_MODEL=<model> npm run eval:marketplace:ollama
+OPENAI_MODEL=<model> OPENAI_API_KEY=<key> OPENAI_CLOUD_ACKNOWLEDGED=true npm run eval:marketplace:openai
+npm run eval:marketplace:gate
+```
+
+Missing configuration, missing cloud acknowledgement, provider failure,
+malformed output, unknown evidence/candidate IDs, an unsafe remediation,
+fingerprint mismatch, or a missing provider report fails closed. Threshold
+changes require a dated rationale in `docs/release-quality-report.md`.
 
 ## Performance Release Gate
 

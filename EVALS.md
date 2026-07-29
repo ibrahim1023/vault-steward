@@ -8,6 +8,28 @@ Versioned fixture cases live in `evals/cases/` and are selected through manifest
 
 Run the deterministic suites with `npm run eval:smoke` and `npm run eval:full`. Run the versioned fixture baseline gate with `npm run evals -- --manifest evals/manifests/ci-regression.json --compare evals/baselines/evaluation-main.json`.
 
+## Marketplace Release Corpus
+
+The first release candidate uses
+`evals/release/northstar-v1.json`: 22 reviewed product/project cases over the
+realistic Northstar acceptance fixture. Cases include positive findings, hard
+negatives, required abstentions, exact evidence ranges, expected severity, and
+safe-repair eligibility.
+
+Run the same corpus independently:
+
+```bash
+OLLAMA_MODEL=<model> npm run eval:marketplace:ollama
+OPENAI_MODEL=<model> OPENAI_API_KEY=<key> OPENAI_CLOUD_ACKNOWLEDGED=true npm run eval:marketplace:openai
+npm run eval:marketplace:gate
+```
+
+The combined gate requires matching corpus fingerprints and passing reports for
+both providers. Reports store only provider/model identifiers, case IDs,
+outcomes, aggregate metrics, latency, retries, and bounded failure codes. They
+exclude keys, source excerpts, prompts, and raw output. See
+`docs/release-quality-report.md` for current status and thresholds.
+
 ## Replay And Comparison
 
 Fixture replay reruns the same synthetic inputs and configuration into a redacted local record. A comparison is accepted only when fixture manifests match and exactly one declared field differs. Metadata-only live scans may be ineligible for exact replay because historical note source is not retained.

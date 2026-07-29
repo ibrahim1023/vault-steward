@@ -25,9 +25,10 @@ revision, applies only validated changes, and reports the actual result.
 Non-repairable findings receive one recommended action instead of an
 unsupported edit.
 
-The full issue list and operational tools remain available under **Advanced**,
-but provider readiness, Policy Studio, maintenance, history, and observability
-do not crowd the everyday review path.
+**Settings** and **History** are directly available after the review surface.
+Technical readiness, Policy Studio, maintenance, impact inspection, and
+observability remain collapsed under **Diagnostics**, so they do not crowd the
+everyday review path.
 
 The deterministic core owns parsing, policies, evidence validation, finding
 normalization, persistence, diffs, expected-result calculation, approval, and
@@ -83,6 +84,21 @@ npm run eval:retrieval
 npm run evals -- --manifest evals/manifests/ci-regression.json --compare evals/baselines/evaluation-main.json
 ```
 
+Marketplace release validation uses the versioned 22-case Northstar corpus.
+Run each provider independently; neither provider is release-validated until
+its report passes and the combined gate succeeds:
+
+```bash
+OLLAMA_MODEL=<model> npm run eval:marketplace:ollama
+OPENAI_MODEL=<model> OPENAI_API_KEY=<key> OPENAI_CLOUD_ACKNOWLEDGED=true npm run eval:marketplace:openai
+npm run eval:marketplace:gate
+```
+
+Provider reports contain case IDs, outcomes, aggregate metrics, latency,
+retries, and failure codes. They exclude API keys and vault excerpts. The
+current release status and unmet evidence are recorded in the
+[release quality report](docs/release-quality-report.md).
+
 Fixture replay writes a redacted local record to `evals/reports/replay.json`. Controlled comparisons accept the same fixture manifest with exactly one changed configuration value: model, prompt, threshold, retrieval, policy, or agent. Live scans retain metadata rather than historical source by default, so they report replay eligibility instead of reconstructing old notes.
 
 Generated scale evaluation currently measures the deterministic reference family against exact synthetic ground truth. Retrieval metrics, policy coverage, model comparisons, and calibration describe recorded conditions only; they do not select a model or alter product behavior. See [evaluation methodology](EVALS.md) and [observability and retained data](OBSERVABILITY.md).
@@ -133,4 +149,7 @@ See [contributing](CONTRIBUTING.md) for fixture, prompt, policy, and quality-gat
 - [Local models](docs/local-models.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Release compatibility](docs/release-compatibility.md)
+- [Northstar release workflow](docs/northstar-release-workflow.md)
+- [Release quality report](docs/release-quality-report.md)
+- [Submission checklist](docs/community-plugin-submission-checklist.md)
 - [Architecture](docs/architecture.md), [interfaces](docs/interfaces.md), [runbooks](docs/runbooks.md), and [upgrade notes](docs/upgrade-notes.md)

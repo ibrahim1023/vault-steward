@@ -11,7 +11,9 @@ Install Node.js 20 or newer, run `npm install`, then use the checks listed in `R
 - Add deterministic tests before changing deterministic behavior.
 - Place probabilistic quality checks and fixtures under `evals/`, not brittle unit snapshots.
 - Keep model outputs typed, bounded, cited, and independently validated.
-- Do not add cloud access, telemetry, shell execution, broad filesystem access, or autonomous mutation.
+- Do not add telemetry, shell execution, broad filesystem access, autonomous
+  mutation, or unapproved remote endpoints. OpenAI remains limited to the fixed
+  API origin, explicit opt-in, bounded evidence, and cloud acknowledgement.
 - Update contracts, tests, baselines, and documentation together when their observable behavior changes.
 
 ## Fixtures, Prompts, And Policies
@@ -21,3 +23,7 @@ Fixture cases must use synthetic data, stable IDs, relative locators, split/cont
 ## Review Gate
 
 Run the narrowest relevant tests first, then formatting, linting, type checking, build/package checks, applicable evaluation commands, and the security audit before requesting review.
+
+Provider or prompt changes that affect release behavior must rerun the Northstar
+corpus for both Ollama and OpenAI. Do not update a baseline or threshold without
+a dated rationale and reviewer in the release quality report.

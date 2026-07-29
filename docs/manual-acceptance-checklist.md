@@ -45,7 +45,8 @@ Obsidian desktop.
 - [ ] Duplicate apply actions are disabled while applying.
 - [ ] Success reports the actual result and exposes `Review next issue`.
 - [ ] `View all issues` is secondary.
-- [ ] `Advanced` is separate from the primary path.
+- [ ] `Settings` and `History` are directly available after the review surface.
+- [ ] `Diagnostics` is collapsed and separate from the primary path.
 
 ## Finding Coverage
 
@@ -76,9 +77,11 @@ Obsidian desktop.
 - [ ] It exposes one concrete action such as `Open note`, `Review both notes`, or `Not important`.
 - [ ] The action never creates or applies an unsupported patch.
 
-## Advanced Tools
+## Settings, History, And Diagnostics
 
-- [ ] The full issue list, provider settings, Policy Studio, maintenance, history, and observability are reachable under `Advanced`.
+- [ ] `Settings` opens provider configuration without exposing controls in the primary path.
+- [ ] `History` shows scan and lifecycle metadata without note content.
+- [ ] Policy Studio, readiness, maintenance, impact inspection, observability, retention, and stored-data controls are reachable under `Diagnostics`.
 - [ ] Two unchanged scans do not multiply persistent findings.
 - [ ] History records resolved and recurring findings.
 - [ ] Invalid policy YAML cannot be saved.
@@ -93,6 +96,14 @@ Obsidian desktop.
 - [ ] Invalid OpenAI credentials fail without exposing the key.
 - [ ] Valid acknowledged OpenAI configuration can complete a scan.
 - [ ] No write occurs after any provider failure.
+
+## Provider Release Reports
+
+- [ ] `evals/reports/northstar-ollama.json` passes all release thresholds.
+- [ ] `evals/reports/northstar-openai.json` passes all release thresholds.
+- [ ] Both reports use the same committed corpus fingerprint.
+- [ ] `npm run eval:marketplace:gate` passes.
+- [ ] No report contains an API key, vault excerpt, prompt, raw output, or absolute vault path.
 
 ## Accessibility And Layout
 
@@ -116,5 +127,5 @@ Obsidian desktop.
 - [ ] All applicable checks completed
 - [ ] No data loss or unintended write observed
 - [ ] No blocking install, scan, repair, provider-recovery, or accessibility issue remains
-- [ ] The primary path stayed simpler than the Advanced surface
+- [ ] The primary path stayed simpler than Settings, History, and Diagnostics
 - [ ] Phase 19 is ready to promote to `development`

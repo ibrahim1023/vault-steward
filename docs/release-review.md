@@ -24,8 +24,8 @@ candidate.
 - Reliability: migrations, corrupt database bytes, vault I/O, cancellation, provider failures, malformed structured output, duplicate events, restart recovery, and apply/re-index recovery paths have deterministic coverage.
 - Operations: performance and operational thresholds are versioned and verified through local smoke gates.
 - Usability: the release candidate must expose one dominant action, exact
-  Current/After output, deterministic expected and actual results, and Advanced
-  tools outside the primary path.
+  Current/After output, deterministic expected and actual results, direct
+  Settings and History, and technical tools under Diagnostics.
 - Acceptance: the synthetic vault exercises references, entities, contradictions, staleness, tasks, schemas, decisions, policies, coordinator routing, proposal construction, approval, apply, and re-index.
 
 ## Release Conditions
@@ -33,7 +33,9 @@ candidate.
 1. Completed on 2026-07-14: every automated command in `AGENTS.md`, plus the MVP acceptance suite, passed from the Phase 6 branch.
 2. Before broad distribution, install the revised package into the Northstar
    Acceptance vault and complete the full result-first Ollama and OpenAI matrix.
-3. Keep the limitations in `docs/known-limitations.md` visible in release notes
+3. Produce passing provider reports from the same versioned Northstar corpus,
+   then pass `npm run eval:marketplace:gate`.
+4. Keep the limitations in `docs/known-limitations.md` visible in release notes
    and do not claim marketplace availability.
 
 ## Remaining Limitations
@@ -41,3 +43,5 @@ candidate.
 - The revised prepared-batch UI and bounded recommender have automated coverage
   but remain unaccepted in Obsidian desktop.
 - Model quality gates need calibration on representative local fixtures before wider distribution.
+- The committed corpus and regression harness pass deterministic tests, but live
+  Ollama and OpenAI reports have not yet both been recorded.

@@ -59,7 +59,7 @@ Manual Obsidian acceptance remains required before the branch can be promoted to
 ## Current Work
 
 Phase 19 implementation and automated verification are complete. Manual macOS
-acceptance and promotion remain pending.
+acceptance, live provider release reports, and promotion remain pending.
 
 - Security hardening on 2026-07-20 rejects local-provider redirects, bounds provider configuration and response reads, binds approval/apply to validated persisted proposal digests, and enforces vault-reader/scanner resource and canonical-path limits.
 - Phase 17 adds an explicit OpenAI provider option beside the default loopback Ollama/llama.cpp providers. OpenAI requests use a fixed API origin, bounded JSON-mode Responses API calls with `store: false`, a local API key, and a required cloud-data acknowledgement; keys remain excluded from traces, fingerprints, diagnostics, and portable exports.
@@ -67,10 +67,16 @@ acceptance and promotion remain pending.
 - The approved Phase 19 revision replaces the dashboard with
   `ready -> scanning -> recommendation -> applying -> result`, exact
   Current/After previews, deterministic expected outcomes, bounded AI target
-  selection, all-member batch preflight, and a separate Advanced surface. The
+  selection, all-member batch preflight, direct Settings and History, and a
+  separate Diagnostics surface. The
   one-click Apply action records individual approvals, checks every proposal
   before the first write, re-indexes after success, and reports the actual
   result.
+- Marketplace evidence now uses one versioned Northstar product/project
+  workflow with 22 reviewed positive, hard-negative, and abstention cases.
+  Provider-neutral contracts, redacted Ollama/OpenAI reports, unsafe-remediation
+  rejection, and a combined same-fingerprint gate are implemented. Live
+  provider reports are still pending.
 
 ## Important Decisions
 
@@ -86,6 +92,9 @@ acceptance and promotion remain pending.
   Ollama, and OpenAI manual acceptance matrix. The branch remains unsuitable for
   promotion or release until that evidence is recorded.
 - Agent quality thresholds are initial calibration targets and need representative local-vault review before a broader release.
+- The marketplace corpus harness is deterministic and tested, but it does not
+  substitute for the pending live Ollama/OpenAI executions or manual Obsidian
+  acceptance.
 
 ## Verification Status
 
@@ -94,4 +103,5 @@ The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type che
 ## Next Recommended Task
 
 Install the packaged Phase 19 build into the Northstar Acceptance vault and run
-the result-first manual desktop matrix before promoting the branch.
+the result-first manual desktop matrix, then produce both live provider corpus
+reports before promoting the branch.

@@ -14,7 +14,10 @@ const requiredPublicDocs = [
   "CHANGELOG.md",
   "docs/local-models.md",
   "docs/troubleshooting.md",
-  "docs/release-compatibility.md"
+  "docs/release-compatibility.md",
+  "docs/northstar-release-workflow.md",
+  "docs/release-quality-report.md",
+  "docs/community-plugin-submission-checklist.md"
 ];
 
 describe("public documentation", () => {
@@ -28,7 +31,9 @@ describe("public documentation", () => {
     expect(readme).toContain("expected result");
     expect(readme).toContain("Apply fixes");
     expect(readme).toContain("## Evaluation And Observability");
-    expect(readme).toContain("Advanced");
+    expect(readme).toContain("Settings");
+    expect(readme).toContain("History");
+    expect(readme).toContain("Diagnostics");
     expect(readme).not.toMatch(/\bPhase\s+1[0-9]\b/i);
     expect(readme).not.toMatch(/Community Plugins|Obsidian marketplace/i);
     expect(readme).not.toMatch(/sends? remote telemetry|cloud analytics/i);
@@ -49,7 +54,7 @@ describe("public documentation", () => {
     expect(commands.every((command) => command in packageJson.scripts)).toBe(true);
   });
 
-  it("documents the simple result-first flow and separate advanced tools", () => {
+  it("documents the simple result-first flow and separate utility surfaces", () => {
     const suite = readFileSync(resolve(root, "docs/manual-acceptance-suite.md"), "utf8");
     const checklist = readFileSync(resolve(root, "docs/manual-acceptance-checklist.md"), "utf8");
 
@@ -58,7 +63,9 @@ describe("public documentation", () => {
     expect(suite).toContain("After");
     expect(suite).toContain("Expected result");
     expect(suite).toContain("Apply fixes");
-    expect(suite).toContain("Advanced");
+    expect(suite).toContain("Settings");
+    expect(suite).toContain("History");
+    expect(suite).toContain("Diagnostics");
     expect(checklist).toContain("one dominant action");
     expect(checklist).toContain("expected result");
     expect(checklist).toContain("actual result");

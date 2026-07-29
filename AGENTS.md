@@ -1,6 +1,6 @@
 # Vault Steward Agent Guide
 
-Vault Steward is a local-first Obsidian plugin that audits a vault for integrity issues. It parses vault content deterministically, uses local models only for bounded reasoning, and never edits notes without an explicit user approval.
+Vault Steward is a local-first Obsidian plugin that audits a vault for integrity issues. It parses vault content deterministically, uses a configured model provider only for bounded reasoning, and never edits notes without an explicit user approval. Ollama is the default; OpenAI is an explicit opt-in path with a cloud-data acknowledgement.
 
 ## Read Order
 
@@ -17,7 +17,7 @@ Product behavior is authoritative in `spec.md`. Architecture, contracts, and ope
 - Core: parser, graph, policy, findings, review workflow, and storage modules; do not import Obsidian APIs into core modules.
 - SQLite owns indexed vault state, scans, findings, approvals, and audit records. LanceDB is optional and never the source of truth.
 - Deterministic code parses, validates, enforces policy, builds diffs, and applies approved edits. Models may classify, extract candidates, or rank evidence only through typed contracts.
-- All model providers are local and accessed through a provider abstraction. No telemetry, cloud APIs, remote storage, shell execution, or broad filesystem access.
+- Model providers are accessed through one bounded abstraction. Ollama and llama.cpp endpoints must be loopback-only. OpenAI may use only the fixed API origin after explicit opt-in and acknowledgement. No telemetry, remote storage, shell execution, or broad filesystem access is permitted.
 
 ## Working Rules
 

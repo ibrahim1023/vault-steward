@@ -96,11 +96,13 @@ reference. Each must show one sentence describing the issue and one concrete
 action such as **Open note**, **Review both notes**, or **Not important**.
 Selecting an item must never create or apply an unsupported patch.
 
-## Advanced
+## Settings, History, And Diagnostics
 
-Open **Advanced** only after completing the primary journey. Confirm that
-provider settings, the full issue list, Policy Studio, maintenance, history,
-and observability are reachable there and do not appear in the default path.
+Confirm **Settings** opens provider configuration directly and **History**
+shows lifecycle metadata without exposing note content. Open **Diagnostics**
+only after completing the primary journey. Policy Studio, readiness,
+maintenance, impact inspection, observability, retention, and stored-data
+controls must remain there rather than in the default path.
 
 Verify:
 
@@ -110,6 +112,21 @@ Verify:
   bodies, prompts, API keys, or unredacted model output;
 - Policy Studio previews before saving and rejects invalid YAML;
 - Maintenance impact remains review-only for destructive rename/delete cases.
+
+## Provider Release Corpus
+
+Run the same committed 22-case corpus independently after the interactive
+provider checks:
+
+```bash
+OLLAMA_MODEL=<model> npm run eval:marketplace:ollama
+OPENAI_MODEL=<model> OPENAI_API_KEY=<key> OPENAI_CLOUD_ACKNOWLEDGED=true npm run eval:marketplace:openai
+npm run eval:marketplace:gate
+```
+
+Record the model identifiers and hardware profile in the release quality
+report. Do not paste the OpenAI key into the checklist, terminal capture,
+screenshot, or report. Both reports must pass with the same corpus fingerprint.
 
 ## Provider Recovery
 
@@ -138,3 +155,7 @@ For every issue, record:
 3. expected result;
 4. actual result; and
 5. screenshot or screen recording.
+
+Record live corpus metrics separately for Ollama and OpenAI: precision, recall,
+F1, evidence validity, unsupported-finding rate, safe-repair validity, median
+and p95 latency, retries, incomplete cases/scans, and unsafe remediations.

@@ -26,8 +26,9 @@ an unsupported edit.
 - Default to offline operation with local models and user-owned data. OpenAI is
   available only as an explicit opt-in provider with acknowledgement.
 - Support user-defined YAML governance policies.
-- Keep the full issue list and operational tools available under a separate
-  **Advanced** surface.
+- Keep **Settings** and **History** directly available after review, with
+  technical readiness, policy, maintenance, impact, and observability tools
+  under a separate **Diagnostics** surface.
 
 ## Non-Functional Constraints
 
