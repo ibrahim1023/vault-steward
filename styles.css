@@ -378,6 +378,29 @@
   padding-top: 12px;
 }
 
+.prompt-registry-view ul {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prompt-registry-view li {
+  display: grid;
+  grid-template-columns: 100px 40px minmax(0, 1fr);
+  gap: 6px 10px;
+  align-items: baseline;
+  padding: 8px;
+  border-left: 3px solid var(--steward-amber);
+  background: var(--background-primary);
+}
+
+.prompt-registry-view li span:last-child {
+  grid-column: 1 / -1;
+  color: var(--text-muted);
+}
+
 .observability-content {
   display: grid;
   gap: 12px;

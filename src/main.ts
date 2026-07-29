@@ -42,6 +42,7 @@ import {
   type MaintenanceScheduleState
 } from "./maintenance/scheduler.js";
 import { configurationFingerprint } from "./observability/fingerprint.js";
+import { promptRegistryFingerprint } from "./observability/prompt-registry.js";
 import type { TracePreferences } from "./contracts/trace.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
@@ -129,7 +130,8 @@ export default class VaultStewardPlugin extends Plugin {
       model: this.settings.modelProvider.model,
       policyId: parsedPolicy.value.id,
       policyVersion: parsedPolicy.value.version,
-      retrievalTopK: 0
+      retrievalTopK: 0,
+      agentBundleHash: promptRegistryFingerprint()
     };
     const configHash = configurationFingerprint(traceConfiguration);
     const startedAt = new Date().toISOString();

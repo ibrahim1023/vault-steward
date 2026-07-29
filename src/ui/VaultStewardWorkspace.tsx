@@ -15,6 +15,7 @@ import { MaintenanceView } from "./MaintenanceView.js";
 import { ModelReadinessView } from "./ModelReadinessView.js";
 import { MoreTools } from "./MoreTools.js";
 import { ObservabilityView } from "./ObservabilityView.js";
+import { PromptRegistryView } from "./PromptRegistryView.js";
 import { PolicyStudio } from "./PolicyStudio.js";
 import { rankDashboardFindings } from "./dashboard.js";
 
@@ -305,6 +306,7 @@ export function VaultStewardWorkspace({
             {...(deleteAllTraceData ? { deleteAllTraceData } : {})}
           />
         ) : null}
+        <PromptRegistryView />
       </MoreTools>
     </section>
   );

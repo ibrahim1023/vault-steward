@@ -30,6 +30,12 @@ The scanner, graph builder, reference integrity checks, task parsing, schema val
 - Terminate on a complete typed response, exhausted budget, missing evidence, policy failure, or timeout. Mark incomplete work visibly.
 - A completed governed scan requires an available configured provider and successful bounded semantic-analysis stage. Provider absence or structured-output exhaustion leaves the scan incomplete; it never degrades to a deterministic-only completion.
 - Structured model output is parsed as JSON, validated against the receiving contract, and may receive one repair attempt. Traces retain provider/model, latency, retry count, and outcome only; they never retain prompts or note excerpts.
+- Semantic prompts are registered per agent with an immutable version, SHA-256 hash,
+  input/output schema compatibility labels, and a scan-bound registry fingerprint.
+  Changing a prompt creates a new version; it never rewrites an existing registration.
+  Rollback means selecting an earlier compatible registration and recording its new
+  scan binding. Diagnostics compares metadata and hashes only. Raw prompt or output
+  snapshots remain unavailable unless separately opted in under local trace controls.
 - Evidence context has a fixed untrusted-data prefix, vault-relative locators, entry and token limits, and excludes private entries before a provider call.
 - A repair model sees candidate IDs and metadata only. Unknown IDs, cross-scan
   candidates, malformed output, and unsupported operations are rejected.
