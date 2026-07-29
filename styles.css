@@ -271,15 +271,49 @@
 }
 
 .issue-list,
-.more-tools {
+.more-tools,
+.workspace-utilities {
   border-top: 1px solid var(--background-modifier-border);
   padding-top: 12px;
 }
 
 .more-tools > summary,
-.more-tools-content summary {
+.more-tools-content summary,
+.history-disclosure > summary {
   cursor: pointer;
   font-weight: 700;
+}
+
+.workspace-utilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: flex-start;
+}
+
+.workspace-utilities > button,
+.workspace-utilities > details {
+  flex: 1 1 160px;
+}
+
+.workspace-utilities > button {
+  background: transparent;
+  font-weight: 700;
+}
+
+.history-disclosure > summary {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.history-content {
+  margin-top: 10px;
+  padding: 12px;
+  border-left: 3px solid var(--steward-green);
+  background: var(--background-secondary);
 }
 
 .issue-toggle {

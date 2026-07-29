@@ -71,11 +71,14 @@ const prepared: PreparedReferenceRepair = {
 describe("VaultStewardWorkspace", () => {
   afterEach(cleanup);
 
-  it("starts with one dominant action and keeps operational tools in Advanced", () => {
+  it("starts with one dominant action and separates utilities from Diagnostics", () => {
+    const openProviderSettings = vi.fn();
     render(
       <VaultStewardWorkspace
         vaultLabel="Test vault"
         scan={async () => ({ scanId: "scan", findings: [] })}
+        openProviderSettings={openProviderSettings}
+        loadHistory={() => ({ scans: [], lifecycle: [] })}
         checkModelReadiness={async () => {
           throw new Error("not used");
         }}
@@ -86,7 +89,15 @@ describe("VaultStewardWorkspace", () => {
     expect(screen.queryByText("Vault health")).not.toBeInTheDocument();
     expect(screen.queryByText("Priority findings")).not.toBeInTheDocument();
     expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
-    expect(screen.getByText("Advanced").closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByRole("button", { name: "Settings" })).toBeEnabled();
+    expect(screen.getByText("History").closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByText("Diagnostics").closest("details")).not.toHaveAttribute("open");
+
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(openProviderSettings).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByText("History"));
+    expect(screen.getByText("No completed scan history is available.")).toBeInTheDocument();
+    expect(screen.getByText("Diagnostics").closest("details")).not.toHaveAttribute("open");
   });
 
   it("checks the vault and shows an exact prepared result", async () => {

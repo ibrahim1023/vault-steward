@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { MoreTools } from "../../src/ui/MoreTools.js";
 
 describe("MoreTools", () => {
-  it("keeps advanced sections closed until the reachable disclosure is activated", () => {
+  it("keeps diagnostic sections closed until the reachable disclosure is activated", () => {
     render(
       <MoreTools>
         <section>Model</section>
@@ -12,7 +12,7 @@ describe("MoreTools", () => {
       </MoreTools>
     );
 
-    const summary = screen.getByText("Advanced");
+    const summary = screen.getByText("Diagnostics");
     const details = summary.closest("details");
     expect(summary.closest("details")).not.toHaveAttribute("open");
     expect(summary.tagName).toBe("SUMMARY");
@@ -26,7 +26,7 @@ describe("MoreTools", () => {
     expect(screen.getByText("Maintenance")).toBeInTheDocument();
   });
 
-  it("does not expose an empty advanced-tools disclosure", () => {
+  it("does not expose an empty diagnostics disclosure", () => {
     const { container } = render(<MoreTools>{null}</MoreTools>);
 
     expect(container).toBeEmptyDOMElement();

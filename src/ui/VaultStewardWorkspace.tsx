@@ -271,23 +271,30 @@ export function VaultStewardWorkspace({
 
       <IssueList findings={activeFindings} />
 
+      {openProviderSettings || history ? (
+        <section className="workspace-utilities" aria-label="Workspace tools">
+          {openProviderSettings ? (
+            <button type="button" onClick={openProviderSettings}>
+              Settings
+            </button>
+          ) : null}
+          {history ? (
+            <details className="history-disclosure">
+              <summary>History</summary>
+              <div className="history-content">
+                <HistoryView scans={history.scans} lifecycle={history.lifecycle} />
+              </div>
+            </details>
+          ) : null}
+        </section>
+      ) : null}
+
       <MoreTools>
-        {openProviderSettings ? (
-          <button type="button" onClick={openProviderSettings}>
-            Provider settings
-          </button>
-        ) : null}
         {checkModelReadiness ? <ModelReadinessView checkReadiness={checkModelReadiness} /> : null}
         {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
         {maintenance ? <MaintenanceScheduleView {...maintenance} /> : null}
         {inspectImpact ? (
           <MaintenanceView findings={findings} inspectImpact={inspectImpact} />
-        ) : null}
-        {history ? (
-          <details>
-            <summary>History</summary>
-            <HistoryView scans={history.scans} lifecycle={history.lifecycle} />
-          </details>
         ) : null}
         {history && loadObservability ? (
           <ObservabilityView
@@ -495,7 +502,7 @@ function scanFailureMessage(error: unknown): string {
     return "The active vault could not be read.";
   if (message.includes("database")) return "The local Vault Steward database is unavailable.";
   if (message.includes("active policy"))
-    return "The active policy is invalid. Open Advanced to review it.";
+    return "The active policy is invalid. Open Diagnostics to review it.";
   return "The vault check could not complete. Try again.";
 }
 
@@ -504,7 +511,7 @@ function batchFailureMessage(reason: BatchApplyResult["reason"]): string {
     case "stale":
       return "A note changed after this preview. Check the vault again.";
     case "recovery-required":
-      return "A write could not be rolled back. Open Advanced for recovery guidance.";
+      return "A write could not be rolled back. Open Diagnostics for recovery guidance.";
     case "write-failed":
       return "The approved fixes could not be written. Your previous note content was restored.";
     case "invalid":
