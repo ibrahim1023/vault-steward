@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { EvaluationReport } from "../../evals/contracts.js";
-import { buildEvaluationRegressionReport, compareEvaluationReports } from "../../evals/regression.js";
+import {
+  buildEvaluationRegressionReport,
+  compareEvaluationReports
+} from "../../evals/regression.js";
 
 const report = (precision: number): EvaluationReport => ({
   schemaVersion: 1 as const,

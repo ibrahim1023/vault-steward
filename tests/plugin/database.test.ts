@@ -166,19 +166,61 @@ describe("plugin database lifecycle", () => {
     expect(snapshot.timeline.map((span) => span.kind)).toEqual(
       expect.arrayContaining([
         "scanner",
+        "parser",
         "indexing",
         "retrieval",
         "agent",
         "validation",
         "policy",
         "coordinator",
-        "finding"
+        "finding",
+        "proposal",
+        "apply"
       ])
     );
     expect(snapshot.configuration).toEqual({
       fingerprint: "a".repeat(64),
       values: { model: "llama3.1:8b" }
     });
+    database.close();
+  });
+
+  it("does not persist a reviewable finding when deterministic lineage is incomplete", async () => {
+    const store = new MemoryBinaryStore();
+    const database = await openPluginDatabase({
+      adapter: store,
+      databasePath: ".obsidian/plugins/vault-steward/vault-steward.sqlite",
+      locateFile: (file) => `node_modules/sql.js/dist/${file}`
+    });
+    database.saveCompletedScan({
+      id: "scan-incomplete-lineage",
+      vaultFingerprint: "vault",
+      configHash: "config",
+      inputHash: "input",
+      parserVersion: "parser",
+      startedAt: "2026-07-29T00:00:00.000Z",
+      finishedAt: "2026-07-29T00:00:01.000Z",
+      files: [],
+      parseProducts: [],
+      findings: [
+        {
+          schemaVersion: 1,
+          id: "unsupported",
+          scanId: "scan-incomplete-lineage",
+          type: "task",
+          severity: "low",
+          evidence: [],
+          affectedNoteIds: [],
+          explanation: "No source evidence.",
+          suggestedFixes: [],
+          confidence: 1,
+          status: "open"
+        }
+      ],
+      modelTraces: []
+    });
+    expect(database.loadFindings()).toEqual([]);
+    expect(database.loadObservability("scan-incomplete-lineage").lineage).toEqual([]);
     database.close();
   });
 });

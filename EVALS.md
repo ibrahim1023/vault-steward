@@ -11,8 +11,8 @@ Run the deterministic suites with `npm run eval:smoke` and `npm run eval:full`. 
 ## Marketplace Release Corpus
 
 The first release candidate uses
-`evals/release/northstar-v1.json`: 22 reviewed product/project cases over the
-realistic Northstar acceptance fixture. Its 23 cases include positive findings, hard
+`evals/release/northstar-v1.json`: 26 reviewed product/project cases over the
+realistic Northstar acceptance fixture. They include positive findings, hard
 negatives, required abstentions, exact evidence ranges, expected severity, and
 safe-repair eligibility.
 
@@ -41,5 +41,10 @@ Fixture replay reruns the same synthetic inputs and configuration into a redacte
 ## Quality Reports
 
 Model comparison, calibration, optional retrieval quality, and policy coverage reports are descriptive. They cannot select a default model, edit policies, authorize findings, or write notes. See `docs/evaluation-plan.md` for metrics and release thresholds.
+
+`npm run release:quality` produces a local redacted quality summary with fixture
+evaluation, provider, calibration, privacy, and manual-acceptance gate states. It
+is **no-go** by default and never uploads or publishes report data. See
+`BENCHMARKS.md` for synthetic corpus and hardware-recording methodology.
 
 `npm run eval:retrieval` writes a redacted retrieval-quality report. Without configured adapter metadata it reports `not-configured`; a local adapter may provide a bounded `events`/`expectations` JSON input under `evals/` for measurement.

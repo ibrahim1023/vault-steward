@@ -44,6 +44,7 @@ describe("finding lifecycle history", () => {
     expect(repository.listFindingLifecycle()).toEqual([
       expect.objectContaining({
         type: "broken-reference",
+        severity: "warning",
         firstSeen: "2026-07-13",
         lastSeen: "2026-07-14",
         occurrences: 2,

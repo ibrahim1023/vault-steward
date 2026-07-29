@@ -111,7 +111,13 @@ describe("observability repository", () => {
       parserVersion: "scanner-v1"
     });
     repository.setTracePreferences(
-      { retentionDays: 30, storePromptSnapshots: true, storeModelOutputSnapshots: false, redactExcerpts: true, excludedFolders: [] },
+      {
+        retentionDays: 30,
+        storePromptSnapshots: true,
+        storeModelOutputSnapshots: false,
+        redactExcerpts: true,
+        excludedFolders: []
+      },
       "2026-07-29T00:00:00.000Z"
     );
     repository.saveTraceSnapshot("scan-snapshot", "prompt", '{"agent":"entity","version":"v1"}');

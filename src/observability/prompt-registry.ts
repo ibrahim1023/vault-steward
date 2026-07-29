@@ -44,7 +44,10 @@ export function promptRegistryFingerprint(
     .update(
       JSON.stringify(
         [...entries]
-          .map((entry) => ({ ...entry, compatibleModelFamilies: [...entry.compatibleModelFamilies] }))
+          .map((entry) => ({
+            ...entry,
+            compatibleModelFamilies: [...entry.compatibleModelFamilies]
+          }))
           .sort((left, right) => left.agent.localeCompare(right.agent))
       )
     )
@@ -61,11 +64,12 @@ export function comparePromptRegistries(
   const after = new Map(candidate.map((entry) => [entry.agent, entry]));
   const changes: Array<{ agent: SemanticAgent; change: "added" | "removed" | "changed" }> = [];
   for (const agent of [...new Set([...before.keys(), ...after.keys()])] as SemanticAgent[]) {
-      const left = before.get(agent);
-      const right = after.get(agent);
-      if (!left) changes.push({ agent, change: "added" });
-      else if (!right) changes.push({ agent, change: "removed" });
-      else if (JSON.stringify(left) !== JSON.stringify(right)) changes.push({ agent, change: "changed" });
+    const left = before.get(agent);
+    const right = after.get(agent);
+    if (!left) changes.push({ agent, change: "added" });
+    else if (!right) changes.push({ agent, change: "removed" });
+    else if (JSON.stringify(left) !== JSON.stringify(right))
+      changes.push({ agent, change: "changed" });
   }
   return changes.sort((left, right) => left.agent.localeCompare(right.agent));
 }

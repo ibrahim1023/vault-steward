@@ -2,10 +2,10 @@
 
 ## Current Phase
 
-The revised Phase 19 simple AI-guided review flow has passed its automated gate
-and is approved for promotion to `development` so Phase 20 work can begin.
-Manual Obsidian acceptance remains deferred and blocks release, marketplace
-submission, and any release-accepted claim.
+Phase 20 AI engineering platform work is complete on its dedicated feature
+branch and awaiting promotion to `development`. Phase 19 manual Obsidian
+acceptance remains deferred and blocks release, marketplace submission, and any
+release-accepted claim.
 
 ## Completed Work
 
@@ -56,13 +56,21 @@ submission, and any release-accepted claim.
 - Phase 14 adds versioned fixture vaults and manifests across all supported finding families, deterministic source/evidence graders, redacted configuration-rich reports, CI regression gates, protected held-out/adversarial/human-review splits, and local human-review agreement summaries.
 - Phase 15 adds metadata-only live replay eligibility, deterministic fixture replay records, redacted single-variable comparison diffs, descriptive local model-comparison summaries, and confidence-calibration reports based only on adjudicated human labels.
 - Phase 16 adds seeded synthetic-ground-truth generation, deterministic reference scale coverage, optional retrieval-quality metrics, aggregate policy coverage, and public documentation checked against repository claims.
+- Phase 20 extends the local trace inspector with parented scanner through apply
+  spans, redacted structured JSON export, snapshot-safe diagnostics, and an
+  evidence-chain explorer. It binds immutable per-agent prompt registry hashes to
+  scan configurations; surfaces local agent/evaluation unavailable states, health
+  trends, fixture-only replay guidance, and guarded debug metadata; adds a
+  deterministic release-quality report and regression-report artifacts; and
+  documents reproducible synthetic benchmark methodology. None of these tools
+  upload vault data or authorize edits.
 
 ## Current Work
 
-Phase 19 implementation and automated verification are complete. The branch is
-being promoted to `development` for Phase 20 work under an explicit manual
-acceptance exception. Manual macOS acceptance, the acknowledged OpenAI report,
-and the combined provider gate remain pending release blockers.
+Phase 20 implementation and automated verification are complete on
+`feat/phase-20-ai-engineering-platform`. Manual macOS acceptance, the
+acknowledged OpenAI report, and the combined provider gate remain release
+blockers.
 
 - Security hardening on 2026-07-20 rejects local-provider redirects, bounds provider configuration and response reads, binds approval/apply to validated persisted proposal digests, and enforces vault-reader/scanner resource and canonical-path limits.
 - Phase 17 adds an explicit OpenAI provider option beside the default loopback Ollama/llama.cpp providers. OpenAI requests use a fixed API origin, bounded JSON-mode Responses API calls with `store: false`, a local API key, and a required cloud-data acknowledgement; keys remain excluded from traces, fingerprints, diagnostics, and portable exports.
@@ -104,7 +112,7 @@ and the combined provider gate remain pending release blockers.
 
 ## Verification Status
 
-The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 15 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 36 replay/evaluation tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 16 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 128 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 48 evaluation/replay/quality tests, deterministic smoke/full evaluations, generated synthetic baseline evaluation, retrieval report, fixture-baseline evaluation, performance and operational smoke reports, and a production dependency audit with no moderate-or-higher vulnerabilities. The revised Phase 19 automated gate passed again on 2026-07-29 after the governed release-evaluator correction: formatting, linting, type checking, build, packaged install smoke, 224 unit/component tests, 25 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, a passing 26-case `gemma3:12b` Ollama release report, and a production dependency audit with no vulnerabilities.
+The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 15 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 126 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 36 replay/evaluation tests, deterministic smoke/full evaluations, fixture-baseline evaluation, and a production dependency audit with no moderate-or-higher vulnerabilities. The Phase 16 completion gate passed on 2026-07-18: formatting, linting, type checking, build, packaged install smoke, 128 unit/component tests, 20 integration tests, 3 end-to-end tests, 3 acceptance tests, 48 evaluation/replay/quality tests, deterministic smoke/full evaluations, generated synthetic baseline evaluation, retrieval report, fixture-baseline evaluation, performance and operational smoke reports, and a production dependency audit with no moderate-or-higher vulnerabilities. The revised Phase 19 automated gate passed again on 2026-07-29 after the governed release-evaluator correction: formatting, linting, type checking, build, packaged install smoke, 224 unit/component tests, 25 integration tests, 3 end-to-end tests, 3 acceptance tests, deterministic smoke/full evaluations, a passing 26-case `gemma3:12b` Ollama release report, and a production dependency audit with no vulnerabilities. The Phase 20 completion gate passed on 2026-07-29: formatting, linting, type checking, build, 235 unit/component tests, 25 integration tests, 3 end-to-end tests, 3 acceptance tests, smoke/full evaluation, dependency audit, and package-install smoke.
 
 ## Next Recommended Task
 

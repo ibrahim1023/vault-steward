@@ -12,6 +12,7 @@ describe("HistoryView", () => {
         lifecycle={[
           {
             type: "broken-reference",
+            severity: "medium",
             evidenceJson: "[redacted]",
             firstSeen: "2026-07-14",
             lastSeen: "2026-07-15",

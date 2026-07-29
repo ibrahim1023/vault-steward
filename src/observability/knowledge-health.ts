@@ -6,6 +6,7 @@ export type KnowledgeHealthTrend = {
   resolvedFindings: number;
   recurringFindings: number;
   staleFindings: number;
+  severityCounts: Record<string, number>;
   byType: Array<{ type: string; active: number; resolved: number; recurring: number }>;
 };
 
@@ -18,6 +19,7 @@ export function summarizeKnowledgeHealth(
   let resolvedFindings = 0;
   let recurringFindings = 0;
   let staleFindings = 0;
+  const severityCounts: Record<string, number> = {};
   for (const record of records) {
     const row = byType.get(record.type) ?? { active: 0, resolved: 0, recurring: 0 };
     if (record.resolved) {
@@ -32,6 +34,7 @@ export function summarizeKnowledgeHealth(
       row.recurring++;
     }
     if (record.stale) staleFindings++;
+    severityCounts[record.severity] = (severityCounts[record.severity] ?? 0) + 1;
     byType.set(record.type, row);
   }
   return {
@@ -40,6 +43,7 @@ export function summarizeKnowledgeHealth(
     resolvedFindings,
     recurringFindings,
     staleFindings,
+    severityCounts,
     byType: [...byType.entries()]
       .map(([type, counts]) => ({ type, ...counts }))
       .sort((left, right) => left.type.localeCompare(right.type))

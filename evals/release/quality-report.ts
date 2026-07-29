@@ -7,7 +7,12 @@ export type ReleaseQualityReport = {
   generatedAt: string;
   decision: "go" | "no-go";
   gates: Array<{ name: string; status: "passed" | "pending" | "failed" }>;
-  evaluation: { available: boolean; precision: number | null; recall: number | null; f1: number | null };
+  evaluation: {
+    available: boolean;
+    precision: number | null;
+    recall: number | null;
+    f1: number | null;
+  };
   providers: Array<{ provider: "ollama" | "openai"; status: "passed" | "pending" | "failed" }>;
   calibration: { available: boolean; warningCount: number };
   privacy: { localByDefault: true; automaticPublishing: false; rawVaultContentIncluded: false };
@@ -25,15 +30,24 @@ export function buildReleaseQualityReport(input: {
     const report = input.providerReports.find((item) => item.provider === provider);
     return {
       provider,
-      status: !report ? ("pending" as const) : report.status === "passed" ? ("passed" as const) : ("failed" as const)
+      status: !report
+        ? ("pending" as const)
+        : report.status === "passed"
+          ? ("passed" as const)
+          : ("failed" as const)
     };
   });
-  const evaluationPassed = Boolean(input.evaluation && input.evaluation.cases.every((item) => item.outcome === "passed"));
+  const evaluationPassed = Boolean(
+    input.evaluation && input.evaluation.cases.every((item) => item.outcome === "passed")
+  );
   const providerPassed = providers.every((item) => item.status === "passed");
   const ollamaStatus = providers.find((item) => item.provider === "ollama")?.status ?? "pending";
   const openAiStatus = providers.find((item) => item.provider === "openai")?.status ?? "pending";
   const gates: ReleaseQualityReport["gates"] = [
-    { name: "evaluation", status: !input.evaluation ? "pending" : evaluationPassed ? "passed" : "failed" },
+    {
+      name: "evaluation",
+      status: !input.evaluation ? "pending" : evaluationPassed ? "passed" : "failed"
+    },
     { name: "ollama-provider", status: ollamaStatus },
     { name: "openai-provider", status: openAiStatus },
     { name: "manual-obsidian-acceptance", status: input.manualAcceptance ? "passed" : "pending" },

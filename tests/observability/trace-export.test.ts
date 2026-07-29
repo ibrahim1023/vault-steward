@@ -36,8 +36,35 @@ const snapshot: ObservabilitySnapshot = {
   lineage: [],
   snapshots: [],
   configuration: { fingerprint: "a".repeat(64), values: { model: "local-model" } },
-  inventory: { spans: 2, agentExecutions: 0, findingLineage: 0, retentionDays: 30, categories: { promptSnapshots: { enabled: false, count: 0, bytes: 0 }, modelOutputSnapshots: { enabled: false, count: 0, bytes: 0 } } },
-  metrics: { scanDurationMs: 1, agentDurationMs: 0, p50ScanDurationMs: 1, p95ScanDurationMs: 1, parseFailures: 0, indexFailures: 0, retrievalFailures: 0, validationFailures: 0, cacheHitRate: null, queueDepth: 0, databaseBytes: 1, modelLoadTimeMs: null, tokenUsage: 0, retries: 0, incompleteRate: 0, staleProposals: 0, applyFailures: 0 }
+  inventory: {
+    spans: 2,
+    agentExecutions: 0,
+    findingLineage: 0,
+    retentionDays: 30,
+    categories: {
+      promptSnapshots: { enabled: false, count: 0, bytes: 0 },
+      modelOutputSnapshots: { enabled: false, count: 0, bytes: 0 }
+    }
+  },
+  metrics: {
+    scanDurationMs: 1,
+    agentDurationMs: 0,
+    p50ScanDurationMs: 1,
+    p95ScanDurationMs: 1,
+    parseFailures: 0,
+    indexFailures: 0,
+    retrievalFailures: 0,
+    validationFailures: 0,
+    cacheHitRate: null,
+    queueDepth: 0,
+    databaseBytes: 1,
+    modelLoadTimeMs: null,
+    tokenUsage: 0,
+    retries: 0,
+    incompleteRate: 0,
+    staleProposals: 0,
+    applyFailures: 0
+  }
 };
 
 describe("trace export", () => {

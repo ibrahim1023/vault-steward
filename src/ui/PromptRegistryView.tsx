@@ -12,7 +12,9 @@ export function PromptRegistryView() {
             <strong>{entry.agent}</strong>
             <span>{entry.version}</span>
             <code>{entry.hash.slice(0, 12)}</code>
-            <span>{entry.inputSchemaVersion} to {entry.outputSchemaVersion}</span>
+            <span>
+              {entry.inputSchemaVersion} to {entry.outputSchemaVersion}
+            </span>
           </li>
         ))}
       </ul>
