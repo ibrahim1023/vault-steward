@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { EvaluationReport } from "../../evals/contracts.js";
-import { compareEvaluationReports } from "../../evals/regression.js";
+import { buildEvaluationRegressionReport, compareEvaluationReports } from "../../evals/regression.js";
 
 const report = (precision: number): EvaluationReport => ({
   schemaVersion: 1 as const,
@@ -52,5 +52,14 @@ describe("evaluation regression gates", () => {
     const candidate = report(1);
     candidate.metrics.p95LatencyMs = 130;
     expect(compareEvaluationReports(baseline, candidate)).toContain("p95 latency increased");
+  });
+  it("emits a redacted local gate report for every comparison", () => {
+    const summary = buildEvaluationRegressionReport({
+      createdAt: "2026-07-29T00:00:00.000Z",
+      baseline: report(1),
+      candidate: report(0.9)
+    });
+    expect(summary).toMatchObject({ passed: false, failures: ["precision dropped", "f1 dropped"] });
+    expect(JSON.stringify(summary)).not.toMatch(/note body|\/Users\//i);
   });
 });

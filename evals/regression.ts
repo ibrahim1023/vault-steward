@@ -7,6 +7,17 @@ export type BaselineRationale = {
   reviewReason: string;
 };
 
+export type EvaluationRegressionReport = {
+  schemaVersion: 1;
+  createdAt: string;
+  baselineReportId: string;
+  candidateReportId: string;
+  fixtureManifestHash: string;
+  passed: boolean;
+  failures: string[];
+  rationale: { used: boolean; date: string | null; affectedMetrics: string[] };
+};
+
 export function compareEvaluationReports(
   baseline: EvaluationReport,
   candidate: EvaluationReport,
@@ -63,6 +74,29 @@ export function compareEvaluationReports(
       failures.push(`${label} increased`);
   }
   return failures;
+}
+
+export function buildEvaluationRegressionReport(input: {
+  createdAt: string;
+  baseline: EvaluationReport;
+  candidate: EvaluationReport;
+  rationale?: BaselineRationale;
+}): EvaluationRegressionReport {
+  const failures = compareEvaluationReports(input.baseline, input.candidate, input.rationale);
+  return {
+    schemaVersion: 1,
+    createdAt: input.createdAt,
+    baselineReportId: input.baseline.reportId,
+    candidateReportId: input.candidate.reportId,
+    fixtureManifestHash: input.candidate.provenance.fixtureManifestHash,
+    passed: failures.length === 0,
+    failures,
+    rationale: {
+      used: Boolean(input.rationale),
+      date: input.rationale?.date ?? null,
+      affectedMetrics: input.rationale?.affectedMetrics ?? []
+    }
+  };
 }
 
 function validRationale(value: BaselineRationale | undefined, metric: string): boolean {

@@ -10,7 +10,7 @@ import { gradeExpectedFindings } from "../evals/graders/metrics.js";
 import { compareReplayRuns } from "../evals/replay/compare.js";
 import { validateFixtureReplayRecord } from "../evals/replay/contracts.js";
 import { replayFixtureEvaluation } from "../evals/replay/fixture-replay.js";
-import { compareEvaluationReports } from "../evals/regression.js";
+import { buildEvaluationRegressionReport, compareEvaluationReports } from "../evals/regression.js";
 import {
   buildRedactedReport,
   parseEvaluationSelection,
@@ -125,6 +125,16 @@ if (selection.compare) {
   const baseline = JSON.parse(
     await readFile(resolve(root, selection.compare), "utf8")
   ) as typeof report;
+  const regression = buildEvaluationRegressionReport({
+    createdAt: new Date().toISOString(),
+    baseline,
+    candidate: report
+  });
+  await mkdir(resolve(root, "evals/reports"), { recursive: true });
+  await writeFile(
+    resolve(root, "evals/reports/regression.json"),
+    `${JSON.stringify(regression, null, 2)}\n`
+  );
   const failures = compareEvaluationReports(baseline, report);
   if (failures.length > 0) throw new Error(`Evaluation regression failed: ${failures.join(", ")}`);
 }
