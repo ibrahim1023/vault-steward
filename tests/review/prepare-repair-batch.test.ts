@@ -112,6 +112,49 @@ describe("prepared reference repair orchestration", () => {
     });
   });
 
+  it("prepares a verified rename repair for a relative Markdown link", async () => {
+    const snapshot = {
+      ...scanVaultFiles([
+        { path: "Work/Home.md", content: "[Guide](Old%20Guide.md)", revision: "revision" },
+        { path: "Guides/New Guide.md", content: "# New Guide" }
+      ]),
+      id: "scan-1"
+    };
+    const finding = {
+      ...brokenFinding(snapshot.id),
+      evidence: [
+        {
+          notePath: "Work/Home.md",
+          locator: "line:1",
+          excerpt: "[Guide](Old%20Guide.md)"
+        }
+      ],
+      affectedNoteIds: ["Work/Home.md"]
+    };
+    const selectCandidate = vi.fn();
+
+    await expect(
+      prepareReferenceRepairBatch({
+        snapshot,
+        findings: [finding],
+        renames: [{ oldPath: "Work/Old Guide.md", path: "Guides/New Guide.md" }],
+        readSource: async () => ({ content: "[Guide](Old%20Guide.md)", revision: "revision" }),
+        selectCandidate,
+        persistProposal: () => undefined
+      })
+    ).resolves.toMatchObject({
+      items: [
+        {
+          currentReference: "[Guide](Old%20Guide.md)",
+          replacementReference: "[Guide](../Guides/New%20Guide.md)",
+          targetPath: "Guides/New Guide.md",
+          targetStatus: "verified-rename"
+        }
+      ]
+    });
+    expect(selectCandidate).not.toHaveBeenCalled();
+  });
+
   it("returns null when no safe repair can be prepared", async () => {
     const snapshot = {
       ...scanVaultFiles([{ path: "Home.md", content: "No reference here." }]),

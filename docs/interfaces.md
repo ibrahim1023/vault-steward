@@ -93,8 +93,11 @@ Agents receive only read-scoped tools: retrieve indexed evidence, resolve paths 
 
 The reference recommender may select an ID from a bounded list of target notes
 or abstain. Deterministic code verifies that the selected target belongs to the
-active scan and constructs the `replace-range` proposal. Model output never
-supplies replacement syntax, patch offsets, approval, or write authority.
+active scan and constructs the `replace-range` proposal for internal wiki
+links, wiki embeds, or Markdown links. It preserves existing labels and
+anchors; Markdown destinations are made source-relative and percent-encoded
+when required. Model output never supplies replacement syntax, patch offsets,
+approval, or write authority.
 
 ## Unified Finding Normalization
 

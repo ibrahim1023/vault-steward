@@ -51,6 +51,15 @@ describe("reference integrity", () => {
     expect(checkReferenceIntegrity(scan)).toEqual([]);
   });
 
+  it("resolves percent-encoded internal Markdown paths", () => {
+    const scan = scanVaultFiles([
+      { path: "Work/Home.md", content: "[Guide](../Guides/New%20Guide.md#Plan)" },
+      { path: "Guides/New Guide.md", content: "# Plan" }
+    ]);
+
+    expect(checkReferenceIntegrity(scan)).toEqual([]);
+  });
+
   it("assigns a distinct immutable ID to each scan", () => {
     const files = [{ path: "Home.md", content: "# Home" }];
 

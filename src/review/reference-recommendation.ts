@@ -43,7 +43,7 @@ export function buildReferenceTargetCandidates(input: {
   )
     return [];
 
-  const missingTarget = wikiTarget(evidence.excerpt);
+  const missingTarget = referenceTarget(evidence.excerpt, evidence.notePath);
   if (!missingTarget) return [];
 
   const existingPaths = new Set(snapshot.notes.map((note) => note.path));
@@ -63,7 +63,13 @@ export function buildReferenceTargetCandidates(input: {
   for (const note of snapshot.notes) {
     if (note.path === evidence.notePath || !isSafeVaultPath(note.path)) continue;
     const aliases = stringValues(note.frontmatter.aliases);
-    if (aliases.some((alias) => normalize(alias) === normalize(missingTarget))) {
+    if (
+      aliases.some(
+        (alias) =>
+          normalize(alias) === normalize(missingTarget) ||
+          normalize(alias) === normalize(fileName(missingTarget))
+      )
+    ) {
       addCandidate(ranked, note.path, "alias", 1, Number.MAX_SAFE_INTEGER);
       continue;
     }
@@ -241,10 +247,24 @@ function addCandidate(
   });
 }
 
-function wikiTarget(excerpt: string): string | null {
+function referenceTarget(excerpt: string, sourcePath: string): string | null {
   if (hasWikiAnchor(excerpt)) return null;
-  const match = /^!?\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|[^\]]+)?\]\]$/.exec(excerpt.trim());
-  return match?.[1] ? stripExtension(match[1].trim()) : null;
+  const wiki = /^!?\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|[^\]]+)?\]\]$/.exec(excerpt.trim());
+  if (wiki?.[1]) return stripExtension(wiki[1].trim());
+
+  const markdown = /^!?\[[^\]]*\]\(([^\s()]+)\)$/.exec(excerpt.trim());
+  if (!markdown?.[1]) return null;
+  const [rawPath, rawAnchor] = markdown[1].split("#", 2);
+  if (
+    !rawPath ||
+    rawAnchor === "" ||
+    rawPath.startsWith("/") ||
+    /^[a-z][a-z0-9+.-]*:/i.test(rawPath)
+  )
+    return null;
+  const decoded = decodePath(rawPath);
+  if (!decoded) return null;
+  return resolveRelativePath(decoded, sourcePath);
 }
 
 function hasWikiAnchor(excerpt: string): boolean {
@@ -276,6 +296,34 @@ function normalize(value: string): string {
 
 function stripExtension(path: string): string {
   return path.replace(/\.md$/i, "");
+}
+
+function fileName(path: string): string {
+  return path.split("/").at(-1) ?? path;
+}
+
+function decodePath(path: string): string | null {
+  try {
+    return decodeURIComponent(path);
+  } catch {
+    return null;
+  }
+}
+
+function resolveRelativePath(path: string, sourcePath: string): string | null {
+  const parts = sourcePath.split("/").slice(0, -1);
+  for (const part of path.split("/")) {
+    if (!part || part === ".") continue;
+    if (part === "..") {
+      if (parts.length === 0) return null;
+      parts.pop();
+      continue;
+    }
+    if (part.includes("\\") || /[\u0000-\u001F\u007F]/.test(part)) return null;
+    parts.push(part);
+  }
+  if (parts.length === 0) return null;
+  return stripExtension(parts.join("/"));
 }
 
 function isSafeVaultPath(value: string): boolean {

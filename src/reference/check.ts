@@ -54,7 +54,10 @@ function resolveTarget(
   isRelativeMarkdownLink: boolean
 ): ResolvedTarget | null {
   const [rawPath, rawAnchor] = rawTarget.split("#", 2);
-  const path = normalizeVaultPath(rawPath ?? "");
+  const decodedPath = decodeComponent(rawPath ?? "");
+  const decodedAnchor = rawAnchor === undefined ? undefined : decodeComponent(rawAnchor);
+  if (decodedPath === null || decodedAnchor === null) return null;
+  const path = normalizeVaultPath(decodedPath);
 
   if (!path || path.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(path)) {
     return null;
@@ -65,10 +68,18 @@ function resolveTarget(
   );
   if (!resolvedPath) return null;
   const withExtension = resolvedPath.includes(".") ? resolvedPath : `${resolvedPath}.md`;
-  const anchor = rawAnchor === undefined ? undefined : normalizeAnchor(rawAnchor);
-  return anchor === "" && rawAnchor !== undefined
+  const anchor = decodedAnchor === undefined ? undefined : normalizeAnchor(decodedAnchor);
+  return anchor === "" && decodedAnchor !== undefined
     ? null
     : { path: withExtension, ...(anchor ? { anchor } : {}) };
+}
+
+function decodeComponent(value: string): string | null {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
 }
 
 function directoryOf(path: string): string {

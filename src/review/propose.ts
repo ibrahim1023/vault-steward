@@ -13,12 +13,8 @@ export function proposeFix(
   const evidence = finding.evidence[0];
   if (finding.type !== "broken-reference" || !evidence || evidence.notePath !== source.path)
     return { applicable: false, reason: "No deterministic fix is available for this finding." };
-  const reference = /^\[\[([^\]|#]+)(#[^\]|]+)?(?:\|([^\]]+))?\]\]$/.exec(evidence.excerpt);
-  if (
-    !reference ||
-    !/^[^/\\][^\\]*$/.test(target) ||
-    ["[", "]", "#", "|"].some((character) => target.includes(character))
-  )
+  const replacement = replaceInternalReference(evidence.excerpt, source.path, target);
+  if (!replacement)
     return { applicable: false, reason: "The reference replacement is unsafe or ambiguous." };
   const start = source.content.indexOf(evidence.excerpt);
   if (start < 0)
@@ -39,9 +35,87 @@ export function proposeFix(
           start,
           end: start + evidence.excerpt.length,
           expected: evidence.excerpt,
-          replacement: `[[${target}${reference[2] ?? ""}${reference[3] ? `|${reference[3]}` : ""}]]`
+          replacement
         }
       ]
     }
   };
+}
+
+function replaceInternalReference(
+  excerpt: string,
+  sourcePath: string,
+  target: string
+): string | null {
+  const targetPath = normalizeTargetPath(target);
+  if (!targetPath) return null;
+
+  const wiki = /^(!)?\[\[([^\]|#]+)(#[^\]|]+)?(?:\|([^\]]+))?\]\]$/.exec(excerpt);
+  if (wiki) {
+    const prefix = wiki[1] ? "!" : "";
+    const anchor = wiki[3] ?? "";
+    const label = wiki[4] ? `|${wiki[4]}` : "";
+    return `${prefix}[[${stripExtension(targetPath)}${anchor}${label}]]`;
+  }
+
+  const markdown = /^(!)?\[([^\]]*)\]\(([^\s()]+)\)$/.exec(excerpt);
+  if (!markdown || !isSafeInternalMarkdownTarget(markdown[3] ?? "")) return null;
+  const rawTarget = markdown[3] ?? "";
+  const [, rawAnchor] = rawTarget.split("#", 2);
+  const anchor = rawAnchor === undefined ? "" : `#${rawAnchor}`;
+  const prefix = markdown[1] ? "!" : "";
+  return `${prefix}[${markdown[2] ?? ""}](${encodeMarkdownPath(relativeMarkdownPath(sourcePath, targetPath))}${anchor})`;
+}
+
+function normalizeTargetPath(target: string): string | null {
+  if (
+    !target ||
+    target.startsWith("/") ||
+    /^[a-z][a-z0-9+.-]*:/i.test(target) ||
+    ["[", "]", "#", "|", "\\"].some((character) => target.includes(character))
+  )
+    return null;
+  const path = target.endsWith(".md") ? target : `${target}.md`;
+  const parts = path.split("/");
+  return parts.some((part) => !part || part === "." || part === ".." || hasControlCharacters(part))
+    ? null
+    : path;
+}
+
+function isSafeInternalMarkdownTarget(target: string): boolean {
+  const [path, anchor] = target.split("#", 2);
+  if (!path) return false;
+  return (
+    !path.startsWith("/") &&
+    !/^[a-z][a-z0-9+.-]*:/i.test(path) &&
+    !path.split("/").some((part) => part === "..") &&
+    (anchor === undefined || anchor.length > 0)
+  );
+}
+
+function relativeMarkdownPath(sourcePath: string, targetPath: string): string {
+  const sourceDirectory = sourcePath.split("/").slice(0, -1);
+  const targetParts = targetPath.split("/");
+  let shared = 0;
+  while (sourceDirectory[shared] === targetParts[shared]) shared += 1;
+  const parentSegments = sourceDirectory.slice(shared).map(() => "..");
+  return [...parentSegments, ...targetParts.slice(shared)].join("/");
+}
+
+function encodeMarkdownPath(path: string): string {
+  return path
+    .split("/")
+    .map((part) => (part === ".." ? part : encodeURIComponent(part)))
+    .join("/");
+}
+
+function stripExtension(path: string): string {
+  return path.replace(/\.md$/i, "");
+}
+
+function hasControlCharacters(value: string): boolean {
+  return [...value].some((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 31 || code === 127;
+  });
 }

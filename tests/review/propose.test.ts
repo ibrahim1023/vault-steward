@@ -83,6 +83,91 @@ describe("deterministic proposals", () => {
     });
   });
 
+  it("preserves wiki embed syntax, anchors, and display labels", () => {
+    const embedded = {
+      ...finding,
+      evidence: [
+        {
+          notePath: "Home.md",
+          locator: "line:1",
+          excerpt: "![[Missing#Plan|embedded plan]]"
+        }
+      ]
+    };
+
+    expect(
+      proposeFix(
+        embedded,
+        {
+          path: "Home.md",
+          revision: "hash",
+          content: "See ![[Missing#Plan|embedded plan]]."
+        },
+        "Guides/Target"
+      )
+    ).toMatchObject({
+      applicable: true,
+      proposal: {
+        operations: [
+          {
+            expected: "![[Missing#Plan|embedded plan]]",
+            replacement: "![[Guides/Target#Plan|embedded plan]]"
+          }
+        ]
+      }
+    });
+  });
+
+  it("rewrites an internal Markdown link relative to its source and preserves its anchor", () => {
+    const markdown = {
+      ...finding,
+      evidence: [
+        {
+          notePath: "Work/Home.md",
+          locator: "line:1",
+          excerpt: "[Read the guide](Missing.md#plan)"
+        }
+      ]
+    };
+
+    expect(
+      proposeFix(
+        markdown,
+        {
+          path: "Work/Home.md",
+          revision: "hash",
+          content: "[Read the guide](Missing.md#plan)"
+        },
+        "Guides/Target"
+      )
+    ).toMatchObject({
+      applicable: true,
+      proposal: {
+        operations: [
+          {
+            expected: "[Read the guide](Missing.md#plan)",
+            replacement: "[Read the guide](../Guides/Target.md#plan)"
+          }
+        ]
+      }
+    });
+  });
+
+  it("rejects external and malformed Markdown replacement targets", () => {
+    const markdown = {
+      ...finding,
+      evidence: [{ notePath: "Home.md", locator: "line:1", excerpt: "[Guide](Missing.md)" }]
+    };
+    const source = { path: "Home.md", revision: "hash", content: "[Guide](Missing.md)" };
+
+    expect(proposeFix(markdown, source, "https://example.com/guide")).toMatchObject({
+      applicable: false
+    });
+    expect(proposeFix(markdown, source, "Guides/Target#Injected")).toMatchObject({
+      applicable: false
+    });
+  });
+
   it("proposes the documented acceptance-vault repair", () => {
     const source = {
       path: "Work/Partner Enablement.md",
