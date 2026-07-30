@@ -123,6 +123,13 @@ describe("VaultStewardWorkspace", () => {
     expect(within(recommendation).getByText("After")).toBeInTheDocument();
     expect(within(recommendation).getByText("[[Target]]")).toBeInTheDocument();
     expect(within(recommendation).getByText("Verified rename")).toBeInTheDocument();
+    expect(within(recommendation).getByText("Reference target")).toBeInTheDocument();
+    const repair = within(recommendation).getByText("[[Missing]]").closest("details");
+    expect(repair).not.toHaveAttribute("open");
+    fireEvent.click(repair!.querySelector("summary")!);
+    expect(repair).toHaveAttribute("open");
+    expect(within(repair!).getByText("Existing target")).toBeInTheDocument();
+    expect(within(repair!).getByText("Target.md")).toBeInTheDocument();
     expect(within(recommendation).getByText("Expected result")).toBeInTheDocument();
     expect(within(recommendation).getByText("1 issue resolved")).toBeInTheDocument();
     expect(within(recommendation).getByText("1 note edited")).toBeInTheDocument();

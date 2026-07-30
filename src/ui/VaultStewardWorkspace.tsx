@@ -357,27 +357,55 @@ function PreparedResult({
       </p>
       <div className="repair-items">
         {prepared.items.map((item) => (
-          <article className="repair-item" key={item.proposalId}>
-            <div className="repair-source">
-              <strong>{item.sourcePath}</strong>
-              <span>{item.locator}</span>
-            </div>
-            <p className="target-status">
-              {item.targetStatus === "verified-rename"
-                ? "Verified rename"
-                : "AI suggestion - target exists"}
-            </p>
-            <div className="repair-change">
-              <section>
-                <h3>Current</h3>
-                <pre className="repair-reference current-reference">{item.currentReference}</pre>
-              </section>
-              <section>
-                <h3>After</h3>
-                <pre className="repair-reference after-reference">{item.replacementReference}</pre>
-              </section>
-            </div>
-          </article>
+          <details className="repair-item" key={item.proposalId}>
+            <summary>
+              <span className="repair-status">
+                <strong>{repairStatusLabel(item.targetStatus)}</strong>
+                <small>{repairKindLabel(item.repairKind)}</small>
+              </span>
+              <span className="repair-change" aria-label="Exact reference change">
+                <span>
+                  <small>Current</small>
+                  <code className="current-reference">{item.currentReference}</code>
+                </span>
+                <span className="repair-arrow" aria-hidden="true">
+                  →
+                </span>
+                <span>
+                  <small>After</small>
+                  <code className="after-reference">{item.replacementReference}</code>
+                </span>
+              </span>
+            </summary>
+            <dl className="repair-details">
+              <div>
+                <dt>Source</dt>
+                <dd>{item.sourcePath}</dd>
+              </div>
+              <div>
+                <dt>Location</dt>
+                <dd>{item.locator}</dd>
+              </div>
+              <div>
+                <dt>Target</dt>
+                <dd>{item.targetPath}</dd>
+              </div>
+              {item.targetAnchor ? (
+                <div>
+                  <dt>{item.targetAnchor.kind === "block" ? "Block" : "Heading"}</dt>
+                  <dd>{item.targetAnchor.value}</dd>
+                </div>
+              ) : null}
+              <div>
+                <dt>Target check</dt>
+                <dd>{item.targetExists ? "Existing target" : "Target unavailable"}</dd>
+              </div>
+              <div>
+                <dt>Affected notes</dt>
+                <dd>{item.affectedNotes.join(", ")}</dd>
+              </div>
+            </dl>
+          </details>
         ))}
       </div>
       <section className="expected-result" aria-label="Expected result">
@@ -523,6 +551,32 @@ function IssueList({ findings }: { findings: readonly Finding[] }) {
 
 function formatCount(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+function repairStatusLabel(
+  status: PreparedReferenceRepair["items"][number]["targetStatus"]
+): string {
+  switch (status) {
+    case "verified-rename":
+      return "Verified rename";
+    case "verified-canonical":
+      return "Verified canonical target";
+    default:
+      return "AI suggestion - target exists";
+  }
+}
+
+function repairKindLabel(kind: PreparedReferenceRepair["items"][number]["repairKind"]): string {
+  switch (kind) {
+    case "replace-heading-anchor":
+      return "Heading anchor";
+    case "replace-block-anchor":
+      return "Block anchor";
+    case "normalize-reference":
+      return "Reference normalization";
+    default:
+      return "Reference target";
+  }
 }
 
 function scanFailureMessage(error: unknown): string {

@@ -165,62 +165,77 @@
 }
 
 .repair-item {
-  display: grid;
-  gap: 12px;
-  padding: 14px;
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
   background: var(--background-primary);
 }
 
-.repair-source {
+.repair-item > summary {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.repair-item > summary::-webkit-details-marker {
+  display: none;
+}
+
+.repair-item > summary::after {
+  content: "Details";
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+.repair-item[open] > summary::after {
+  content: "Hide details";
+}
+
+.repair-status {
   display: flex;
   gap: 8px;
   align-items: baseline;
   justify-content: space-between;
 }
 
-.repair-source strong,
-.repair-source span {
-  overflow-wrap: anywhere;
+.repair-status strong {
+  color: var(--steward-green);
 }
 
-.repair-source span {
+.repair-status small,
+.repair-change small {
   color: var(--text-muted);
-  font-size: 0.82rem;
-}
-
-.repair-item > .target-status {
-  margin-bottom: 0;
 }
 
 .repair-change {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
 }
 
-.repair-change section {
+.repair-change > span:not(.repair-arrow) {
   display: grid;
-  gap: 6px;
+  min-width: 0;
+  gap: 4px;
 }
 
-.repair-change h3 {
-  margin-bottom: 0;
-  font-size: 0.82rem;
+.repair-arrow {
+  color: var(--text-muted);
+  font-size: 1.1rem;
 }
 
-.repair-reference {
-  min-height: 66px;
-  margin: 0;
-  padding: 10px;
+.repair-change code {
+  display: block;
+  min-width: 0;
+  padding: 8px;
   border: 1px solid var(--background-modifier-border);
   border-radius: 6px;
-  overflow: auto;
   color: var(--text-normal);
   font-family: var(--font-monospace);
-  font-size: 0.84rem;
-  line-height: 1.45;
+  font-size: 0.8rem;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
@@ -228,6 +243,29 @@
 .current-reference {
   border-left: 3px solid var(--steward-red);
   background: var(--steward-red-soft);
+}
+
+.repair-details {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.repair-details > div {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.3fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.repair-details dt {
+  color: var(--text-muted);
+}
+
+.repair-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .after-reference {
@@ -528,8 +566,7 @@
 
 @container steward-workspace (max-width: 620px) {
   .steward-header,
-  .prepared-heading,
-  .repair-source {
+  .prepared-heading {
     display: grid;
   }
 
@@ -539,6 +576,16 @@
 
   .repair-change {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .repair-arrow {
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+
+  .repair-details > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
   }
 
   .judgment-actions {
