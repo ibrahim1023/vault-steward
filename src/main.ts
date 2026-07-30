@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 
 import { registerPluginCommands } from "./plugin/commands.js";
 import { openPluginDatabase, type PluginDatabase } from "./plugin/database.js";
+import { displayVaultName } from "./plugin/vault-label.js";
 import { createGovernedIntegritySession, type GovernedIntegrityResult } from "./plugin/main.js";
 import {
   DEFAULT_PLUGIN_SETTINGS,
@@ -557,7 +558,10 @@ class VaultStewardStatusItemView extends ItemView {
         "div",
         undefined,
         createElement(VaultStewardWorkspace, {
-          vaultLabel: this.plugin.settings.vaultLabel,
+          vaultLabel: displayVaultName(
+            this.plugin.app.vault.getName(),
+            this.plugin.settings.vaultLabel
+          ),
           scan: () => this.plugin.scanVault(),
           loadFindings: () => this.plugin.loadFindings(),
           loadHistory: () => this.plugin.loadHistory(),
@@ -606,8 +610,8 @@ class VaultStewardSettingsTab extends PluginSettingTab {
     this.containerEl.createEl("h2", { text: "Vault Steward settings" });
 
     new Setting(this.containerEl)
-      .setName("Vault label")
-      .setDesc("A local label shown in the Vault Steward status view.")
+      .setName("Vault label fallback")
+      .setDesc("Used only when Obsidian cannot provide the active vault name.")
       .addText((text) =>
         text.setValue(this.plugin.settings.vaultLabel).onChange(async (value) => {
           await this.plugin.saveSettings({ ...this.plugin.settings, vaultLabel: value });
