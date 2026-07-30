@@ -319,7 +319,7 @@ function resolveRelativePath(path: string, sourcePath: string): string | null {
       parts.pop();
       continue;
     }
-    if (part.includes("\\") || /[\u0000-\u001F\u007F]/.test(part)) return null;
+    if (part.includes("\\") || hasControlCharacters(part)) return null;
     parts.push(part);
   }
   if (parts.length === 0) return null;
@@ -333,6 +333,13 @@ function isSafeVaultPath(value: string): boolean {
     !value.includes("\\") &&
     !value.split("/").includes("..")
   );
+}
+
+function hasControlCharacters(value: string): boolean {
+  return [...value].some((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 31 || code === 127;
+  });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
