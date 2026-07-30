@@ -22,6 +22,7 @@ export type ScannedNote = {
   frontmatter: Record<string, unknown>;
   revision: string;
   headings: string[];
+  blockIds: string[];
   references: ParsedReference[];
 };
 
@@ -61,6 +62,9 @@ function scanFile(file: VaultFile, index: number, limits: ScanLimits): ScannedNo
   });
   if (headings.length > limits.maxHeadingsPerFile)
     throw new Error("vault exceeds configured processing limits");
+  const blockIds = extractBlockIds(parsed.content);
+  if (headings.length + blockIds.length > limits.maxHeadingsPerFile)
+    throw new Error("vault exceeds configured processing limits");
   const references = extractReferences(parsed.content);
   if (references.length > limits.maxReferencesPerFile)
     throw new Error("vault exceeds configured processing limits");
@@ -71,8 +75,27 @@ function scanFile(file: VaultFile, index: number, limits: ScanLimits): ScannedNo
     frontmatter: parsed.data as Record<string, unknown>,
     revision: file.revision ?? `memory-${index}`,
     headings,
+    blockIds,
     references
   };
+}
+
+function extractBlockIds(content: string): string[] {
+  const blockIds: string[] = [];
+  let fence: string | undefined;
+  for (const line of content.split("\n")) {
+    const fenceMatch = /^\s*(`{3,}|~{3,})/.exec(line);
+    if (fenceMatch) {
+      const marker = fenceMatch[1]![0]!;
+      if (!fence) fence = marker;
+      else if (fence === marker) fence = undefined;
+      continue;
+    }
+    if (fence || /^(?: {4}|\t)/.test(line)) continue;
+    const match = /(?:^|\s)\^([A-Za-z0-9][A-Za-z0-9-]{0,127})\s*$/.exec(line);
+    if (match?.[1]) blockIds.push(match[1]);
+  }
+  return blockIds;
 }
 
 function extractReferences(content: string): ParsedReference[] {

@@ -35,6 +35,45 @@ describe("reference integrity", () => {
     expect(checkReferenceIntegrity(scan)).toEqual([]);
   });
 
+  it("resolves unique basenames and aliases but rejects ambiguous matches", () => {
+    const valid = scanVaultFiles([
+      { path: "Home.md", content: "[[Guide]]\n[[Legacy Guide]]" },
+      {
+        path: "Guides/Guide.md",
+        content: "---\naliases: [Legacy Guide]\n---\n# Guide"
+      }
+    ]);
+    expect(checkReferenceIntegrity(valid)).toEqual([]);
+
+    const ambiguous = scanVaultFiles([
+      { path: "Home.md", content: "[[Guide]]" },
+      { path: "One/Guide.md", content: "# One" },
+      { path: "Two/Guide.md", content: "# Two" }
+    ]);
+    expect(checkReferenceIntegrity(ambiguous)).toEqual([
+      expect.objectContaining({ explanation: expect.stringContaining("ambiguous target") })
+    ]);
+  });
+
+  it("validates heading and block anchors while ignoring block IDs inside code", () => {
+    const scan = scanVaultFiles([
+      {
+        path: "Home.md",
+        content: "[[Target#Present]]\n[[Target#^valid-block]]\n[[Target#^code-block]]"
+      },
+      {
+        path: "Target.md",
+        content:
+          "# Present\n\nA referenceable paragraph. ^valid-block\n\n```\nnot a block ^code-block\n```"
+      }
+    ]);
+
+    expect(scan.notes[1]?.blockIds).toEqual(["valid-block"]);
+    expect(checkReferenceIntegrity(scan)).toEqual([
+      expect.objectContaining({ explanation: expect.stringContaining("missing anchor") })
+    ]);
+  });
+
   it("ignores external web links because they are outside the vault graph", () => {
     const scan = scanVaultFiles([{ path: "Home.md", content: "[web](https://example.com)" }]);
 

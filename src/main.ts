@@ -160,7 +160,11 @@ export default class VaultStewardPlugin extends Plugin {
         path: note.path,
         revisionHash: note.revision,
         frontmatterHash: hashMetadata(note.frontmatter),
-        bodyMetadataHash: hashMetadata({ headings: note.headings, references: note.references }),
+        bodyMetadataHash: hashMetadata({
+          headings: note.headings,
+          blockIds: note.blockIds,
+          references: note.references
+        }),
         dependencies: note.references.map((reference) => ({
           targetPath: reference.rawTarget,
           relation: reference.kind
