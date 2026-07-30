@@ -7,9 +7,9 @@ import {
 import type { Finding } from "../contracts/index.js";
 import type { Proposal } from "../contracts/proposal.js";
 import type { ScanSnapshot } from "../scanner/scan.js";
-import { proposeFix, type ProposalSource } from "./propose.js";
+import { proposeReferenceRepair, type ProposalSource } from "./propose.js";
 import {
-  buildReferenceTargetCandidates,
+  buildReferenceRepairCandidates,
   recommendReferenceRepair,
   type ReferenceCandidateSelectionRequest,
   type ReferenceRename
@@ -24,8 +24,12 @@ export type PreparedReferenceRepairItem = {
   locator: string;
   currentReference: string;
   replacementReference: string;
+  repairKind: import("../contracts/reference-repair.js").ReferenceRepairKind;
   targetPath: string;
-  targetStatus: "verified-rename" | "ai-suggested";
+  targetExists: true;
+  targetAnchor?: { kind: "heading" | "block"; value: string };
+  targetStatus: "verified-rename" | "verified-canonical" | "ai-suggested";
+  affectedNotes: string[];
 };
 
 export type PreparedReferenceRepair = {
@@ -49,9 +53,10 @@ export async function prepareReferenceRepairBatch(input: {
   for (const finding of activeFindings) {
     if (proposals.length >= MAX_PREPARED_FIXES) break;
     const evidence = finding.evidence[0];
-    if (finding.type !== "broken-reference" || !evidence) continue;
+    if (!["broken-reference", "reference-normalization"].includes(finding.type) || !evidence)
+      continue;
 
-    const candidates = buildReferenceTargetCandidates({
+    const candidates = buildReferenceRepairCandidates({
       finding,
       snapshot: input.snapshot,
       ...(input.renames ? { renames: input.renames } : {})
@@ -71,10 +76,10 @@ export async function prepareReferenceRepairBatch(input: {
     } catch {
       continue;
     }
-    const result = proposeFix(
+    const result = proposeReferenceRepair(
       finding,
       { path: evidence.notePath, ...source },
-      stripExtension(recommendation.targetPath)
+      recommendation.intent
     );
     if (!result.applicable) continue;
 
@@ -88,8 +93,19 @@ export async function prepareReferenceRepairBatch(input: {
       locator: evidence.locator,
       currentReference: operation.expected,
       replacementReference: operation.replacement,
-      targetPath: recommendation.targetPath,
-      targetStatus: recommendation.status
+      repairKind: recommendation.intent.kind,
+      targetPath: recommendation.intent.targetPath,
+      targetExists: true,
+      ...(recommendation.intent.anchor
+        ? {
+            targetAnchor: {
+              kind: recommendation.intent.anchor.kind,
+              value: recommendation.intent.anchor.value
+            }
+          }
+        : {}),
+      targetStatus: recommendation.status,
+      affectedNotes: [...finding.affectedNoteIds]
     });
   }
 
@@ -108,10 +124,6 @@ export async function prepareReferenceRepairBatch(input: {
     proposals,
     items
   };
-}
-
-function stripExtension(path: string): string {
-  return path.replace(/\.md$/i, "");
 }
 
 function shortHash(values: readonly string[]): string {

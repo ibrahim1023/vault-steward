@@ -81,7 +81,7 @@ describe("prepared reference repair orchestration", () => {
         { path: "Home.md", content: "See [[Old Guide]].", revision: "revision" },
         {
           path: "Guides/Current Guide.md",
-          content: "---\naliases: [Old Guide]\n---\n# Current Guide"
+          content: "# Current Guide"
         }
       ]),
       id: "scan-1"
@@ -153,6 +153,55 @@ describe("prepared reference repair orchestration", () => {
       ]
     });
     expect(selectCandidate).not.toHaveBeenCalled();
+  });
+
+  it("prepares an anchor repair with exact target metadata", async () => {
+    const snapshot = {
+      ...scanVaultFiles([
+        { path: "Home.md", content: "[[Target#Missing]]", revision: "revision" },
+        { path: "Target.md", content: "# Project Plan\n" }
+      ]),
+      id: "scan-1"
+    };
+    const finding = {
+      ...brokenFinding(snapshot.id),
+      evidence: [
+        {
+          notePath: "Home.md",
+          locator: "line:1",
+          excerpt: "[[Target#Missing]]"
+        }
+      ]
+    };
+
+    await expect(
+      prepareReferenceRepairBatch({
+        snapshot,
+        findings: [finding],
+        readSource: async () => ({
+          content: "[[Target#Missing]]",
+          revision: "revision"
+        }),
+        selectCandidate: async (request) => ({
+          schemaVersion: 1,
+          candidateId: request.candidates[0]!.id,
+          reason: "The heading is the bounded match."
+        }),
+        persistProposal: () => undefined
+      })
+    ).resolves.toMatchObject({
+      items: [
+        {
+          repairKind: "replace-heading-anchor",
+          replacementReference: "[[Target#Project Plan]]",
+          targetPath: "Target.md",
+          targetExists: true,
+          targetAnchor: { kind: "heading", value: "Project Plan" },
+          targetStatus: "ai-suggested",
+          affectedNotes: ["Home.md"]
+        }
+      ]
+    });
   });
 
   it("returns null when no safe repair can be prepared", async () => {

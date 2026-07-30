@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
-import { proposeFix } from "../../src/review/propose.js";
+import { proposeFix, proposeReferenceRepair } from "../../src/review/propose.js";
 
 const finding = {
   schemaVersion: 1 as const,
@@ -184,6 +184,83 @@ describe("deterministic proposals", () => {
             replacement: "![Guide](../Guides/Target.md#plan)"
           }
         ]
+      }
+    });
+  });
+
+  it.each([
+    {
+      excerpt: "[[Target#Missing|plan]]",
+      replacement: "[[Target#Project Plan|plan]]"
+    },
+    {
+      excerpt: "![[Target#Missing|plan]]",
+      replacement: "![[Target#Project Plan|plan]]"
+    },
+    {
+      excerpt: "[plan](Target.md#Missing)",
+      replacement: "[plan](Target.md#Project Plan)"
+    },
+    {
+      excerpt: "![plan](Target.md#Missing)",
+      replacement: "![plan](Target.md#Project Plan)"
+    }
+  ])(
+    "replaces a heading anchor without changing reference syntax: $excerpt",
+    ({ excerpt, replacement }) => {
+      const anchored = {
+        ...finding,
+        evidence: [{ notePath: "Home.md", locator: "line:1", excerpt }]
+      };
+      expect(
+        proposeReferenceRepair(
+          anchored,
+          { path: "Home.md", revision: "hash", content: excerpt },
+          {
+            schemaVersion: 1,
+            kind: "replace-heading-anchor",
+            scanId: "s",
+            findingId: "f",
+            targetPath: "Target.md",
+            provenance: "ai-suggested",
+            anchor: {
+              kind: "heading",
+              value: "Project Plan",
+              candidateId: "anchor:heading:target"
+            }
+          }
+        )
+      ).toMatchObject({
+        applicable: true,
+        proposal: { operations: [{ expected: excerpt, replacement }] }
+      });
+    }
+  );
+
+  it("renders block anchors with the required caret", () => {
+    const excerpt = "[[Target#Missing]]";
+    expect(
+      proposeReferenceRepair(
+        { ...finding, evidence: [{ notePath: "Home.md", locator: "line:1", excerpt }] },
+        { path: "Home.md", revision: "hash", content: excerpt },
+        {
+          schemaVersion: 1,
+          kind: "replace-block-anchor",
+          scanId: "s",
+          findingId: "f",
+          targetPath: "Target.md",
+          provenance: "ai-suggested",
+          anchor: {
+            kind: "block",
+            value: "plan-block",
+            candidateId: "anchor:block:target"
+          }
+        }
+      )
+    ).toMatchObject({
+      applicable: true,
+      proposal: {
+        operations: [{ expected: excerpt, replacement: "[[Target#^plan-block]]" }]
       }
     });
   });

@@ -62,8 +62,11 @@ const prepared: PreparedReferenceRepair = {
       locator: "line:1",
       currentReference: "[[Missing]]",
       replacementReference: "[[Target]]",
+      repairKind: "retarget-note",
       targetPath: "Target.md",
-      targetStatus: "verified-rename"
+      targetExists: true,
+      targetStatus: "verified-rename",
+      affectedNotes: ["Home.md"]
     }
   ]
 };

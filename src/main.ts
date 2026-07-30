@@ -45,6 +45,7 @@ import {
 import { configurationFingerprint } from "./observability/fingerprint.js";
 import { promptRegistryFingerprint } from "./observability/prompt-registry.js";
 import type { TracePreferences } from "./contracts/trace.js";
+import { buildContextualNormalizationFindings } from "./reference/normalization.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 
@@ -147,6 +148,20 @@ export default class VaultStewardPlugin extends Plugin {
     this.recentRenames = events.flatMap((event) =>
       event.kind === "rename" && event.oldPath ? [{ oldPath: event.oldPath, path: event.path }] : []
     );
+    const normalizationFindings = buildContextualNormalizationFindings(
+      snapshot,
+      this.recentRenames.map((rename, index) => ({
+        schemaVersion: 1,
+        kind: "verified-rename",
+        contextId: `${snapshot.id}:rename:${index}`,
+        oldPath: rename.oldPath,
+        targetPath: rename.path
+      }))
+    );
+    const completedResult: GovernedIntegrityResult = {
+      ...result,
+      findings: [...result.findings, ...normalizationFindings]
+    };
     this.database.saveCompletedScan({
       id: result.scanId,
       vaultFingerprint: this.app.vault.getName(),
@@ -170,12 +185,12 @@ export default class VaultStewardPlugin extends Plugin {
           relation: reference.kind
         }))
       })),
-      findings: result.findings,
+      findings: completedResult.findings,
       modelTraces: result.modelTraces,
       traceConfiguration: { fingerprint: configHash, values: traceConfiguration }
     });
     await this.database.flush();
-    return result;
+    return completedResult;
   }
 
   getMaintenanceState(): MaintenanceScheduleState {

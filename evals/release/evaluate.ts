@@ -9,7 +9,7 @@ import type {
 } from "../../src/model-provider/local-provider.js";
 import type { Policy } from "../../src/policy/parse.js";
 import {
-  buildReferenceTargetCandidates,
+  buildReferenceRepairCandidates,
   recommendReferenceRepair,
   selectReferenceCandidateWithProviders,
   type ReferenceRepairRecommendation
@@ -194,7 +194,7 @@ async function evaluateRepairs(
     if (finding.type !== "broken-reference") continue;
     const loaded = cases.find((item) => caseCoversFinding(item, finding));
     if (!loaded) continue;
-    const candidates = buildReferenceTargetCandidates({ finding, snapshot });
+    const candidates = buildReferenceRepairCandidates({ finding, snapshot });
     if (candidates.length === 0) continue;
     const startedAt = performance.now();
     const recommendation = await recommendReferenceRepair({
@@ -310,7 +310,7 @@ function matchesRepair(
   const target = loaded.item.candidateTargets.find(
     (candidate) => candidate.id === loaded.item.expected.candidateTargetId
   );
-  return recommendation.targetPath === target?.notePath;
+  return recommendation.intent.targetPath === target?.notePath;
 }
 
 function actualFindingType(expected: string | null): FindingType | null {

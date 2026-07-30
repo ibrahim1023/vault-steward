@@ -1,5 +1,9 @@
 import type { Finding } from "../contracts/index.js";
 import type { Proposal } from "../contracts/proposal.js";
+import {
+  parseReferenceRepairIntent,
+  type ReferenceRepairIntent
+} from "../contracts/reference-repair.js";
 
 export type ProposalSource = { path: string; revision: string; content: string };
 export type ProposalResult =
@@ -10,10 +14,39 @@ export function proposeFix(
   source: ProposalSource,
   target: string
 ): ProposalResult {
+  return proposeReferenceRepair(finding, source, {
+    schemaVersion: 1,
+    kind: "retarget-note",
+    scanId: finding.scanId,
+    findingId: finding.id,
+    targetPath: target.endsWith(".md") ? target : `${target}.md`,
+    provenance: "ai-suggested"
+  });
+}
+
+export function proposeReferenceRepair(
+  finding: Finding,
+  source: ProposalSource,
+  input: ReferenceRepairIntent
+): ProposalResult {
   const evidence = finding.evidence[0];
-  if (finding.type !== "broken-reference" || !evidence || evidence.notePath !== source.path)
+  const parsedIntent = parseReferenceRepairIntent(input);
+  if (
+    !parsedIntent.ok ||
+    !["broken-reference", "reference-normalization"].includes(finding.type) ||
+    !evidence ||
+    evidence.notePath !== source.path ||
+    parsedIntent.value.scanId !== finding.scanId ||
+    parsedIntent.value.findingId !== finding.id
+  )
     return { applicable: false, reason: "No deterministic fix is available for this finding." };
-  const replacement = replaceInternalReference(evidence.excerpt, source.path, target);
+  const intent = parsedIntent.value;
+  const replacement = replaceInternalReference(
+    evidence.excerpt,
+    source.path,
+    intent.targetPath,
+    intent.anchor
+  );
   if (!replacement)
     return { applicable: false, reason: "The reference replacement is unsafe or ambiguous." };
   const start = source.content.indexOf(evidence.excerpt);
@@ -45,7 +78,8 @@ export function proposeFix(
 export function replaceInternalReference(
   excerpt: string,
   sourcePath: string,
-  target: string
+  target: string,
+  replacementAnchor?: { kind: "heading" | "block"; value: string }
 ): string | null {
   const targetPath = normalizeTargetPath(target);
   if (!targetPath) return null;
@@ -53,7 +87,7 @@ export function replaceInternalReference(
   const wiki = /^(!)?\[\[([^\]|#]+)(#[^\]|]+)?(?:\|([^\]]+))?\]\]$/.exec(excerpt);
   if (wiki) {
     const prefix = wiki[1] ? "!" : "";
-    const anchor = wiki[3] ?? "";
+    const anchor = replacementAnchor ? renderAnchor(replacementAnchor) : (wiki[3] ?? "");
     const label = wiki[4] ? `|${wiki[4]}` : "";
     return `${prefix}[[${stripExtension(targetPath)}${anchor}${label}]]`;
   }
@@ -62,9 +96,17 @@ export function replaceInternalReference(
   if (!markdown || !isSafeInternalMarkdownTarget(markdown[3] ?? "", sourcePath)) return null;
   const rawTarget = markdown[3] ?? "";
   const [, rawAnchor] = rawTarget.split("#", 2);
-  const anchor = rawAnchor === undefined ? "" : `#${rawAnchor}`;
+  const anchor = replacementAnchor
+    ? renderAnchor(replacementAnchor)
+    : rawAnchor === undefined
+      ? ""
+      : `#${rawAnchor}`;
   const prefix = markdown[1] ? "!" : "";
   return `${prefix}[${markdown[2] ?? ""}](${encodeMarkdownPath(relativeMarkdownPath(sourcePath, targetPath))}${anchor})`;
+}
+
+function renderAnchor(anchor: { kind: "heading" | "block"; value: string }): string {
+  return anchor.kind === "block" ? `#^${anchor.value}` : `#${anchor.value}`;
 }
 
 function normalizeTargetPath(target: string): string | null {

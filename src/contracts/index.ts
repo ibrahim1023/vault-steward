@@ -1,6 +1,7 @@
 export const FINDING_TYPES = [
   "broken-reference",
   "invalid-reference",
+  "reference-normalization",
   "entity-alias",
   "contradiction",
   "staleness",
@@ -70,3 +71,4 @@ export type ToolResult<T> =
   | { ok: false; error: VaultStewardError; correlationId: string };
 
 export * from "./prepared-repair.js";
+export * from "./reference-repair.js";

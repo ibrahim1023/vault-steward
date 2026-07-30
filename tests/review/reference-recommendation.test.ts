@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { Finding } from "../../src/contracts/index.js";
 import {
-  buildReferenceTargetCandidates,
+  buildReferenceRepairCandidates,
   recommendReferenceRepair,
   selectReferenceCandidateWithProviders
 } from "../../src/review/reference-recommendation.js";
@@ -30,7 +30,7 @@ function snapshot() {
       { path: "Home.md", content: "[[Missing Guide]]" },
       {
         path: "Guides/Current Guide.md",
-        content: "---\naliases: [Missing Guide]\n---\n# Current Guide"
+        content: "# Current Guide"
       },
       { path: "Guides/Similar Guide.md", content: "# Similar Guide" },
       { path: "Guides/Renamed Guide.md", content: "# Renamed Guide" },
@@ -43,7 +43,7 @@ function snapshot() {
 describe("bounded reference repair recommendations", () => {
   it("builds bounded candidates only from the active snapshot and rename metadata", () => {
     expect(
-      buildReferenceTargetCandidates({
+      buildReferenceRepairCandidates({
         finding: finding(),
         snapshot: snapshot(),
         renames: [{ oldPath: "Missing Guide.md", path: "Guides/Renamed Guide.md" }]
@@ -52,17 +52,20 @@ describe("bounded reference repair recommendations", () => {
       {
         id: "rename:Guides/Renamed Guide.md",
         path: "Guides/Renamed Guide.md",
-        source: "rename"
+        source: "rename",
+        repairKind: "retarget-note"
       },
       {
-        id: "alias:Guides/Current Guide.md",
+        id: "path:Guides/Current Guide.md",
         path: "Guides/Current Guide.md",
-        source: "alias"
+        source: "path",
+        repairKind: "retarget-note"
       },
       {
         id: "path:Guides/Similar Guide.md",
         path: "Guides/Similar Guide.md",
-        source: "path"
+        source: "path",
+        repairKind: "retarget-note"
       }
     ]);
   });
@@ -77,7 +80,8 @@ describe("bounded reference repair recommendations", () => {
           {
             id: "rename:Guides/Renamed Guide.md",
             path: "Guides/Renamed Guide.md",
-            source: "rename"
+            source: "rename",
+            repairKind: "retarget-note"
           }
         ],
         selectCandidate
@@ -85,18 +89,102 @@ describe("bounded reference repair recommendations", () => {
     ).resolves.toEqual({
       status: "verified-rename",
       findingId: "finding-1",
-      targetPath: "Guides/Renamed Guide.md"
+      intent: expect.objectContaining({
+        kind: "retarget-note",
+        targetPath: "Guides/Renamed Guide.md",
+        provenance: "verified-rename"
+      })
     });
     expect(selectCandidate).not.toHaveBeenCalled();
   });
 
-  it("does not turn a missing anchor into a whole-note replacement", () => {
+  it("builds bounded candidates from anchors that exist in the target note", () => {
+    const anchoredSnapshot = {
+      ...scanVaultFiles([
+        { path: "Home.md", content: "[[Guides/Current Guide#Missing Heading]]" },
+        { path: "Guides/Current Guide.md", content: "# Current Guide" }
+      ]),
+      id: "scan-1"
+    };
     expect(
-      buildReferenceTargetCandidates({
+      buildReferenceRepairCandidates({
         finding: finding("scan-1", "[[Guides/Current Guide#Missing Heading]]"),
-        snapshot: snapshot()
+        snapshot: anchoredSnapshot
       })
-    ).toEqual([]);
+    ).toEqual([
+      expect.objectContaining({
+        path: "Guides/Current Guide.md",
+        source: "heading",
+        repairKind: "replace-heading-anchor",
+        anchor: expect.objectContaining({ value: "Current Guide" })
+      })
+    ]);
+  });
+
+  it("builds heading and block intents only from a selected bounded candidate", async () => {
+    const anchoredSnapshot = {
+      ...scanVaultFiles([
+        { path: "Home.md", content: "[[Guides/Guide#Missing]]" },
+        {
+          path: "Guides/Guide.md",
+          content: "# Project Plan\n\nMilestone details ^plan-block"
+        }
+      ]),
+      id: "scan-1"
+    };
+    const anchoredFinding = finding("scan-1", "[[Guides/Guide#Missing]]");
+    const candidates = buildReferenceRepairCandidates({
+      finding: anchoredFinding,
+      snapshot: anchoredSnapshot
+    });
+    const block = candidates.find((candidate) => candidate.source === "block")!;
+
+    await expect(
+      recommendReferenceRepair({
+        finding: anchoredFinding,
+        scanId: "scan-1",
+        candidates,
+        selectCandidate: async () => ({
+          schemaVersion: 1,
+          candidateId: block.id,
+          reason: "The cited material is the plan block."
+        })
+      })
+    ).resolves.toEqual({
+      status: "ai-suggested",
+      findingId: "finding-1",
+      intent: {
+        schemaVersion: 1,
+        kind: "replace-block-anchor",
+        scanId: "scan-1",
+        findingId: "finding-1",
+        targetPath: "Guides/Guide.md",
+        provenance: "ai-suggested",
+        anchor: {
+          kind: "block",
+          value: "plan-block",
+          candidateId: block.id
+        }
+      }
+    });
+  });
+
+  it("omits duplicated normalized anchors and caps the candidate set", () => {
+    const headings = Array.from({ length: 24 }, (_, index) => `# Section ${index}`).join("\n");
+    const anchoredSnapshot = {
+      ...scanVaultFiles([
+        { path: "Home.md", content: "[[Target#Missing]]" },
+        { path: "Target.md", content: `# Duplicate\n# Duplicate\n${headings}` }
+      ]),
+      id: "scan-1"
+    };
+    const candidates = buildReferenceRepairCandidates({
+      finding: finding("scan-1", "[[Target#Missing]]"),
+      snapshot: anchoredSnapshot
+    });
+
+    expect(candidates).toHaveLength(20);
+    expect(candidates.some((candidate) => candidate.anchor?.value === "Duplicate")).toBe(false);
   });
 
   it("accepts only a known candidate ID from typed provider output", async () => {
@@ -106,21 +194,26 @@ describe("bounded reference repair recommendations", () => {
         scanId: "scan-1",
         candidates: [
           {
-            id: "alias:Guides/Current Guide.md",
+            id: "path:Guides/Current Guide.md",
             path: "Guides/Current Guide.md",
-            source: "alias"
+            source: "path",
+            repairKind: "retarget-note"
           }
         ],
         selectCandidate: async () => ({
           schemaVersion: 1,
-          candidateId: "alias:Guides/Current Guide.md",
-          reason: "The target declares the missing title as an alias."
+          candidateId: "path:Guides/Current Guide.md",
+          reason: "The existing target is lexically related."
         })
       })
     ).resolves.toEqual({
       status: "ai-suggested",
       findingId: "finding-1",
-      targetPath: "Guides/Current Guide.md"
+      intent: expect.objectContaining({
+        kind: "retarget-note",
+        targetPath: "Guides/Current Guide.md",
+        provenance: "ai-suggested"
+      })
     });
   });
 
@@ -129,7 +222,8 @@ describe("bounded reference repair recommendations", () => {
       {
         id: "path:Guides/Similar Guide.md",
         path: "Guides/Similar Guide.md",
-        source: "path" as const
+        source: "path" as const,
+        repairKind: "retarget-note" as const
       }
     ];
     for (const selectCandidate of [
@@ -163,19 +257,43 @@ describe("bounded reference repair recommendations", () => {
       {
         finding: finding("other-scan"),
         scanId: "scan-1",
-        candidates: [{ id: "path:Target.md", path: "Target.md", source: "path" as const }]
+        candidates: [
+          {
+            id: "path:Target.md",
+            path: "Target.md",
+            source: "path" as const,
+            repairKind: "retarget-note" as const
+          }
+        ]
       },
       {
         finding: { ...finding(), evidence: [] },
         scanId: "scan-1",
-        candidates: [{ id: "path:Target.md", path: "Target.md", source: "path" as const }]
+        candidates: [
+          {
+            id: "path:Target.md",
+            path: "Target.md",
+            source: "path" as const,
+            repairKind: "retarget-note" as const
+          }
+        ]
       },
       {
         finding: finding(),
         scanId: "scan-1",
         candidates: [
-          { id: "path:Target.md", path: "Target.md", source: "path" as const },
-          { id: "path:Target.md", path: "Other.md", source: "path" as const }
+          {
+            id: "path:Target.md",
+            path: "Target.md",
+            source: "path" as const,
+            repairKind: "retarget-note" as const
+          },
+          {
+            id: "path:Target.md",
+            path: "Other.md",
+            source: "path" as const,
+            repairKind: "retarget-note" as const
+          }
         ]
       }
     ]) {
@@ -195,7 +313,8 @@ describe("bounded reference repair recommendations", () => {
         {
           id: "path:Guides/Similar Guide.md",
           path: "Guides/Similar Guide.md",
-          source: "path"
+          source: "path",
+          repairKind: "retarget-note"
         }
       ]);
       return {
@@ -213,7 +332,8 @@ describe("bounded reference repair recommendations", () => {
           {
             id: "path:Guides/Similar Guide.md",
             path: "Guides/Similar Guide.md",
-            source: "path"
+            source: "path",
+            repairKind: "retarget-note"
           }
         ],
         selectCandidate
@@ -227,14 +347,15 @@ describe("bounded reference repair recommendations", () => {
       schemaVersion: 1 as const,
       scanId: "scan-1",
       findingId: "finding-1",
-      task: "select-reference-target" as const,
+      task: "select-reference-repair" as const,
       instructions: "Choose one candidate ID or abstain.",
       evidence: finding().evidence[0]!,
       candidates: [
         {
           id: "path:Guides/Similar Guide.md",
           path: "Guides/Similar Guide.md",
-          source: "path" as const
+          source: "path" as const,
+          repairKind: "retarget-note" as const
         }
       ]
     };
@@ -254,7 +375,7 @@ describe("bounded reference repair recommendations", () => {
         };
         expect(parsed).toMatchObject({
           request: {
-            task: "select-reference-target",
+            task: "select-reference-repair",
             scanId: "scan-1",
             candidates: [{ id: "path:Guides/Similar Guide.md" }]
           },
