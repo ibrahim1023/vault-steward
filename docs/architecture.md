@@ -27,20 +27,21 @@ flowchart LR
 
 ## Components and Ownership
 
-| Component        | Responsibility                                        | Owns                                  |
-| ---------------- | ----------------------------------------------------- | ------------------------------------- |
-| `vault-adapter`  | Narrow read/write access through Obsidian APIs        | live vault interaction                |
-| `scanner`        | Parse files and generate normalized scan records      | scan snapshot inputs                  |
-| `core`           | Derive checks and bounded model inputs from one scan  | governed scan result                  |
-| `graph`          | Build deterministic note/entity/task/reference graph  | graph projection                      |
-| `policy`         | Parse and evaluate YAML policies                      | policy results                        |
-| `agents`         | Produce typed candidate findings from bounded inputs  | candidate outputs only                |
-| `coordinator`    | Deduplicate, prioritize, persist findings             | recommendation ordering               |
-| `findings`       | Normalize bounded deterministic/model candidates      | authoritative typed finding boundary  |
-| `review`         | Prepare exact result previews and recommended actions | approval state                        |
-| `apply`          | Validate and atomically apply approved patches        | audit trail and re-index trigger      |
-| `storage`        | SQLite repositories and migrations                    | persisted product state               |
-| `model-provider` | Bounded structured-generation calls                   | model request/response trace metadata |
+| Component        | Responsibility                                                | Owns                                  |
+| ---------------- | ------------------------------------------------------------- | ------------------------------------- |
+| `vault-adapter`  | Narrow read/write access through Obsidian APIs                | live vault interaction                |
+| `scanner`        | Parse files and generate normalized scan records              | scan snapshot inputs                  |
+| `reference`      | Resolve canonical notes/anchors and explicit cleanup contexts | bounded repair candidates             |
+| `core`           | Derive checks and bounded model inputs from one scan          | governed scan result                  |
+| `graph`          | Build deterministic note/entity/task/reference graph          | graph projection                      |
+| `policy`         | Parse and evaluate YAML policies                              | policy results                        |
+| `agents`         | Produce typed candidate findings from bounded inputs          | candidate outputs only                |
+| `coordinator`    | Deduplicate, prioritize, persist findings                     | recommendation ordering               |
+| `findings`       | Normalize bounded deterministic/model candidates              | authoritative typed finding boundary  |
+| `review`         | Prepare exact result previews and recommended actions         | approval state                        |
+| `apply`          | Validate and atomically apply approved patches                | audit trail and re-index trigger      |
+| `storage`        | SQLite repositories and migrations                            | persisted product state               |
+| `model-provider` | Bounded structured-generation calls                           | model request/response trace metadata |
 
 ## Main Workflow
 
@@ -78,6 +79,28 @@ A stale or invalid member aborts the batch. Runtime failures retain grouped
 writes, compensating rollback, recovery-required state, and re-indexing.
 Failed parser/model/policy work produces one actionable error, never a silent
 mutation.
+
+## Reference Repair Boundary
+
+Reference resolution is deterministic and scan-scoped. It checks an exact
+vault-relative Markdown path first, then a unique basename, then a unique
+frontmatter alias. Multiple matches are ambiguous and cannot produce an
+automatic proposal. Parsed notes expose headings and valid block IDs; fenced
+and indented code and malformed block identifiers are excluded from that
+metadata.
+
+For a missing anchor on an existing note, deterministic code ranks at most 20
+headings and block IDs from that note. The selected model may return one
+candidate ID or abstain. It never supplies target text, patch ranges, or write
+authority. Deterministic rewriting preserves wiki/Markdown link and embed
+syntax, visible labels, unaffected anchors, source-relative paths, and percent
+encoding.
+
+Reference normalization is context-triggered rather than a default cleanup
+scan. Only a verified rename or explicitly confirmed canonical-note decision
+can authorize normalization findings. Those findings still become
+revision-bound proposals and pass the normal exact-preview, approval, all-member
+preflight, rollback, and re-index path.
 
 ## Scale and Bottlenecks
 

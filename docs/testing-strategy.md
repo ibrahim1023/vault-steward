@@ -13,7 +13,8 @@ Tests prove deterministic contracts: parsing, normalization, graph rules, policy
 | vault adapter/apply            | contract, integration, failure injection | fake Obsidian vault                | PR         |
 | coordinator/agent boundary     | contract, state-machine, tool permission | malformed model/tool traces        | PR         |
 | prepared repair batches        | contract, integration, failure injection | multi-proposal and stale batches   | PR         |
-| bounded repair recommendation  | contract, adversarial, provider doubles  | rename/alias/abstention cases      | PR         |
+| bounded repair recommendation  | contract, adversarial, provider doubles  | rename/anchor/abstention cases     | PR         |
+| contextual normalization       | unit, integration, negative fixtures     | rename/canonical/ambiguity cases   | PR         |
 | UI review flow                 | component and end-to-end                 | recommendation/apply/result states | PR         |
 | model quality                  | smoke/full eval                          | golden/adversarial vault fixtures  | CI/nightly |
 | release provider quality       | labelled corpus and regression gate      | Northstar release corpus           | release    |
@@ -34,6 +35,19 @@ integrity, all-member preflight, stale-member abort, and no unapproved write.
 Recommendation tests cover verified renames, aliases, provider selection,
 abstention, unknown targets, malformed output, prompt injection, and provider
 failure.
+
+Phase 23 extends this gate with exact-path, unique-basename, and unique-alias
+resolution; heading and block parsing; code-block and malformed-ID exclusion;
+20-candidate limits; duplicate normalized-anchor rejection; heading/block
+selection and abstention; all four internal link/embed forms; encoded and
+parent-relative Markdown destinations; explicit rename/canonical normalization
+contexts; and absence of cleanup findings in ordinary scans. Apply coverage
+continues to own digest integrity, stale rejection, overlap detection,
+same-note grouping, all-member preflight, rollback, recovery-required state, no
+unapproved write, and post-apply re-index verification. Component tests cover
+compact Current → After rows, expandable metadata, provenance and target
+labels, deterministic outcomes, progress/errors, keyboard interaction, and
+narrow/light/dark rendering constraints.
 
 ## Marketplace Release Corpus
 

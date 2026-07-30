@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Phase 23 expanded reference repairs are active on a dedicated feature branch.
+Phase 23 expanded reference repairs are in automated completion on a dedicated feature branch.
 This parallel feature work does not alter the deferred Phase 19 manual
 acceptance or Phases 21-22 release gates; those remain required before a
 submission-ready claim.
@@ -67,13 +67,15 @@ submission-ready claim.
 
 ## Current Work
 
-Phase 23.1 now extends deterministic reference proposals to internal Markdown
-links and wiki embeds while preserving labels and anchors. It emits
-source-relative encoded Markdown destinations and resolves them after
-re-indexing. Rename impact now records revision-bound Current/After data for
-exact wiki, embed, Markdown-link, and Markdown-embed references; it remains
-read-only until the later proposal-binding workflow is complete. Broken-anchor
-and user-approvable rename-impact repair work remain pending in this phase.
+Phase 23 now resolves canonical reference targets by exact path, unique
+basename, then unique alias; extracts valid block IDs outside code; prepares
+bounded heading/block anchor repairs; binds verified rename and explicit
+canonical normalization contexts to versioned intents; and rewrites wiki links,
+wiki embeds, Markdown links, and Markdown embeds deterministically. The review
+surface shows compact exact Current → After rows with expandable target,
+anchor, provenance, location, and affected-note details. Automated completion
+and promotion remain contingent on the full repository gate. Manual Obsidian
+acceptance remains a separate unchecked release-blocking task.
 The deferred Phase 19 manual desktop matrix and Phases 21-22 release evidence
 remain required before any submission-ready claim.
 
@@ -121,6 +123,7 @@ The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type che
 
 ## Next Recommended Task
 
-Complete the deferred Phase 19 manual desktop matrix and acknowledged OpenAI
-provider report before any release candidate or marketplace submission. Phase
-20 development may proceed in parallel.
+Run the Phase 23 automated completion gate, promote the branch for continued
+development, then begin Phase 24. Complete the cumulative manual desktop matrix
+and provider release evidence before any release candidate or marketplace
+submission.
