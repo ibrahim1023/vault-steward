@@ -70,9 +70,12 @@ submission-ready claim.
 Phase 23.1 now extends deterministic reference proposals to internal Markdown
 links and wiki embeds while preserving labels and anchors. It emits
 source-relative encoded Markdown destinations and resolves them after
-re-indexing. Broken-anchor and rename-impact repair work remains pending in
-this phase. The deferred Phase 19 manual desktop matrix and Phases 21-22
-release evidence remain required before any submission-ready claim.
+re-indexing. Rename impact now records revision-bound Current/After data for
+exact wiki, embed, Markdown-link, and Markdown-embed references; it remains
+read-only until the later proposal-binding workflow is complete. Broken-anchor
+and user-approvable rename-impact repair work remain pending in this phase.
+The deferred Phase 19 manual desktop matrix and Phases 21-22 release evidence
+remain required before any submission-ready claim.
 
 - Security hardening on 2026-07-20 rejects local-provider redirects, bounds provider configuration and response reads, binds approval/apply to validated persisted proposal digests, and enforces vault-reader/scanner resource and canonical-path limits.
 - Phase 17 adds an explicit OpenAI provider option beside the default loopback Ollama/llama.cpp providers. OpenAI requests use a fixed API origin, bounded JSON-mode Responses API calls with `store: false`, a local API key, and a required cloud-data acknowledgement; keys remain excluded from traces, fingerprints, diagnostics, and portable exports.

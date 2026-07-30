@@ -42,7 +42,7 @@ export function proposeFix(
   };
 }
 
-function replaceInternalReference(
+export function replaceInternalReference(
   excerpt: string,
   sourcePath: string,
   target: string
@@ -59,7 +59,7 @@ function replaceInternalReference(
   }
 
   const markdown = /^(!)?\[([^\]]*)\]\(([^\s()]+)\)$/.exec(excerpt);
-  if (!markdown || !isSafeInternalMarkdownTarget(markdown[3] ?? "")) return null;
+  if (!markdown || !isSafeInternalMarkdownTarget(markdown[3] ?? "", sourcePath)) return null;
   const rawTarget = markdown[3] ?? "";
   const [, rawAnchor] = rawTarget.split("#", 2);
   const anchor = rawAnchor === undefined ? "" : `#${rawAnchor}`;
@@ -82,15 +82,27 @@ function normalizeTargetPath(target: string): string | null {
     : path;
 }
 
-function isSafeInternalMarkdownTarget(target: string): boolean {
+function isSafeInternalMarkdownTarget(target: string, sourcePath: string): boolean {
   const [path, anchor] = target.split("#", 2);
   if (!path) return false;
-  return (
-    !path.startsWith("/") &&
-    !/^[a-z][a-z0-9+.-]*:/i.test(path) &&
-    !path.split("/").some((part) => part === "..") &&
-    (anchor === undefined || anchor.length > 0)
-  );
+  if (
+    path.startsWith("/") ||
+    /^[a-z][a-z0-9+.-]*:/i.test(path) ||
+    (anchor !== undefined && anchor.length === 0)
+  )
+    return false;
+  let depth = sourcePath.split("/").length - 1;
+  for (const part of path.split("/")) {
+    if (!part || part === ".") continue;
+    if (part === "..") {
+      if (depth === 0) return false;
+      depth -= 1;
+      continue;
+    }
+    if (part.includes("\\") || hasControlCharacters(part)) return false;
+    depth += 1;
+  }
+  return true;
 }
 
 function relativeMarkdownPath(sourcePath: string, targetPath: string): string {

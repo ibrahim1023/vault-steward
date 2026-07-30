@@ -3,7 +3,7 @@ import { analyzeChangeImpact } from "../../src/indexing/impact.js";
 import { scanVaultFiles } from "../../src/scanner/scan.js";
 
 describe("change impact analysis", () => {
-  it("finds inbound references and proposes only unambiguous wiki-link rename repairs", () => {
+  it("records revision-bound wiki and Markdown rename repairs", () => {
     const snapshot = scanVaultFiles([
       { path: "Home.md", content: "[[Target]]\n[Target](Target.md)" },
       { path: "Target.md", content: "Target" }
@@ -14,7 +14,20 @@ describe("change impact analysis", () => {
     );
     expect(impact.affectedPaths).toEqual(["Home.md"]);
     expect(impact.safeRenameTargets).toEqual([
-      { sourcePath: "Home.md", replacement: "[[Renamed]]" }
+      {
+        sourcePath: "Home.md",
+        sourceRevision: "memory-0",
+        locator: "line:1",
+        currentReference: "[[Target]]",
+        replacement: "[[Renamed]]"
+      },
+      {
+        sourcePath: "Home.md",
+        sourceRevision: "memory-0",
+        locator: "line:2",
+        currentReference: "[Target](Target.md)",
+        replacement: "[Target](Renamed.md)"
+      }
     ]);
   });
 
@@ -46,7 +59,47 @@ describe("change impact analysis", () => {
       decisionDependents: ["Decision.md"],
       policyDependents: ["Policy.md"],
       aliasDependents: ["Alias.md"],
-      safeRenameTargets: [{ sourcePath: "Task.md", replacement: "[[Renamed#Plan|the plan]]" }]
+      safeRenameTargets: [
+        {
+          sourcePath: "Task.md",
+          sourceRevision: "memory-0",
+          locator: "line:1",
+          currentReference: "[[Target#Plan|the plan]]",
+          replacement: "[[Renamed#Plan|the plan]]"
+        }
+      ]
     });
+  });
+
+  it("preserves embed and Markdown link syntax when recording safe rename targets", () => {
+    const snapshot = scanVaultFiles([
+      {
+        path: "Work/Home.md",
+        content: "![[Target#Plan|preview]]\n![Diagram](../Target.md#plan)"
+      },
+      { path: "Target.md", content: "Target" }
+    ]);
+
+    expect(
+      analyzeChangeImpact(
+        { kind: "rename", oldPath: "Target.md", path: "Guides/Renamed Guide.md" },
+        snapshot
+      ).safeRenameTargets
+    ).toEqual([
+      {
+        sourcePath: "Work/Home.md",
+        sourceRevision: "memory-0",
+        locator: "line:1",
+        currentReference: "![[Target#Plan|preview]]",
+        replacement: "![[Guides/Renamed Guide#Plan|preview]]"
+      },
+      {
+        sourcePath: "Work/Home.md",
+        sourceRevision: "memory-0",
+        locator: "line:2",
+        currentReference: "![Diagram](../Target.md#plan)",
+        replacement: "![Diagram](../Guides/Renamed%20Guide.md#plan)"
+      }
+    ]);
   });
 });

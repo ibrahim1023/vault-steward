@@ -153,6 +153,41 @@ describe("deterministic proposals", () => {
     });
   });
 
+  it("preserves Markdown embed syntax for an in-vault parent-relative reference", () => {
+    const embedded = {
+      ...finding,
+      evidence: [
+        {
+          notePath: "Work/Home.md",
+          locator: "line:1",
+          excerpt: "![Guide](../Missing.md#plan)"
+        }
+      ]
+    };
+
+    expect(
+      proposeFix(
+        embedded,
+        {
+          path: "Work/Home.md",
+          revision: "hash",
+          content: "![Guide](../Missing.md#plan)"
+        },
+        "Guides/Target"
+      )
+    ).toMatchObject({
+      applicable: true,
+      proposal: {
+        operations: [
+          {
+            expected: "![Guide](../Missing.md#plan)",
+            replacement: "![Guide](../Guides/Target.md#plan)"
+          }
+        ]
+      }
+    });
+  });
+
   it("rejects external and malformed Markdown replacement targets", () => {
     const markdown = {
       ...finding,
@@ -166,6 +201,16 @@ describe("deterministic proposals", () => {
     expect(proposeFix(markdown, source, "Guides/Target#Injected")).toMatchObject({
       applicable: false
     });
+    expect(
+      proposeFix(
+        {
+          ...markdown,
+          evidence: [{ ...markdown.evidence[0]!, excerpt: "[Guide](../Missing.md)" }]
+        },
+        { ...source, content: "[Guide](../Missing.md)" },
+        "Guides/Target"
+      )
+    ).toMatchObject({ applicable: false });
   });
 
   it("proposes the documented acceptance-vault repair", () => {

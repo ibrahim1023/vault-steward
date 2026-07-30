@@ -1,4 +1,5 @@
 import type { ScanSnapshot } from "../scanner/scan.js";
+import { replaceInternalReference } from "../review/propose.js";
 
 export type VaultChange =
   { kind: "rename"; oldPath: string; path: string } | { kind: "delete"; path: string };
@@ -11,7 +12,13 @@ export type ChangeImpact = {
   decisionDependents: string[];
   policyDependents: string[];
   affectedPaths: string[];
-  safeRenameTargets: Array<{ sourcePath: string; replacement: string }>;
+  safeRenameTargets: Array<{
+    sourcePath: string;
+    sourceRevision: string;
+    locator: string;
+    currentReference: string;
+    replacement: string;
+  }>;
 };
 
 export function analyzeChangeImpact(change: VaultChange, snapshot: ScanSnapshot): ChangeImpact {
@@ -19,8 +26,15 @@ export function analyzeChangeImpact(change: VaultChange, snapshot: ScanSnapshot)
     change.kind === "rename" ? stripExtension(change.oldPath) : stripExtension(change.path);
   const inboundReferences = snapshot.notes.flatMap((note) =>
     note.references.flatMap((reference) =>
-      stripAnchor(reference.rawTarget) === target
-        ? [{ sourcePath: note.path, locator: reference.locator, excerpt: reference.excerpt }]
+      referenceTargetForImpact(reference.rawTarget, reference.kind, note.path) === target
+        ? [
+            {
+              sourcePath: note.path,
+              sourceRevision: note.revision,
+              locator: reference.locator,
+              excerpt: reference.excerpt
+            }
+          ]
         : []
     )
   );
@@ -45,7 +59,7 @@ export function analyzeChangeImpact(change: VaultChange, snapshot: ScanSnapshot)
   const safeRenameTargets =
     change.kind === "rename"
       ? inboundReferences.flatMap((reference) =>
-          rewriteUnambiguousWikiLink(reference.sourcePath, reference.excerpt, target, change.path)
+          rewriteUnambiguousInternalReference(reference, target, change.path)
         )
       : [];
   return {
@@ -66,17 +80,27 @@ export function analyzeChangeImpact(change: VaultChange, snapshot: ScanSnapshot)
   };
 }
 
-function rewriteUnambiguousWikiLink(
-  sourcePath: string,
-  excerpt: string,
+function rewriteUnambiguousInternalReference(
+  reference: {
+    sourcePath: string;
+    sourceRevision: string;
+    locator: string;
+    excerpt: string;
+  },
   target: string,
   nextPath: string
-): Array<{ sourcePath: string; replacement: string }> {
-  const match = /^\[\[([^\]|#]+)(#[^\]|]+)?(?:\|([^\]]+))?\]\]$/.exec(excerpt);
-  if (!match || stripExtension(match[1] ?? "") !== target) return [];
-  const anchor = match[2] ?? "";
-  const label = match[3] ? `|${match[3]}` : "";
-  return [{ sourcePath, replacement: `[[${stripExtension(nextPath)}${anchor}${label}]]` }];
+): ChangeImpact["safeRenameTargets"] {
+  const replacement = replaceInternalReference(reference.excerpt, reference.sourcePath, nextPath);
+  if (!replacement) return [];
+  return [
+    {
+      sourcePath: reference.sourcePath,
+      sourceRevision: reference.sourceRevision,
+      locator: reference.locator,
+      currentReference: reference.excerpt,
+      replacement
+    }
+  ];
 }
 
 function matchesAnyFrontmatterValue(
@@ -101,6 +125,43 @@ function stripAnchor(target: string): string {
   return target.split("#", 1)[0]?.replace(/\.md$/, "") ?? "";
 }
 
+function referenceTargetForImpact(
+  rawTarget: string,
+  kind: "wiki" | "embed" | "markdown",
+  sourcePath: string
+): string | null {
+  if (kind !== "markdown") return stripAnchor(rawTarget);
+  const [encodedPath] = rawTarget.split("#", 1);
+  if (!encodedPath || encodedPath.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(encodedPath))
+    return null;
+
+  let path: string;
+  try {
+    path = decodeURIComponent(encodedPath);
+  } catch {
+    return null;
+  }
+  const parts = sourcePath.split("/").slice(0, -1);
+  for (const part of path.split("/")) {
+    if (!part || part === ".") continue;
+    if (part === "..") {
+      if (parts.length === 0) return null;
+      parts.pop();
+      continue;
+    }
+    if (part.includes("\\") || hasControlCharacters(part)) return null;
+    parts.push(part);
+  }
+  return stripExtension(parts.join("/"));
+}
+
 function stripExtension(path: string): string {
   return path.replace(/\.md$/, "");
+}
+
+function hasControlCharacters(value: string): boolean {
+  return [...value].some((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 31 || code === 127;
+  });
 }
