@@ -82,4 +82,26 @@ describe("snapshot-derived governed scan", () => {
     expect(result).toMatchObject({ completed: false, findings: [] });
     expect(result.limitations).toContain("local-model-provider-required");
   });
+
+  it("keeps deterministic integrity checks available when model output is malformed", async () => {
+    const malformedProvider: LocalProvider = {
+      ...provider,
+      generate: async () => ({
+        text: "this is not JSON",
+        provider: "ollama",
+        model: "test",
+        latencyMs: 1
+      })
+    };
+
+    const result = await runGovernedScan(
+      [{ path: "Home.md", content: "[[Missing]]" }],
+      [malformedProvider],
+      "2026-07-14T00:00:00Z"
+    );
+
+    expect(result.completed).toBe(true);
+    expect(result.findings.map((finding) => finding.type)).toContain("broken-reference");
+    expect(result.limitations).toContain("local-model-output-unavailable");
+  });
 });

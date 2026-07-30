@@ -79,7 +79,10 @@ export async function runGovernedScan(
     })
   });
 
-  if (!semanticAnalysis.completed) {
+  if (
+    !semanticAnalysis.completed &&
+    !semanticAnalysis.limitations.includes("local-model-output-unavailable")
+  ) {
     return {
       scanId: snapshot.id,
       findings: [],

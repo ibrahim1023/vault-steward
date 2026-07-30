@@ -266,6 +266,15 @@
   text-align: center;
 }
 
+.steward-notice {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--steward-amber);
+  background: var(--steward-amber-soft);
+  color: var(--text-normal);
+  font-size: 0.9rem;
+}
+
 .button-spinner {
   display: inline-block;
   width: 0.9em;

@@ -126,6 +126,32 @@ describe("VaultStewardWorkspace", () => {
     expect(within(recommendation).getByRole("button", { name: "Apply 1 fix" })).toBeEnabled();
   });
 
+  it("keeps the review loop usable when AI analysis has an invalid response", async () => {
+    const taskFinding = {
+      ...finding,
+      id: "task-with-limited-ai",
+      type: "task" as const,
+      explanation: "A deterministic task check still needs review."
+    };
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({
+          scanId: "scan",
+          findings: [taskFinding],
+          limitations: ["local-model-output-unavailable"]
+        })}
+        loadFindings={() => [taskFinding]}
+        prepareRepairs={async () => null}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+
+    expect(await screen.findByText(taskFinding.explanation)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("AI review was incomplete");
+  });
+
   it("uses one Apply click as approval and reports the actual result", async () => {
     let resolveApply:
       | ((value: {

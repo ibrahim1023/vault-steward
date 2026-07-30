@@ -79,6 +79,7 @@ export function VaultStewardWorkspace({
   const [dismissedFindingIds, setDismissedFindingIds] = useState<Set<string>>(() => new Set());
   const [dismissing, setDismissing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>();
+  const [scanLimitations, setScanLimitations] = useState<string[]>([]);
   const history = loadHistory?.();
   const activeFindings = rankDashboardFindings(
     findings.filter((finding) => finding.status === "open" && !dismissedFindingIds.has(finding.id))
@@ -129,10 +130,12 @@ export function VaultStewardWorkspace({
   const checkVault = async () => {
     setMode("scanning");
     setErrorMessage(undefined);
+    setScanLimitations([]);
     try {
       const result = await scan();
       const nextFindings = loadFindings ? await loadFindings() : result.findings;
       setFindings(nextFindings);
+      setScanLimitations(result.limitations ?? []);
       await chooseNext(nextFindings);
     } catch (error) {
       setMode("error");
@@ -205,6 +208,13 @@ export function VaultStewardWorkspace({
         </div>
         <span className="steward-local">Local-first review</span>
       </header>
+
+      {scanLimitations.includes("local-model-output-unavailable") ? (
+        <p className="steward-notice" role="status">
+          AI review was incomplete. Core vault checks completed; run another check to retry AI
+          analysis.
+        </p>
+      ) : null}
 
       {mode === "ready" ? (
         <section className="steward-start" aria-label="Ready to check">
