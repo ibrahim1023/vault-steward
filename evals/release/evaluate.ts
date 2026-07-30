@@ -207,7 +207,7 @@ async function evaluateRepairs(
       recommendation,
       incomplete:
         recommendation.status === "abstained" &&
-        recommendation.reason === "The configured model provider could not rank repair targets.",
+        recommendation.reason === "The configured model provider could not rank repair candidates.",
       attempted: true,
       durationMs: Math.round(performance.now() - startedAt)
     });

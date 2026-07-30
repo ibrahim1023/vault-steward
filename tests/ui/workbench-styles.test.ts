@@ -20,7 +20,7 @@ describe("simple review styles", () => {
   it("keeps exact reference previews readable and uses a green primary action", () => {
     const styles = readFileSync(resolve(root, "styles.css"), "utf8");
 
-    expect(styles).toMatch(/\.repair-reference\s*\{[\s\S]*?white-space: pre-wrap;/);
+    expect(styles).toMatch(/\.repair-change code\s*\{[\s\S]*?white-space: pre-wrap;/);
     expect(styles).toMatch(/\.steward-primary\s*\{[\s\S]*?background: var\(--steward-green\);/);
     expect(styles).toMatch(/\.target-status\s*\{[\s\S]*?color:/);
   });

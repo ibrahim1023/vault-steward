@@ -164,7 +164,7 @@ function governedProvider(
     capabilities: ["structured-output"],
     async generate(request: LocalGenerationRequest) {
       if (options.fail) throw new Error("provider unavailable");
-      if (request.prompt.includes('"task":"select-reference-target"')) {
+      if (request.prompt.includes('"task":"select-reference-repair"')) {
         const parsed = JSON.parse(request.prompt) as {
           request: { candidates: Array<{ id: string; path: string }> };
         };
