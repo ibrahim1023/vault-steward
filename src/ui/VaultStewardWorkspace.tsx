@@ -384,9 +384,19 @@ function PreparedResult({
         className="steward-primary"
         type="button"
         disabled={applying}
+        aria-busy={applying}
         onClick={() => void onApply()}
       >
-        Apply {count} {count === 1 ? "fix" : "fixes"}
+        {applying ? (
+          <>
+            <span className="button-spinner" aria-hidden="true" />
+            Applying {count} {count === 1 ? "fix" : "fixes"}...
+          </>
+        ) : (
+          <>
+            Apply {count} {count === 1 ? "fix" : "fixes"}
+          </>
+        )}
       </button>
       <p className="approval-note">Nothing changes until you select Apply.</p>
     </section>

@@ -163,6 +163,8 @@ describe("VaultStewardWorkspace", () => {
     const apply = await screen.findByRole("button", { name: "Apply 1 fix" });
     fireEvent.click(apply);
     expect(apply).toBeDisabled();
+    expect(apply).toHaveAttribute("aria-busy", "true");
+    expect(apply).toHaveTextContent("Applying 1 fix...");
     expect(screen.getByRole("status")).toHaveTextContent("Applying approved fixes");
     expect(applyRepairs).toHaveBeenCalledOnce();
 

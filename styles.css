@@ -266,6 +266,24 @@
   text-align: center;
 }
 
+.button-spinner {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 8px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: -0.1em;
+  animation: vault-steward-spin 0.8s linear infinite;
+}
+
+@keyframes vault-steward-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .steward-error {
   border-left-color: var(--steward-red);
 }
