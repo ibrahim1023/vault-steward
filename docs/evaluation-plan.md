@@ -77,6 +77,10 @@ The runner supports `--suite`, `--agent`, `--case`, `--split`, `--model-profile`
 
 CI uses the fixed `ci-regression` manifest and baseline comparison. It fails critical fixture cases, invalid evidence/schema/routing/termination results, unsupported claims, unapproved precision/recall/F1 regressions, and unapproved p95 latency or peak-memory growth. A metric exception requires a recorded author, date, rationale, and named metric.
 
+Every baseline comparison also writes a local redacted `evals/reports/regression.json`
+artifact containing report IDs, manifest hash, pass/fail status, failures, and whether
+a dated rationale was used. It contains neither fixture contents nor vault data.
+
 Held-out and human-review cases are rejected if marked development-visible. Human labels are summarized only as aggregate independently-reviewed sample counts, agreement, and unresolved counts. Model-assisted assessment can inform usefulness review but cannot satisfy the deterministic evidence, schema, routing, or termination safety gates on its own.
 
 ## Replay And Local Model Comparison
