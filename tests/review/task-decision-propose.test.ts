@@ -71,6 +71,40 @@ describe("task and decision deterministic proposals", () => {
     ).toMatchObject({ applicable: false });
   });
 
+  it("checks an unchecked task only when its own metadata marks it complete", () => {
+    const completionFinding = {
+      ...taskFinding,
+      explanation: "Task ship is completion-pending.",
+      evidence: [
+        {
+          ...taskFinding.evidence[0]!,
+          excerpt: "- [ ] Ship owner:ada project:atlas status:done ^ship"
+        }
+      ]
+    };
+    expect(
+      proposeTaskRepair(
+        completionFinding,
+        {
+          path: "Work.md",
+          revision: "revision-1",
+          content: completionFinding.evidence[0]!.excerpt
+        },
+        {
+          schemaVersion: 1,
+          kind: "mark-complete",
+          scanId: "scan-1",
+          findingId: "task-finding",
+          taskId: "ship"
+        },
+        []
+      )
+    ).toMatchObject({
+      applicable: true,
+      proposal: { operations: [{ expected: "- [ ]", replacement: "- [x]" }] }
+    });
+  });
+
   it("updates only one decision frontmatter field and requires cited active evidence", () => {
     const finding = {
       ...taskFinding,

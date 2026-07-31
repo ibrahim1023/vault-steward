@@ -11,7 +11,10 @@ import type { ModelProvider } from "../model-provider/local-provider.js";
 import { generateStructured } from "../model-provider/structured.js";
 import type { ScanSnapshot } from "../scanner/scan.js";
 import { parseTask } from "../tasks/check.js";
-import { buildTaskDecisionCandidates } from "./task-decision-candidates.js";
+import {
+  buildDecisionRepairCandidates,
+  buildTaskDecisionCandidates
+} from "./task-decision-candidates.js";
 import type { RepairCandidate } from "./task-decision-propose.js";
 
 export type TaskDecisionSelectionRequest = {
@@ -94,7 +97,11 @@ function buildSelectionRequest(
     const candidates = buildTaskDecisionCandidates(snapshot, source.notePath, task.id);
     const allowedKinds: TaskRepairKind[] = [];
     let selectionCandidates: TaskDecisionSelectionRequest["candidates"] = [];
-    if (finding.explanation.endsWith("is overdue.")) {
+    if (finding.explanation.endsWith("is completion-pending.")) {
+      if (task.completionMarked && !task.checkboxCompleted) {
+        allowedKinds.push("mark-complete");
+      }
+    } else if (finding.explanation.endsWith("is overdue.")) {
       allowedKinds.push("replace-due-date");
       selectionCandidates = candidates.dueDates.map((candidate) => ({
         ...candidate,
@@ -127,7 +134,8 @@ function buildSelectionRequest(
     }
     if (
       allowedKinds.length === 0 ||
-      (selectionCandidates.length === 0 && allowedKinds[0] !== "clear-abandoned")
+      (selectionCandidates.length === 0 &&
+        !allowedKinds.some((kind) => kind === "clear-abandoned" || kind === "mark-complete"))
     )
       return null;
     return {
@@ -143,9 +151,47 @@ function buildSelectionRequest(
       taskId: task.id
     };
   }
-  if (finding.type === "decision" && finding.explanation.includes("missing rationale")) {
+  if (finding.type === "decision") {
     const decisionId = finding.evidence[0]?.notePath;
     if (!decisionId) return null;
+    const decisionCandidates = buildDecisionRepairCandidates(snapshot, decisionId);
+    if (finding.explanation.includes("missing project target")) {
+      if (decisionCandidates.projects.length === 0) return null;
+      return {
+        schemaVersion: 1,
+        scanId: snapshot.id,
+        findingId: finding.id,
+        task: "select-task-decision-repair",
+        instructions:
+          "Select one existing project target only when the evidence supports it. Otherwise abstain.",
+        evidence,
+        allowedKinds: ["link-project"],
+        candidates: decisionCandidates.projects.map((candidate) => ({
+          ...candidate,
+          category: "project" as const
+        })),
+        decisionId
+      };
+    }
+    if (finding.explanation.includes("missing related decision target")) {
+      if (decisionCandidates.decisions.length === 0) return null;
+      return {
+        schemaVersion: 1,
+        scanId: snapshot.id,
+        findingId: finding.id,
+        task: "select-task-decision-repair",
+        instructions:
+          "Select one existing related decision only when the evidence supports it. Otherwise abstain.",
+        evidence,
+        allowedKinds: ["link-related-decision"],
+        candidates: decisionCandidates.decisions.map((candidate) => ({
+          ...candidate,
+          category: "decision" as const
+        })),
+        decisionId
+      };
+    }
+    if (!finding.explanation.includes("missing rationale")) return null;
     return {
       schemaVersion: 1,
       scanId: snapshot.id,

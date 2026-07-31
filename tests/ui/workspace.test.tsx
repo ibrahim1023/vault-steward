@@ -62,11 +62,44 @@ const prepared: PreparedReferenceRepair = {
       locator: "line:1",
       currentReference: "[[Missing]]",
       replacementReference: "[[Target]]",
+      repairFamily: "reference",
       repairKind: "retarget-note",
       targetPath: "Target.md",
       targetExists: true,
       targetStatus: "verified-rename",
       affectedNotes: ["Home.md"]
+    }
+  ]
+};
+
+const preparedTask: PreparedReferenceRepair = {
+  ...prepared,
+  batch: { ...prepared.batch, id: "batch-task", proposalIds: ["proposal-task"] },
+  proposals: [
+    {
+      ...prepared.proposals[0]!,
+      id: "proposal-task",
+      operations: [
+        {
+          ...prepared.proposals[0]!.operations[0]!,
+          expected: "due:2026-07-01",
+          replacement: "due:2026-08-15"
+        }
+      ]
+    }
+  ],
+  items: [
+    {
+      proposalId: "proposal-task",
+      findingId: "finding",
+      sourcePath: "Work.md",
+      locator: "line:4",
+      currentReference: "due:2026-07-01",
+      replacementReference: "due:2026-08-15",
+      repairFamily: "task",
+      repairKind: "replace-due-date",
+      targetStatus: "ai-suggested",
+      affectedNotes: ["Work.md"]
     }
   ]
 };
@@ -134,6 +167,21 @@ describe("VaultStewardWorkspace", () => {
     expect(within(recommendation).getByText("1 issue resolved")).toBeInTheDocument();
     expect(within(recommendation).getByText("1 note edited")).toBeInTheDocument();
     expect(within(recommendation).getByRole("button", { name: "Apply 1 fix" })).toBeEnabled();
+  });
+
+  it("labels task repair previews without reference-only language", async () => {
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [finding] })}
+        loadFindings={() => [finding]}
+        prepareRepairs={async () => preparedTask}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    expect(await screen.findByText("Bounded task repair")).toBeInTheDocument();
+    expect(screen.getByText("Due date")).toBeInTheDocument();
+    expect(screen.queryByText("Target check")).not.toBeInTheDocument();
   });
 
   it("keeps the review loop usable when AI analysis has an invalid response", async () => {

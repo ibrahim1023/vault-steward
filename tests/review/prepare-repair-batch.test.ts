@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { Finding } from "../../src/contracts/index.js";
-import { prepareReferenceRepairBatch } from "../../src/review/prepare-repair-batch.js";
+import {
+  combinePreparedRepairs,
+  prepareReferenceRepairBatch
+} from "../../src/review/prepare-repair-batch.js";
 import { scanVaultFiles } from "../../src/scanner/scan.js";
 
 function brokenFinding(scanId: string): Finding {
@@ -21,6 +24,61 @@ function brokenFinding(scanId: string): Finding {
 }
 
 describe("prepared reference repair orchestration", () => {
+  it("combines compatible prepared repairs into one all-member review batch", () => {
+    const repair = {
+      batch: {
+        schemaVersion: 1 as const,
+        id: "batch-a",
+        scanId: "scan-1",
+        proposalIds: ["proposal-a"],
+        findingIds: ["finding-a"],
+        outcome: {
+          expectedFindingsResolved: 1,
+          notesEdited: 1,
+          notesCreated: 0 as const,
+          notesDeleted: 0 as const,
+          findingsLeftUnchanged: 0
+        }
+      },
+      proposals: [
+        {
+          schemaVersion: 1 as const,
+          id: "proposal-a",
+          findingId: "finding-a",
+          scanId: "scan-1",
+          explanation: "Repair A",
+          operations: [
+            {
+              kind: "replace-range" as const,
+              path: "Work.md",
+              sourceRevision: "revision",
+              start: 0,
+              end: 1,
+              expected: "a",
+              replacement: "b"
+            }
+          ]
+        }
+      ],
+      items: [
+        {
+          proposalId: "proposal-a",
+          findingId: "finding-a",
+          sourcePath: "Work.md",
+          locator: "line:1",
+          currentReference: "a",
+          replacementReference: "b",
+          repairFamily: "task" as const,
+          repairKind: "clear-abandoned",
+          affectedNotes: ["Work.md"]
+        }
+      ]
+    };
+    expect(combinePreparedRepairs("scan-1", 2, [repair])).toMatchObject({
+      batch: { scanId: "scan-1", findingIds: ["finding-a"] }
+    });
+  });
+
   it("persists a verified rename and derives exact preview and outcome metadata", async () => {
     const snapshot = {
       ...scanVaultFiles([

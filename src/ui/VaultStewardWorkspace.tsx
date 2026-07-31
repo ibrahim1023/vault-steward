@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { Finding } from "../contracts/index.js";
 import type { PreparedRepairBatch } from "../contracts/prepared-repair.js";
-import type { PreparedReferenceRepair } from "../review/prepare-repair-batch.js";
+import type { PreparedRepair, PreparedRepairItem } from "../review/prepare-repair-batch.js";
 import type { BatchApplyResult } from "../review/workflow.js";
 import type {
   FindingLifecycleRecord,
@@ -49,7 +49,7 @@ export function VaultStewardWorkspace({
     limitations?: string[];
   }>;
   loadFindings?: () => Promise<Finding[]> | Finding[];
-  prepareRepairs?: () => Promise<PreparedReferenceRepair | null>;
+  prepareRepairs?: () => Promise<PreparedRepair | null>;
   applyRepairs?: (batch: PreparedRepairBatch) => Promise<BatchApplyResult>;
   openNote?: (path: string) => void | Promise<void>;
   markNotImportant?: (finding: Finding) => Promise<void>;
@@ -73,7 +73,7 @@ export function VaultStewardWorkspace({
 }) {
   const [mode, setMode] = useState<WorkspaceMode>("ready");
   const [findings, setFindings] = useState<Finding[]>([]);
-  const [prepared, setPrepared] = useState<PreparedReferenceRepair | null>(null);
+  const [prepared, setPrepared] = useState<PreparedRepair | null>(null);
   const [actualResult, setActualResult] = useState<BatchApplyResult | null>(null);
   const [judgment, setJudgment] = useState<Finding>();
   const [dismissedFindingIds, setDismissedFindingIds] = useState<Set<string>>(() => new Set());
@@ -100,7 +100,7 @@ export function VaultStewardWorkspace({
     const active = rankDashboardFindings(
       nextFindings.filter((finding) => finding.status === "open" && !dismissedIds.has(finding.id))
     );
-    let nextPrepared: PreparedReferenceRepair | null = null;
+    let nextPrepared: PreparedRepair | null = null;
     if (includeRepairRecommendation) {
       try {
         nextPrepared = prepareRepairs ? await prepareRepairs() : null;
@@ -338,7 +338,7 @@ function PreparedResult({
   applying,
   onApply
 }: {
-  prepared: PreparedReferenceRepair;
+  prepared: PreparedRepair;
   applying: boolean;
   onApply: () => Promise<void>;
 }) {
@@ -360,10 +360,10 @@ function PreparedResult({
           <details className="repair-item" key={item.proposalId}>
             <summary>
               <span className="repair-status">
-                <strong>{repairStatusLabel(item.targetStatus)}</strong>
+                <strong>{repairStatusLabel(item)}</strong>
                 <small>{repairKindLabel(item.repairKind)}</small>
               </span>
-              <span className="repair-change" aria-label="Exact reference change">
+              <span className="repair-change" aria-label="Exact repair change">
                 <span>
                   <small>Current</small>
                   <code className="current-reference">{item.currentReference}</code>
@@ -386,20 +386,24 @@ function PreparedResult({
                 <dt>Location</dt>
                 <dd>{item.locator}</dd>
               </div>
-              <div>
-                <dt>Target</dt>
-                <dd>{item.targetPath}</dd>
-              </div>
+              {item.targetPath ? (
+                <div>
+                  <dt>Target</dt>
+                  <dd>{item.targetPath}</dd>
+                </div>
+              ) : null}
               {item.targetAnchor ? (
                 <div>
                   <dt>{item.targetAnchor.kind === "block" ? "Block" : "Heading"}</dt>
                   <dd>{item.targetAnchor.value}</dd>
                 </div>
               ) : null}
-              <div>
-                <dt>Target check</dt>
-                <dd>{item.targetExists ? "Existing target" : "Target unavailable"}</dd>
-              </div>
+              {item.targetExists !== undefined ? (
+                <div>
+                  <dt>Target check</dt>
+                  <dd>{item.targetExists ? "Existing target" : "Target unavailable"}</dd>
+                </div>
+              ) : null}
               <div>
                 <dt>Affected notes</dt>
                 <dd>{item.affectedNotes.join(", ")}</dd>
@@ -553,10 +557,10 @@ function formatCount(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
 
-function repairStatusLabel(
-  status: PreparedReferenceRepair["items"][number]["targetStatus"]
-): string {
-  switch (status) {
+function repairStatusLabel(item: PreparedRepairItem): string {
+  if (item.repairFamily === "task") return "Bounded task repair";
+  if (item.repairFamily === "decision") return "Cited decision repair";
+  switch (item.targetStatus) {
     case "verified-rename":
       return "Verified rename";
     case "verified-canonical":
@@ -566,8 +570,26 @@ function repairStatusLabel(
   }
 }
 
-function repairKindLabel(kind: PreparedReferenceRepair["items"][number]["repairKind"]): string {
+function repairKindLabel(kind: PreparedRepairItem["repairKind"]): string {
   switch (kind) {
+    case "mark-complete":
+      return "Mark task complete";
+    case "replace-due-date":
+      return "Due date";
+    case "assign-owner":
+      return "Task owner";
+    case "assign-project":
+      return "Task project";
+    case "clear-abandoned":
+      return "Abandonment state";
+    case "resolve-duplicate-id":
+      return "Task ID";
+    case "link-project":
+      return "Decision project";
+    case "link-related-decision":
+      return "Related decision";
+    case "set-rationale":
+      return "Decision rationale";
     case "replace-heading-anchor":
       return "Heading anchor";
     case "replace-block-anchor":

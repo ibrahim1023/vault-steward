@@ -17,26 +17,29 @@ import {
 
 const MAX_PREPARED_FIXES = 5;
 
-export type PreparedReferenceRepairItem = {
+export type PreparedRepairItem = {
   proposalId: string;
   findingId: string;
   sourcePath: string;
   locator: string;
   currentReference: string;
   replacementReference: string;
-  repairKind: import("../contracts/reference-repair.js").ReferenceRepairKind;
-  targetPath: string;
-  targetExists: true;
+  repairFamily: "reference" | "task" | "decision";
+  repairKind: string;
+  targetPath?: string;
+  targetExists?: true;
   targetAnchor?: { kind: "heading" | "block"; value: string };
-  targetStatus: "verified-rename" | "verified-canonical" | "ai-suggested";
+  targetStatus?: "verified-rename" | "verified-canonical" | "ai-suggested";
   affectedNotes: string[];
 };
 
-export type PreparedReferenceRepair = {
+export type PreparedRepair = {
   batch: PreparedRepairBatch;
   proposals: Proposal[];
-  items: PreparedReferenceRepairItem[];
+  items: PreparedRepairItem[];
 };
+
+export type PreparedReferenceRepair = PreparedRepair;
 
 export async function prepareReferenceRepairBatch(input: {
   snapshot: ScanSnapshot;
@@ -48,7 +51,7 @@ export async function prepareReferenceRepairBatch(input: {
 }): Promise<PreparedReferenceRepair | null> {
   const activeFindings = input.findings.filter((finding) => finding.status === "open");
   const proposals: Proposal[] = [];
-  const items: PreparedReferenceRepairItem[] = [];
+  const items: PreparedRepairItem[] = [];
 
   for (const finding of activeFindings) {
     if (proposals.length >= MAX_PREPARED_FIXES) break;
@@ -93,6 +96,7 @@ export async function prepareReferenceRepairBatch(input: {
       locator: evidence.locator,
       currentReference: operation.expected,
       replacementReference: operation.replacement,
+      repairFamily: "reference",
       repairKind: recommendation.intent.kind,
       targetPath: recommendation.intent.targetPath,
       targetExists: true,
@@ -120,6 +124,38 @@ export async function prepareReferenceRepairBatch(input: {
       proposalIds,
       findingIds: proposals.map((proposal) => proposal.findingId),
       outcome
+    },
+    proposals,
+    items
+  };
+}
+
+export function combinePreparedRepairs(
+  scanId: string,
+  activeFindingCount: number,
+  repairs: readonly (PreparedRepair | null)[]
+): PreparedRepair | null {
+  const available = repairs.filter((repair): repair is PreparedRepair => repair !== null);
+  if (available.length === 0 || available.some((repair) => repair.batch.scanId !== scanId))
+    return null;
+  const proposals = available.flatMap((repair) => repair.proposals);
+  const items = available.flatMap((repair) => repair.items);
+  const proposalIds = proposals.map((proposal) => proposal.id);
+  const findingIds = proposals.map((proposal) => proposal.findingId);
+  if (
+    proposals.length === 0 ||
+    new Set(proposalIds).size !== proposalIds.length ||
+    new Set(findingIds).size !== findingIds.length
+  )
+    return null;
+  return {
+    batch: {
+      schemaVersion: 1,
+      id: `batch:${scanId}:${shortHash(proposalIds)}`,
+      scanId,
+      proposalIds,
+      findingIds,
+      outcome: calculatePreparedRepairOutcome(proposals, activeFindingCount)
     },
     proposals,
     items

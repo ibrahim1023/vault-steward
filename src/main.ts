@@ -20,8 +20,13 @@ import { proposeFix } from "./review/propose.js";
 import { parseProposal, proposalDigest } from "./contracts/proposal.js";
 import { ReviewWorkflow, type ReviewAction } from "./review/workflow.js";
 import { parsePreparedRepairBatch, type PreparedRepairBatch } from "./contracts/prepared-repair.js";
-import { prepareReferenceRepairBatch } from "./review/prepare-repair-batch.js";
+import {
+  combinePreparedRepairs,
+  prepareReferenceRepairBatch
+} from "./review/prepare-repair-batch.js";
 import { selectReferenceCandidateWithProviders } from "./review/reference-recommendation.js";
+import { prepareTaskDecisionRepairBatch } from "./review/prepare-task-decision-batch.js";
+import { selectTaskDecisionRepairWithProviders } from "./review/task-decision-recommendation.js";
 import { getPluginDatabasePath } from "./storage/sqlite-runtime.js";
 import { VaultStewardWorkspace } from "./ui/VaultStewardWorkspace.js";
 import { scanVaultFiles, type ScannedNote, type ScanSnapshot } from "./scanner/scan.js";
@@ -352,9 +357,10 @@ export default class VaultStewardPlugin extends Plugin {
       throw new Error("Run Check vault before preparing repairs.");
     const provider = this.createSelectedModelProvider();
     const writer = new ObsidianVaultWriter(this.app.vault);
-    const prepared = await prepareReferenceRepairBatch({
+    const findings = this.loadFindings();
+    const referencePrepared = await prepareReferenceRepairBatch({
       snapshot: this.activeSnapshot,
-      findings: this.loadFindings(),
+      findings,
       renames: this.recentRenames,
       readSource: (path) => writer.read(path),
       selectCandidate: (request) => selectReferenceCandidateWithProviders([provider], request),
@@ -379,6 +385,37 @@ export default class VaultStewardPlugin extends Plugin {
         });
       }
     });
+    const taskDecisionPrepared = await prepareTaskDecisionRepairBatch({
+      snapshot: this.activeSnapshot,
+      findings,
+      readSource: (path) => writer.read(path),
+      selectIntent: (request) => selectTaskDecisionRepairWithProviders([provider], request),
+      persistProposal: (proposal) => {
+        const existing = this.database!.repository.findProposal(proposal.id);
+        if (existing) {
+          const persisted = parseStoredProposal(existing.patchJson, existing.proposalDigest);
+          if (
+            existing.status === "pending" &&
+            proposalDigest(persisted) === proposalDigest(proposal)
+          )
+            return;
+          throw new Error("A previous proposal for this finding must be reviewed first.");
+        }
+        this.database!.repository.saveProposal({
+          id: proposal.id,
+          findingId: proposal.findingId,
+          patchJson: JSON.stringify(proposal),
+          sourceRevisionsJson: "{}",
+          status: "pending",
+          proposalDigest: proposalDigest(proposal)
+        });
+      }
+    });
+    const prepared = combinePreparedRepairs(
+      this.activeSnapshot.id,
+      findings.filter((finding) => finding.status === "open").length,
+      [referencePrepared, taskDecisionPrepared]
+    );
     await this.database.flush();
     return prepared;
   }

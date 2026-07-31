@@ -187,7 +187,10 @@ function decisionFindings(snapshot: ScanSnapshot, evidence: readonly AgentEviden
     const decision = indexDecision(note.path, note.frontmatter);
     return decision ? [{ ...decision, notePath: note.path, excerpt: "decision" }] : [];
   });
-  return checkDecisions(decisions).flatMap((issue) => {
+  return checkDecisions(
+    decisions,
+    snapshot.notes.map((note) => note.path)
+  ).flatMap((issue) => {
     const decision = decisions.find((item) => item.id === issue.id);
     if (!decision) return [];
     const finding = normalizeFinding({

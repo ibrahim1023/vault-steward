@@ -43,8 +43,18 @@ describe("task integrity", () => {
     expect(
       parseTask("- [ ] Complete owner:ada project:atlas status:done ^complete", 1)
     ).toMatchObject({ completed: true, completionMarked: true });
+    expect(parseTask("- [ ] Complete owner:ada project:atlas ^complete", 1)).toMatchObject({
+      completed: false,
+      completionMarked: false
+    });
+  });
+
+  it("reports an unchecked task when its own metadata explicitly marks it done", () => {
     expect(
-      parseTask("- [ ] Complete owner:ada project:atlas ^complete", 1)
-    ).toMatchObject({ completed: false, completionMarked: false });
+      checkTasks(
+        "- [ ] Archive owner:ada project:atlas status:done ^archive",
+        "2026-07-13T00:00:00Z"
+      )
+    ).toEqual([{ id: "archive", kind: "completion-pending", line: 1 }]);
   });
 });

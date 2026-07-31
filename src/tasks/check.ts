@@ -1,7 +1,9 @@
-export type TaskIssueKind = "malformed" | "orphaned" | "duplicated" | "overdue" | "abandoned";
+export type TaskIssueKind =
+  "malformed" | "orphaned" | "duplicated" | "overdue" | "abandoned" | "completion-pending";
 export type TaskIssue = { id: string; kind: TaskIssueKind; line: number };
 export type ParsedTask = {
   id: string;
+  checkboxCompleted: boolean;
   completed: boolean;
   owner: string | null;
   project: string | null;
@@ -24,6 +26,8 @@ export function checkTasks(content: string, now: string): TaskIssue[] {
     const issues: TaskIssue[] = [];
     if (seen.has(parsed.id)) issues.push({ id: parsed.id, kind: "duplicated", line: parsed.line });
     seen.add(parsed.id);
+    if (!parsed.checkboxCompleted && parsed.completionMarked)
+      issues.push({ id: parsed.id, kind: "completion-pending", line: parsed.line });
     if (!parsed.owner || !parsed.project)
       issues.push({ id: parsed.id, kind: "orphaned", line: parsed.line });
     if (!parsed.completed && parsed.due && isPast(parsed.due, now))
@@ -44,8 +48,11 @@ export function parseTask(line: string, lineNumber: number): ParsedTask | null {
   if (metadata.due && Number.isNaN(Date.parse(metadata.due))) return null;
   return {
     id: match[3] ?? `line-${lineNumber}`,
+    checkboxCompleted: match[1] !== " ",
     completed:
-      match[1] !== " " || metadata.completed === "true" || metadata.status?.toLowerCase() === "done",
+      match[1] !== " " ||
+      metadata.completed === "true" ||
+      metadata.status?.toLowerCase() === "done",
     owner: metadata.owner ?? null,
     project: metadata.project ?? null,
     due: metadata.due ?? null,

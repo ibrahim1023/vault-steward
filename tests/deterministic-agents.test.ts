@@ -19,12 +19,28 @@ describe("deterministic agents", () => {
       id: "Decisions/A.md",
       rationale: null,
       supersedes: null,
+      project: null,
+      relatedDecision: null,
       evidenceLocator: "frontmatter:kind"
     });
     expect(
       checkDecisions([
-        { id: "a", rationale: null, supersedes: "b", evidenceLocator: "frontmatter:kind" },
-        { id: "b", rationale: "ok", supersedes: "a", evidenceLocator: "frontmatter:kind" }
+        {
+          id: "a",
+          rationale: null,
+          supersedes: "b",
+          project: null,
+          relatedDecision: null,
+          evidenceLocator: "frontmatter:kind"
+        },
+        {
+          id: "b",
+          rationale: "ok",
+          supersedes: "a",
+          project: null,
+          relatedDecision: null,
+          evidenceLocator: "frontmatter:kind"
+        }
       ]).map((issue) => issue.kind)
     ).toEqual(expect.arrayContaining(["missing-rationale", "supersedes-cycle"]));
     const finding = {

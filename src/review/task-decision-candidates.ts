@@ -11,6 +11,28 @@ export type TaskDecisionCandidates = {
   decisions: RepairCandidate[];
 };
 
+export function buildDecisionRepairCandidates(
+  snapshot: ScanSnapshot,
+  decisionPath: string
+): Pick<TaskDecisionCandidates, "projects" | "decisions"> {
+  return {
+    projects: uniqueCandidates(
+      snapshot.notes
+        .filter((note) => note.frontmatter.kind === "project")
+        .map((note) => note.path)
+        .sort(),
+      "project"
+    ),
+    decisions: uniqueCandidates(
+      snapshot.notes
+        .filter((note) => note.frontmatter.kind === "decision" && note.path !== decisionPath)
+        .map((note) => note.path)
+        .sort(),
+      "decision"
+    )
+  };
+}
+
 export function buildTaskDecisionCandidates(
   snapshot: ScanSnapshot,
   taskPath: string,

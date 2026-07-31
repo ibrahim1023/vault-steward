@@ -85,6 +85,82 @@ describe("task and decision repair recommendation", () => {
     expect(result).toMatchObject({ status: "abstained" });
   });
 
+  it("permits mark-complete only for the explicit completion marker finding", async () => {
+    const completionFinding: Finding = {
+      ...finding,
+      explanation: "Task ship is completion-pending.",
+      evidence: [
+        {
+          notePath: "Work.md",
+          locator: "line:1",
+          excerpt: "- [ ] Ship owner:ada project:atlas status:done ^ship"
+        }
+      ]
+    };
+    const snapshot = {
+      ...scanVaultFiles([
+        { path: "Work.md", content: completionFinding.evidence[0]!.excerpt, revision: "work" }
+      ]),
+      id: "scan-fixed"
+    };
+    const result = await recommendTaskDecisionRepair({
+      finding: completionFinding,
+      snapshot,
+      selectIntent: async (request) => ({
+        schemaVersion: 1,
+        kind: "mark-complete",
+        scanId: request.scanId,
+        findingId: request.findingId,
+        taskId: "ship"
+      })
+    });
+    expect(result).toMatchObject({ status: "ai-suggested", intent: { kind: "mark-complete" } });
+  });
+
+  it("allows a decision relation repair only from existing snapshot notes", async () => {
+    const decisionFinding: Finding = {
+      ...finding,
+      id: "decision-finding",
+      type: "decision",
+      evidence: [
+        { notePath: "Decisions/ADR-1.md", locator: "frontmatter:kind", excerpt: "decision" }
+      ],
+      affectedNoteIds: ["Decisions/ADR-1.md"],
+      explanation: "Decision Decisions/ADR-1.md has missing project target."
+    };
+    const snapshot = {
+      ...scanVaultFiles([
+        {
+          path: "Decisions/ADR-1.md",
+          content: "---\nkind: decision\nproject: Projects/Missing.md\n---\n# ADR",
+          revision: "decision"
+        },
+        {
+          path: "Projects/Northstar.md",
+          content: "---\nkind: project\n---\n# Northstar",
+          revision: "project"
+        }
+      ]),
+      id: "scan-fixed"
+    };
+    const result = await recommendTaskDecisionRepair({
+      finding: decisionFinding,
+      snapshot,
+      selectIntent: async (request) => ({
+        schemaVersion: 1,
+        kind: "link-project",
+        scanId: request.scanId,
+        findingId: request.findingId,
+        decisionId: "Decisions/ADR-1.md",
+        candidateId: request.candidates[0]!.id
+      })
+    });
+    expect(result).toMatchObject({
+      status: "ai-suggested",
+      intent: { kind: "link-project", decisionId: "Decisions/ADR-1.md" }
+    });
+  });
+
   it("uses structured providers with a candidate-ID-only response contract", async () => {
     const provider: ModelProvider = {
       config: {

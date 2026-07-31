@@ -18,4 +18,18 @@ describe("decision indexing", () => {
       ])
     );
   });
+
+  it("reports only explicitly broken decision relationships", () => {
+    const decision = indexDecision("Decisions/A.md", {
+      kind: "decision",
+      rationale: "A valid rationale.",
+      project: "Projects/Missing.md",
+      relatedDecision: "Decisions/Missing.md"
+    });
+    if (!decision) throw new Error("expected decision");
+    expect(checkDecisions([decision], ["Decisions/A.md", "Projects/Existing.md"])).toEqual([
+      expect.objectContaining({ kind: "missing-project-target" }),
+      expect.objectContaining({ kind: "missing-related-decision-target" })
+    ]);
+  });
 });
