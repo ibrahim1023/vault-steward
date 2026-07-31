@@ -33,7 +33,7 @@ Check vault -> deterministic parser and integrity checks
 
 The default experience asks for one decision at a time. Select **Check vault**;
 when a safe reference, task, or decision repair is available, Vault Steward shows the affected
-note, the exact current and proposed value, and the expected result. The single
+note, the current and proposed references or exact structured values, and the expected result. The single
 **Apply fixes** action records explicit approval, re-checks every source
 revision, applies only validated changes, and reports the actual result.
 Non-repairable findings receive one recommended action instead of an

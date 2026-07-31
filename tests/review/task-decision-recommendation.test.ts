@@ -85,6 +85,29 @@ describe("task and decision repair recommendation", () => {
     expect(result).toMatchObject({ status: "abstained" });
   });
 
+  it("abstains without constructing a proposal when the provider fails", async () => {
+    const snapshot = {
+      ...scanVaultFiles([
+        { path: "Work.md", content: finding.evidence[0]!.excerpt, revision: "work" },
+        {
+          path: "Projects/Northstar.md",
+          content: "---\nkind: project\ndue: 2026-08-15\n---",
+          revision: "project"
+        }
+      ]),
+      id: "scan-fixed"
+    };
+    await expect(
+      recommendTaskDecisionRepair({
+        finding,
+        snapshot,
+        selectIntent: async () => {
+          throw new Error("provider unavailable");
+        }
+      })
+    ).resolves.toMatchObject({ status: "abstained" });
+  });
+
   it("permits mark-complete only for the explicit completion marker finding", async () => {
     const completionFinding: Finding = {
       ...finding,
