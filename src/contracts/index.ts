@@ -72,3 +72,4 @@ export type ToolResult<T> =
 
 export * from "./prepared-repair.js";
 export * from "./reference-repair.js";
+export * from "./task-decision-repair.js";
