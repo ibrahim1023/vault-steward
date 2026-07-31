@@ -81,8 +81,8 @@ plus deterministic counts for expected findings resolved, distinct notes
 edited, notes created/deleted, and findings left unchanged. It does not copy
 proposal text, evidence excerpts, or note bodies.
 
-The UI joins the batch to validated proposal operations to display current and
-proposed references. `Apply N fixes` is the explicit approval event for the
+The UI joins the batch to validated proposal operations to display exact current
+and proposed field, task, decision, or reference values. `Apply N fixes` is the explicit approval event for the
 selected proposals. Batch apply validates every proposal, digest, scan binding,
 source revision, expected range, and cross-proposal overlap before the first
 write. A preflight failure writes nothing.
@@ -115,6 +115,24 @@ Prepared reference items add repair kind, target existence, target path,
 optional anchor, provenance, and affected-note metadata. Exact Current/After
 text is read from the validated proposal operation rather than copied into the
 batch contract.
+
+`TaskRepairIntent` and `DecisionRepairIntent` are the equivalent versioned
+boundaries for structured existing-note edits. A task intent can only request
+`mark-complete`, `replace-due-date`, `assign-owner`, `assign-project`,
+`clear-abandoned`, or `resolve-duplicate-id`. A decision intent can only request
+`link-project`, `link-related-decision`, or a cited `set-rationale` value. The
+intent carries scan/finding binding and bounded candidate IDs, never a patch
+range or write authority. Completion requires the same task's
+`completed: true` or `status: done` metadata; owner, project, and decision
+candidates are existing active-snapshot notes. Due dates come only from the
+task note, its resolved project, or directly linked decision notes.
+
+Rationale drafting is deliberately narrow: one cited 60–600 character,
+one-to-three-sentence frontmatter value. Newlines, Markdown links, paths,
+unsupported directives, prompt-injection markers, and uncited claims are
+rejected before proposal construction. Deterministic code constructs every
+revision-bound `replace-range` operation, including a field-level Current →
+After preview.
 
 ## Tool Permissions
 

@@ -38,7 +38,7 @@ Obsidian desktop.
 - [ ] The default path does not show health scores, counters, filters, confidence, raw evidence, policy, model, maintenance, or observability controls.
 - [ ] Scanning shows one progress state and preserves the last successful result.
 - [ ] A prepared repair shows `Current`, `After`, and an accurate expected result.
-- [ ] The preview identifies the source note, locator, current reference, replacement reference, and target status.
+- [ ] The preview identifies the source note, locator, exact current/after value, repair kind, and reference target status where applicable.
 - [ ] Exact rename candidates are labelled `Verified rename`.
 - [ ] Model-ranked candidates are labelled `AI suggestion - target exists`.
 - [ ] `Apply fixes` is the single explicit approval action.
@@ -53,13 +53,15 @@ Obsidian desktop.
 - [ ] The broken reference in `Work/Partner Enablement.md` appears.
 - [ ] The broken anchor and missing embed in `Research/Customer Interviews.md` appear.
 - [ ] The unsupported reference in `Notes/Working Agreement.md` appears.
-- [ ] Overdue, orphaned, duplicate, abandoned, and malformed task findings appear.
-- [ ] The missing-rationale decision appears.
+- [ ] Overdue, orphaned, duplicate, abandoned, completion-pending, and malformed task findings appear.
+- [ ] The missing-rationale and explicitly broken decision-association findings appear.
 - [ ] Semantic findings cite active-scan evidence and use cautious language.
 
 ## Repair And Batch Safety
 
 - [ ] The intended Partner Enablement repair changes only the cited wiki link.
+- [ ] A metadata-confirmed task completion, bounded task field update, and decision field/rationale preview each show the exact Current -> After patch.
+- [ ] A compatible mixed task/decision/reference batch applies only after one explicit approval and re-indexes successfully.
 - [ ] The expected result matches the validated proposal operations.
 - [ ] No note changes before `Apply fixes`.
 - [ ] One click creates an individual approval record for every selected proposal.

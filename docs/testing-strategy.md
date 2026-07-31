@@ -13,7 +13,7 @@ Tests prove deterministic contracts: parsing, normalization, graph rules, policy
 | vault adapter/apply            | contract, integration, failure injection | fake Obsidian vault                | PR         |
 | coordinator/agent boundary     | contract, state-machine, tool permission | malformed model/tool traces        | PR         |
 | prepared repair batches        | contract, integration, failure injection | multi-proposal and stale batches   | PR         |
-| bounded repair recommendation  | contract, adversarial, provider doubles  | rename/anchor/abstention cases     | PR         |
+| bounded repair recommendation  | contract, adversarial, provider doubles  | reference/task/decision/abstention | PR         |
 | contextual normalization       | unit, integration, negative fixtures     | rename/canonical/ambiguity cases   | PR         |
 | UI review flow                 | component and end-to-end                 | recommendation/apply/result states | PR         |
 | model quality                  | smoke/full eval                          | golden/adversarial vault fixtures  | CI/nightly |
@@ -48,6 +48,16 @@ unapproved write, and post-apply re-index verification. Component tests cover
 compact Current → After rows, expandable metadata, provenance and target
 labels, deterministic outcomes, progress/errors, keyboard interaction, and
 narrow/light/dark rendering constraints.
+
+Phase 24 extends it with metadata-confirmed completion only, due dates bounded
+to the task/project/direct-decision context, active-snapshot owner/project/ADR
+candidates, deterministic duplicate-ID suffixes, broken decision association
+repair, and cited constrained decision rationale. Tests reject malformed
+tasks/frontmatter, unknown candidates, invalid dates, hallucinated links,
+uncited or injected drafts, stale sources, altered digests, overlaps, provider
+failure, abstention, and every unapproved mutation. Mixed task/decision/
+reference batches retain the same all-member preflight, rollback, and
+post-apply re-index assertions.
 
 ## Marketplace Release Corpus
 

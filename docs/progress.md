@@ -78,6 +78,16 @@ surface shows compact exact Current → After rows with expandable target,
 anchor, provenance, location, and affected-note details. Automated completion
 and promotion remain contingent on the full repository gate. Manual Obsidian
 acceptance remains a separate unchecked release-blocking task.
+
+Phase 24 now adds versioned, bounded task and decision repair intents. A model
+can choose only active-snapshot candidates or submit a constrained cited
+rationale; deterministic code constructs revision-bound task/frontmatter
+patches. Supported repairs include metadata-confirmed task completion, due,
+owner, project, abandonment, duplicate-ID updates, explicitly broken decision
+project/related-decision association updates, and a narrow rationale field.
+These repairs can join a mixed batch with reference proposals and retain
+all-member preflight, approval, rollback, and re-index behavior. Automated
+coverage is in progress; manual Obsidian acceptance remains unchecked.
 The deferred Phase 19 manual desktop matrix and Phases 21-22 release evidence
 remain required before any submission-ready claim.
 

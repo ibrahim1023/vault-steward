@@ -2,9 +2,10 @@
 
 - The packaged `sql.js` runtime and migration smoke harness are verified in a temporary Obsidian-style fixture, but a final manual migration test in a running Obsidian desktop vault remains required for each supported Obsidian release line.
 - Local model performance varies substantially by device and model; initial quality gates require calibration on representative synthetic and user-consented local fixtures.
-- The current safe repair family is limited to validated internal-reference
-  replacements. Vault Steward does not draft semantic note text or apply
-  destructive rename/delete rewrites.
+- The current safe repair families cover validated internal-reference changes
+  plus narrow existing-note task and decision fields. They do not draft or
+  rewrite arbitrary note prose, create, delete, rename, or merge notes, or
+  apply destructive rewrites.
 - AI-ranked repair targets are suggestions from existing snapshot candidates,
   not assertions of correctness. The user still sees the exact result and must
   explicitly approve the prepared batch.

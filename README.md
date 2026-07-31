@@ -32,8 +32,8 @@ Check vault -> deterministic parser and integrity checks
 ```
 
 The default experience asks for one decision at a time. Select **Check vault**;
-when a safe reference repair is available, Vault Steward shows the affected
-note, the current and proposed references, and the expected result. The single
+when a safe reference, task, or decision repair is available, Vault Steward shows the affected
+note, the exact current and proposed value, and the expected result. The single
 **Apply fixes** action records explicit approval, re-checks every source
 revision, applies only validated changes, and reports the actual result.
 Non-repairable findings receive one recommended action instead of an
@@ -66,6 +66,7 @@ Read the detailed [privacy statement](PRIVACY.md) and [security guidance](SECURI
 ## What It Checks
 
 - Broken internal links, embeds, and anchors, with safe reference-repair previews where a replacement is unambiguous.
+- Narrow task and decision repairs: metadata-confirmed completion, bounded due/owner/project/duplicate-ID updates, broken existing decision associations, and cited short decision rationales.
 - Markdown/frontmatter schema violations, task integrity problems, unresolved decisions, and deterministic YAML policy violations.
 - Bounded local-model candidates for duplicate entities, contradictions, staleness, and ambiguous decisions, subject to citation and schema validation.
 - Rename/delete impact, scan history, finding lifecycle, trace lineage, and operational metadata.

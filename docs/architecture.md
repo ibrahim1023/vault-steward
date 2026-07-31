@@ -102,6 +102,24 @@ can authorize normalization findings. Those findings still become
 revision-bound proposals and pass the normal exact-preview, approval, all-member
 preflight, rollback, and re-index path.
 
+## Structured Task And Decision Repair Boundary
+
+Task and decision repairs use the same immutable-snapshot and approved-proposal
+path as references. Models may choose a permitted intent from snapshot-derived
+candidate IDs, or supply a tightly constrained cited rationale; they cannot
+construct Markdown ranges, values outside the candidate list, or a write.
+Deterministic checks require a task's own `completed: true` or `status: done`
+metadata before changing its checkbox. Due-date candidates are limited to the
+task note, its resolved project, and directly linked decisions. Decision
+association repairs appear only for an explicitly broken existing project or
+related-decision value, and select an existing matching note.
+
+Each task or decision proposal remains an ordinary revision-bound
+`replace-range` operation. It can join compatible reference proposals in one
+batch, but all members must pass digest, revision, expected-content, and
+overlap preflight before the first write. The UI displays the exact field or
+task fragment before and after the change, then reports the re-indexed result.
+
 ## Scale and Bottlenecks
 
 The first release targets one desktop vault and batch scans. Expected bottlenecks are Markdown parsing, SQLite writes, and model inference. The adapter normalizes vault events into a bounded plan and conservatively falls back to a full governed scan for create, rename, delete, invalid, or overflowed batches. Within a running plugin process, immutable parsed notes are reused only when normalized path and revision are exact; SQLite stores eligibility metadata and dependency edges without retaining note bodies. A bounded in-memory coordinator cache reuses a model route only when its provider identity and declared route context are exact; changing one route's evidence invalidates that route without authorizing reuse of another. Model concurrency remains capped at one and per-agent context is bounded before considering background workers or a vector store.
