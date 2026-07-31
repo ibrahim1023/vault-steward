@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { buildTaskDecisionCandidates } from "../../src/review/task-decision-candidates.js";
+import {
+  buildDecisionRepairCandidates,
+  buildTaskDecisionCandidates
+} from "../../src/review/task-decision-candidates.js";
 import { scanVaultFiles } from "../../src/scanner/scan.js";
 
 describe("task and decision repair candidates", () => {
@@ -46,6 +49,18 @@ describe("task and decision repair candidates", () => {
       projects: [],
       dueDates: [],
       decisions: []
+    });
+  });
+
+  it("derives decision association candidates only from existing snapshot notes", () => {
+    const snapshot = scanVaultFiles([
+      { path: "Decisions/ADR-1.md", content: "---\nkind: decision\n---", revision: "one" },
+      { path: "Decisions/ADR-2.md", content: "---\nkind: decision\n---", revision: "two" },
+      { path: "Projects/Northstar.md", content: "---\nkind: project\n---", revision: "project" }
+    ]);
+    expect(buildDecisionRepairCandidates(snapshot, "Decisions/ADR-1.md")).toMatchObject({
+      projects: [{ value: "Projects/Northstar.md" }],
+      decisions: [{ value: "Decisions/ADR-2.md" }]
     });
   });
 });

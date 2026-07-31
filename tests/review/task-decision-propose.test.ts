@@ -105,6 +105,100 @@ describe("task and decision deterministic proposals", () => {
     });
   });
 
+  it("constructs only the selected bounded owner, project, abandonment, and duplicate-ID edits", () => {
+    const source = {
+      path: "Work.md",
+      revision: "revision-1",
+      content: taskFinding.evidence[0]!.excerpt
+    };
+    const cases = [
+      {
+        kind: "assign-owner" as const,
+        candidateId: "owner-lee",
+        candidates: [{ id: "owner-lee", value: "lee" }],
+        expected: "owner:ada",
+        replacement: "owner:lee"
+      },
+      {
+        kind: "assign-project" as const,
+        candidateId: "project-northstar",
+        candidates: [{ id: "project-northstar", value: "Projects/Northstar.md" }],
+        expected: "project:atlas",
+        replacement: "project:Projects/Northstar.md"
+      },
+      {
+        kind: "clear-abandoned" as const,
+        candidates: [],
+        expected: "abandoned:true",
+        replacement: "abandoned:false"
+      },
+      {
+        kind: "resolve-duplicate-id" as const,
+        candidateId: "id-ship-2",
+        candidates: [{ id: "id-ship-2", value: "ship-2" }],
+        expected: "^ship",
+        replacement: "^ship-2"
+      }
+    ];
+    for (const item of cases) {
+      const result = proposeTaskRepair(
+        taskFinding,
+        source,
+        {
+          schemaVersion: 1,
+          kind: item.kind,
+          scanId: "scan-1",
+          findingId: "task-finding",
+          taskId: "ship",
+          ...(item.candidateId ? { candidateId: item.candidateId } : {})
+        },
+        item.candidates
+      );
+      expect(result).toMatchObject({
+        applicable: true,
+        proposal: { operations: [{ expected: item.expected, replacement: item.replacement }] }
+      });
+    }
+  });
+
+  it("refuses invalid dates and candidates that were not present in the request", () => {
+    const source = {
+      path: "Work.md",
+      revision: "revision-1",
+      content: taskFinding.evidence[0]!.excerpt
+    };
+    expect(
+      proposeTaskRepair(
+        taskFinding,
+        source,
+        {
+          schemaVersion: 1,
+          kind: "replace-due-date",
+          scanId: "scan-1",
+          findingId: "task-finding",
+          taskId: "ship",
+          candidateId: "due-invalid"
+        },
+        [{ id: "due-invalid", value: "tomorrow" }]
+      )
+    ).toMatchObject({ applicable: false });
+    expect(
+      proposeTaskRepair(
+        taskFinding,
+        source,
+        {
+          schemaVersion: 1,
+          kind: "assign-owner",
+          scanId: "scan-1",
+          findingId: "task-finding",
+          taskId: "ship",
+          candidateId: "owner-unknown"
+        },
+        []
+      )
+    ).toMatchObject({ applicable: false });
+  });
+
   it("updates only one decision frontmatter field and requires cited active evidence", () => {
     const finding = {
       ...taskFinding,
