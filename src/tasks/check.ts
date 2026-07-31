@@ -7,12 +7,13 @@ export type ParsedTask = {
   project: string | null;
   due: string | null;
   abandoned: boolean;
+  completionMarked: boolean;
   line: number;
 };
 
 const TASK_PATTERN = /^\s*- \[([ xX])\]\s+(.+?)(?:\s+\^([\w-]+))?\s*$/;
 const TASK_CANDIDATE_PATTERN = /^\s*- \[(?!\[)/;
-const METADATA_PATTERN = /\b(owner|project|due|abandoned):([^\s]+)/g;
+const METADATA_PATTERN = /\b(owner|project|due|abandoned|completed|status):([^\s]+)/g;
 
 export function checkTasks(content: string, now: string): TaskIssue[] {
   const seen = new Set<string>();
@@ -43,11 +44,13 @@ export function parseTask(line: string, lineNumber: number): ParsedTask | null {
   if (metadata.due && Number.isNaN(Date.parse(metadata.due))) return null;
   return {
     id: match[3] ?? `line-${lineNumber}`,
-    completed: match[1] !== " ",
+    completed:
+      match[1] !== " " || metadata.completed === "true" || metadata.status?.toLowerCase() === "done",
     owner: metadata.owner ?? null,
     project: metadata.project ?? null,
     due: metadata.due ?? null,
     abandoned: metadata.abandoned === "true",
+    completionMarked: metadata.completed === "true" || metadata.status?.toLowerCase() === "done",
     line: lineNumber
   };
 }

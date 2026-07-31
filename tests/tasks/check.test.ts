@@ -35,4 +35,16 @@ describe("task integrity", () => {
     ]);
     expect(issues.every((issue) => issue.line <= 21)).toBe(true);
   });
+
+  it("recognizes completion only from the same task checkbox or explicit completion metadata", () => {
+    expect(
+      parseTask("- [ ] Complete owner:ada project:atlas completed:true ^complete", 1)
+    ).toMatchObject({ completed: true, completionMarked: true });
+    expect(
+      parseTask("- [ ] Complete owner:ada project:atlas status:done ^complete", 1)
+    ).toMatchObject({ completed: true, completionMarked: true });
+    expect(
+      parseTask("- [ ] Complete owner:ada project:atlas ^complete", 1)
+    ).toMatchObject({ completed: false, completionMarked: false });
+  });
 });
