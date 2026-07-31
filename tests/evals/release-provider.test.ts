@@ -109,7 +109,7 @@ describe("marketplace provider evaluation", () => {
     );
   });
 
-  it("marks provider failures incomplete and requires both passing provider reports", async () => {
+  it("marks provider failures incomplete and requires the local-first provider report", async () => {
     const loaded = await loadReleaseCorpus(root);
     const failedProvider = governedProvider({ fail: true });
     const incomplete = await evaluateReleaseProvider({
@@ -125,21 +125,19 @@ describe("marketplace provider evaluation", () => {
       provider: governedProvider(),
       corpusFingerprint: fingerprintReleaseCorpus(loaded)
     });
-    const openai = {
+    const hyperfusion = {
       ...ollama,
-      reportId: "northstar-openai-a1",
-      provider: "openai" as const,
-      model: "openai-release-model"
+      reportId: "northstar-hyperfusion-a1",
+      provider: "hyperfusion" as const,
+      model: "qwen/qwen3-32b"
     };
     expect(() =>
-      assertReleaseReports([ollama, openai], fingerprintReleaseCorpus(loaded))
+      assertReleaseReports([ollama, hyperfusion], fingerprintReleaseCorpus(loaded))
     ).not.toThrow();
-    expect(() => assertReleaseReports([ollama], fingerprintReleaseCorpus(loaded))).toThrow(
-      "Missing openai"
-    );
+    expect(() => assertReleaseReports([ollama], fingerprintReleaseCorpus(loaded))).not.toThrow();
     expect(() =>
       assertReleaseReports(
-        [ollama, { ...openai, status: "failed" }],
+        [{ ...ollama, status: "failed" }, hyperfusion],
         fingerprintReleaseCorpus(loaded)
       )
     ).toThrow("did not pass");

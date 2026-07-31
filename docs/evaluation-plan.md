@@ -15,7 +15,7 @@ Use deterministic graders first. Keep development, CI, held-out, and human-revie
 | coordinator ranking        | NDCG@10, duplicate suppression, severity invariants            | no duplicate or severity invariant failures             |
 | agent workflow             | route, handoff, tool-argument, termination accuracy            | 100% schema/tool-permission/loop-limit compliance       |
 | local-provider resilience  | malformed-output recovery, timeout recovery                    | fail closed; no state corruption                        |
-| marketplace release corpus | precision, recall, F1, evidence, repairs, provider reliability | both providers pass; zero unsafe remediations           |
+| marketplace release corpus | precision, recall, F1, evidence, repairs, provider reliability | Ollama passes; zero unsafe remediations                 |
 
 Thresholds are starting gates to calibrate against expert review before a general release. Regression fails when a safety invariant breaks, a gate falls below threshold, or a primary metric drops by more than 0.03 absolute from its versioned baseline without an approved update.
 
@@ -29,8 +29,8 @@ negatives, abstentions, source ranges, severity, and repair eligibility.
 The runner executes the governed scan over the complete immutable fixture
 snapshot. Deterministic checks own task, reference, decision, and policy
 outcomes; model output is accepted only through semantic-agent validators and
-the bounded reference-target selector. Ollama and OpenAI run independently
-against the same fingerprint. Release
+the bounded reference-target selector. Ollama, HyperFusion, and OpenAI can run
+independently against the same fingerprint. Marketplace release
 thresholds are precision 0.90, recall 0.85, F1 0.87, evidence validity 1.00,
 unsupported-finding rate at most 0.05, safe-repair validity 1.00, zero
 incomplete scans, and zero unsafe remediations.
@@ -99,14 +99,17 @@ Report input/output tokens, token per valid finding, repeated-context ratio, ret
 
 ```bash
 OLLAMA_MODEL=<model> npm run eval:marketplace:ollama
+HYPERFUSION_MODEL=qwen/qwen3-32b HYPERFUSION_API_KEY=<key> HYPERFUSION_CLOUD_ACKNOWLEDGED=true npm run eval:marketplace:hyperfusion
 OPENAI_MODEL=<model> OPENAI_API_KEY=<key> OPENAI_CLOUD_ACKNOWLEDGED=true npm run eval:marketplace:openai
 npm run eval:marketplace:gate
 ```
 
 Missing configuration, missing cloud acknowledgement, provider failure,
-malformed output, unknown evidence/candidate IDs, an unsafe remediation,
-fingerprint mismatch, or a missing provider report fails closed. Threshold
-changes require a dated rationale in `docs/release-quality-report.md`.
+malformed output, unknown evidence/candidate IDs, or an unsafe remediation
+fails that provider's validation closed. The marketplace gate requires the
+Ollama report; cloud reports become marketplace evidence only after their own
+passing corpus and manual validation. Threshold changes require a dated
+rationale in `docs/release-quality-report.md`.
 
 ## Performance Release Gate
 

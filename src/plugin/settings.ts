@@ -1,6 +1,8 @@
 import {
+  HYPERFUSION_API_BASE_URL,
   isValidModelProviderConfig,
   OPENAI_API_BASE_URL,
+  type HyperFusionProviderConfig,
   type ModelProviderConfig,
   type OpenAIProviderConfig
 } from "../model-provider/local-provider.js";
@@ -90,6 +92,21 @@ export function openAIProviderSettings(current: ModelProviderConfig): OpenAIProv
         kind: "openai",
         endpoint: OPENAI_API_BASE_URL,
         model: "gpt-4o-mini",
+        apiKey: "",
+        timeoutMs: current.timeoutMs,
+        maxResponseBytes: current.maxResponseBytes
+      };
+}
+
+export function hyperFusionProviderSettings(
+  current: ModelProviderConfig
+): HyperFusionProviderConfig {
+  return current.kind === "hyperfusion"
+    ? current
+    : {
+        kind: "hyperfusion",
+        endpoint: HYPERFUSION_API_BASE_URL,
+        model: "qwen/qwen3-32b",
         apiKey: "",
         timeoutMs: current.timeoutMs,
         maxResponseBytes: current.maxResponseBytes

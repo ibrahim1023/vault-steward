@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { HYPERFUSION_API_BASE_URL } from "../../src/model-provider/local-provider.js";
 import { DEFAULT_PLUGIN_SETTINGS, parsePluginSettings } from "../../src/plugin/settings.js";
 
 describe("plugin settings", () => {
@@ -60,6 +61,36 @@ describe("plugin settings", () => {
       }
     });
     expect(settings.modelProvider).toMatchObject({ kind: "openai", model: "gpt-4o-mini" });
+    expect(settings.cloudModelConsent).toBe(true);
+
+    expect(
+      parsePluginSettings({
+        vaultLabel: "Notes",
+        autoScanOnLoad: false,
+        cloudModelConsent: true,
+        modelProvider: { ...settings.modelProvider, endpoint: "https://example.com/v1" }
+      })
+    ).toEqual(DEFAULT_PLUGIN_SETTINGS);
+  });
+
+  it("accepts only the fixed HyperFusion origin and keeps cloud consent explicit", () => {
+    const settings = parsePluginSettings({
+      vaultLabel: "Notes",
+      autoScanOnLoad: false,
+      cloudModelConsent: true,
+      modelProvider: {
+        kind: "hyperfusion",
+        endpoint: HYPERFUSION_API_BASE_URL,
+        model: "qwen/qwen3-32b",
+        apiKey: "hf-test-key",
+        timeoutMs: 30_000,
+        maxResponseBytes: 1_000_000
+      }
+    });
+    expect(settings.modelProvider).toMatchObject({
+      kind: "hyperfusion",
+      model: "qwen/qwen3-32b"
+    });
     expect(settings.cloudModelConsent).toBe(true);
 
     expect(

@@ -55,8 +55,8 @@ proposal, or apply an edit.
 
 - Runs locally in the Obsidian desktop process with SQLite as the canonical local store.
 - Defaults to loopback-configured Ollama or llama.cpp-compatible local model providers for governed scans.
-- OpenAI is an optional, explicit setting. It sends bounded selected evidence and prompts to the fixed OpenAI API only after the user enters an API key and acknowledges the cloud-data warning.
-- Does not send telemetry, traces, metrics, or model output to a cloud service. OpenAI API keys are excluded from traces, diagnostics, fingerprints, and exports.
+- HyperFusion is a cloud provider in validation. It sends bounded selected evidence and prompts to its fixed API only after the user enters an API key and acknowledges the cloud-data warning. OpenAI remains an unvalidated optional path.
+- Does not send telemetry, traces, metrics, or model output to a cloud service. Cloud API keys are excluded from traces, diagnostics, fingerprints, and exports.
 - Stores metadata-only traces by default; note bodies, prompts, raw model outputs, absolute paths, URLs, and secrets are excluded.
 - Requires explicit approval and a current source-revision check before every note mutation.
 - Treats retrieval, replay, model comparisons, calibration, and policy coverage as informational quality signals, never edit authority.
@@ -78,13 +78,13 @@ Requirements:
 
 - Node.js 20 or newer for development and packaging.
 - Obsidian desktop 1.5.0 or newer.
-- Either a running local Ollama service with a configured model, a compatible loopback-only llama.cpp endpoint, or an OpenAI API key and an explicit cloud-data acknowledgement.
+- Either a running local Ollama service with a configured model, a compatible loopback-only llama.cpp endpoint, or an acknowledged cloud-provider API key.
 
 For manual installation, build the plugin and copy `dist/vault-steward/` into `<vault>/.obsidian/plugins/vault-steward/`, then enable it in Obsidian's community-plugin settings. The package contains `main.js`, `manifest.json`, `styles.css`, `sql-wasm.wasm`, and a release manifest. See [release compatibility](docs/release-compatibility.md) and [troubleshooting](docs/troubleshooting.md) for upgrade and recovery guidance.
 
 ## Model Providers
 
-Vault Steward requires a configured model provider for its governed semantic-analysis stage. Ollama and llama.cpp stay local. The optional OpenAI provider uses the Responses API with JSON mode and `store: false`; it uses the fixed `https://api.openai.com/v1` origin rather than a configurable remote endpoint. Selecting OpenAI requires a model, API key, and explicit acknowledgement that bounded selected vault evidence can leave the device. Run the readiness check in the plugin before a scan.
+Vault Steward requires a configured model provider for its governed semantic-analysis stage. Ollama and llama.cpp stay local. HyperFusion is the prioritized cloud-provider validation path and uses only the fixed `https://api.hyperfusion.io/v1/chat/completions` endpoint; it accepts the OpenAI-compatible assistant content at `choices[0].message.content`. Selecting it requires a model, API key, and explicit acknowledgement that bounded selected vault evidence can leave the device. OpenAI remains experimental and unvalidated. Run the readiness check in the plugin before a scan.
 
 Model behavior varies by hardware, configuration, vault content, and task. This repository does not claim a universal best model. Record local quality and latency measurements using the evaluation reports described in [local model guidance](docs/local-models.md).
 
@@ -104,11 +104,13 @@ Marketplace release validation uses the versioned 26-case Northstar corpus.
 The evaluator runs the actual governed scan: deterministic code owns task,
 reference, decision, and policy findings; providers handle semantic agent
 routes and bounded reference-target ranking.
-Run each provider independently; neither provider is release-validated until
-its report passes and the combined gate succeeds:
+Ollama is the supported local-first release path. HyperFusion is evaluated
+independently before it can be described as supported; its report is not yet a
+marketplace release requirement. OpenAI evaluation remains deferred:
 
 ```bash
 OLLAMA_MODEL=<model> npm run eval:marketplace:ollama
+HYPERFUSION_MODEL=qwen/qwen3-32b HYPERFUSION_API_KEY=<key> HYPERFUSION_CLOUD_ACKNOWLEDGED=true npm run eval:marketplace:hyperfusion
 OPENAI_MODEL=<model> OPENAI_API_KEY=<key> OPENAI_CLOUD_ACKNOWLEDGED=true npm run eval:marketplace:openai
 npm run eval:marketplace:gate
 ```

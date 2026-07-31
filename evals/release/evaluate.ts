@@ -172,7 +172,7 @@ export function assertReleaseReports(
   reports: readonly ReleaseProviderReport[],
   expectedFingerprint: string
 ): void {
-  for (const provider of ["ollama", "openai"] as const) {
+  for (const provider of ["ollama"] as const) {
     const report = reports.find((item) => item.provider === provider);
     if (!report) throw new Error(`Missing ${provider} release report.`);
     if (report.corpusFingerprint !== expectedFingerprint)
@@ -466,7 +466,7 @@ function createReport(
     createdAt,
     corpusId: input.corpus.id,
     corpusFingerprint: input.corpusFingerprint,
-    provider: input.provider.config.kind as "ollama" | "openai",
+    provider: input.provider.config.kind as "ollama" | "openai" | "hyperfusion",
     model: input.provider.config.model,
     thresholds: THRESHOLDS,
     ...result

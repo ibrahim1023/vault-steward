@@ -3,7 +3,9 @@ import { resolve } from "node:path";
 
 import {
   createLocalProvider,
+  createHyperFusionProvider,
   createOpenAIProvider,
+  HYPERFUSION_API_BASE_URL,
   OPENAI_API_BASE_URL,
   type ModelProvider
 } from "../src/model-provider/local-provider.js";
@@ -40,21 +42,33 @@ console.log(
 );
 if (report.status !== "passed") process.exitCode = 1;
 
-function parseProvider(args: readonly string[]): "ollama" | "openai" {
+function parseProvider(args: readonly string[]): "ollama" | "openai" | "hyperfusion" {
   if (args.length !== 2 || args[0] !== "--provider")
-    throw new Error("Use --provider ollama or --provider openai.");
-  if (args[1] !== "ollama" && args[1] !== "openai")
+    throw new Error("Use --provider ollama, hyperfusion, or openai.");
+  if (args[1] !== "ollama" && args[1] !== "hyperfusion" && args[1] !== "openai")
     throw new Error("Unknown marketplace evaluation provider.");
   return args[1];
 }
 
-function createConfiguredProvider(kind: "ollama" | "openai"): ModelProvider {
+function createConfiguredProvider(kind: "ollama" | "openai" | "hyperfusion"): ModelProvider {
   if (kind === "ollama") {
     const model = requireEnvironment("OLLAMA_MODEL");
     return createLocalProvider({
       kind: "ollama",
       endpoint: "http://127.0.0.1:11434",
       model,
+      timeoutMs: 60_000,
+      maxResponseBytes: 32_768
+    });
+  }
+  if (kind === "hyperfusion") {
+    if (process.env.HYPERFUSION_CLOUD_ACKNOWLEDGED !== "true")
+      throw new Error("HyperFusion release evaluation requires explicit cloud acknowledgement.");
+    return createHyperFusionProvider({
+      kind: "hyperfusion",
+      endpoint: HYPERFUSION_API_BASE_URL,
+      model: requireEnvironment("HYPERFUSION_MODEL"),
+      apiKey: requireEnvironment("HYPERFUSION_API_KEY"),
       timeoutMs: 60_000,
       maxResponseBytes: 32_768
     });

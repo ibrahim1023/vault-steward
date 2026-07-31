@@ -4,8 +4,9 @@
 
 **No-go.** The release candidate is not ready for Community Plugins submission.
 The deterministic Northstar corpus harness and safety gates are implemented,
-but Phase 19 manual macOS acceptance and passing live reports for both Ollama
-and OpenAI remain required.
+but Phase 19 manual macOS acceptance and a passing Ollama report remain
+required. HyperFusion is the next cloud-provider validation target; OpenAI is
+deferred.
 
 ## Scope
 
@@ -13,19 +14,20 @@ and OpenAI remain required.
 - Workflow: Northstar launch planning and delivery
 - Platform under validation: macOS with Obsidian desktop
 - Local-first provider: Ollama
-- Optional cloud provider: OpenAI after explicit acknowledgement
+- Cloud validation priority: HyperFusion after explicit acknowledgement
+- Deferred cloud provider: OpenAI
 - Corpus: `northstar-release-v1`, 26 reviewed cases
 
 ## Automated Evidence
 
-| Evidence                                     | Status  | Record                                 |
-| -------------------------------------------- | ------- | -------------------------------------- |
-| Corpus contract and source-range validation  | Passing | `tests/evals/release-corpus.test.ts`   |
-| Provider grading and unsafe-repair rejection | Passing | `tests/evals/release-provider.test.ts` |
-| Ollama live corpus report                    | Passing | `gemma3:12b`, 2026-07-29               |
-| OpenAI live corpus report                    | Pending | `evals/reports/northstar-openai.json`  |
-| Combined provider gate                       | Pending | `npm run eval:marketplace:gate`        |
-| Full repository completion gate              | Passing | 2026-07-29 command record              |
+| Evidence                                     | Status  | Record                                     |
+| -------------------------------------------- | ------- | ------------------------------------------ |
+| Corpus contract and source-range validation  | Passing | `tests/evals/release-corpus.test.ts`       |
+| Provider grading and unsafe-repair rejection | Passing | `tests/evals/release-provider.test.ts`     |
+| Ollama live corpus report                    | Passing | `gemma3:12b`, 2026-07-29                   |
+| HyperFusion live corpus report               | Pending | `evals/reports/northstar-hyperfusion.json` |
+| Ollama marketplace gate                      | Pending | `npm run eval:marketplace:gate`            |
+| Full repository completion gate              | Passing | 2026-07-29 command record                  |
 
 Provider reports must include precision, recall, F1, evidence validity,
 unsupported-finding rate, safe-repair validity, median and p95 latency, retries,
@@ -34,8 +36,9 @@ keys or vault excerpts.
 
 Generate the current local, redacted gate summary with `npm run release:quality`.
 It writes the ignored `evals/reports/release-quality.json` artifact and defaults
-to **no-go** unless fixture evaluation, both provider reports, and manual
-Obsidian acceptance are all supplied as passing evidence. The command never
+to **no-go** unless fixture evaluation, the Ollama report, and manual Obsidian
+acceptance are all supplied as passing evidence. HyperFusion and OpenAI reports
+remain separately recorded cloud-validation evidence. The command never
 uploads or publishes the artifact.
 
 ### Current Ollama Measurement
@@ -78,7 +81,7 @@ The following remain pending in `docs/manual-acceptance-checklist.md`:
   re-index;
 - stale-proposal rejection and provider failure/recovery;
 - direct Settings and History plus collapsed Diagnostics;
-- Ollama and acknowledged OpenAI passes.
+- Ollama pass and HyperFusion validation pass before HyperFusion is described as supported.
 
 ## Release Thresholds
 
@@ -98,10 +101,10 @@ new baseline justification in this document.
 
 ## Privacy And Safety
 
-Ollama remains loopback-only. OpenAI uses only the fixed API origin, requires
-explicit cloud acknowledgement, and sends bounded selected evidence with
-`store: false`. Reports and Diagnostics exclude keys, prompts, excerpts, raw
-outputs, absolute vault paths, and remote telemetry.
+Ollama remains loopback-only. HyperFusion uses only the fixed Chat Completions
+origin and requires explicit cloud acknowledgement. OpenAI remains a separate,
+unvalidated fixed-origin opt-in. Reports and Diagnostics exclude keys, prompts,
+excerpts, raw outputs, absolute vault paths, and remote telemetry.
 
 No automatic edits are in scope. Every write requires an exact preview,
 explicit approval, complete preflight, revision validation, and post-write
@@ -109,8 +112,9 @@ re-index.
 
 ## Go Criteria
 
-Change the decision to **go** only when both provider reports pass against the
-same corpus fingerprint, the macOS checklist is signed off with no blocker, the
-full completion gate passes, package artifacts are verified, public screenshots
-match current behavior, and the submission checklist contains no open required
-item.
+Change the decision to **go** only when the Ollama report passes against the
+expected corpus fingerprint, the macOS checklist is signed off with no blocker,
+the full completion gate passes, package artifacts are verified, public
+screenshots match current behavior, and the submission checklist contains no
+open required item. HyperFusion requires its own passing corpus and manual
+evidence before a support claim.

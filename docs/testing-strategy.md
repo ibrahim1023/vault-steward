@@ -82,16 +82,20 @@ Run the corpus separately through each provider:
 
 ```bash
 OLLAMA_MODEL=<model> npm run eval:marketplace:ollama
+HYPERFUSION_MODEL=qwen/qwen3-32b HYPERFUSION_API_KEY=<key> HYPERFUSION_CLOUD_ACKNOWLEDGED=true npm run eval:marketplace:hyperfusion
 OPENAI_MODEL=<model> OPENAI_API_KEY=<key> OPENAI_CLOUD_ACKNOWLEDGED=true npm run eval:marketplace:openai
 npm run eval:marketplace:gate
 ```
 
-The gate requires both reports to use the same corpus fingerprint and pass
+The marketplace gate requires the Ollama report to use the expected corpus
+fingerprint and pass. HyperFusion and OpenAI reports are independent cloud
+validation evidence; neither is marketplace-supported until its own corpus and
+manual checks pass. Every report must pass
 precision, recall, F1, evidence-validity, unsupported-finding,
 safe-repair-validity, incomplete-scan, and unsafe-remediation thresholds. A
-provider failure, malformed structured output, stale report, missing report, or
-unsafe remediation blocks the release. Threshold changes require a dated
-review rationale in the release quality report.
+provider failure, malformed structured output, stale report, or unsafe
+remediation blocks that provider's validation. Threshold changes require a
+dated review rationale in the release quality report.
 
 ## Planned CI Stages
 
@@ -102,7 +106,7 @@ review rationale in the release quality report.
 5. security/dependency checks
 6. build verification
 
-Long model-dependent evals, performance/load checks, adversarial suites, and the
-two-provider release corpus run locally or on a protected release runner.
+Long model-dependent evals, performance/load checks, adversarial suites, and
+provider corpus runs execute locally or on a protected release runner.
 Snapshot tests are restricted to stable structured output, never free-form
 model text.

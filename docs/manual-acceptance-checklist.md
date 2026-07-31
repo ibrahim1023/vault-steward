@@ -29,6 +29,7 @@ Obsidian desktop.
 - [ ] The ribbon shield and command-palette entry each open one workspace.
 - [ ] Provider configuration is in Obsidian settings, outside the primary path.
 - [ ] Ollama accepts only a loopback endpoint.
+- [ ] HyperFusion masks the API key, uses no editable endpoint, and requires the cloud-data acknowledgement.
 - [ ] OpenAI masks the API key and requires the cloud-data acknowledgement.
 - [ ] Reload and disable/re-enable preserve non-secret settings correctly.
 
@@ -104,6 +105,9 @@ Obsidian desktop.
 
 - [ ] Stopped Ollama produces exactly one actionable error and preserves the last successful result.
 - [ ] Restarting Ollama allows a later `Check vault` to recover.
+- [ ] Missing HyperFusion acknowledgement blocks provider use.
+- [ ] Invalid HyperFusion credentials fail without exposing the key.
+- [ ] Valid acknowledged HyperFusion configuration can complete a scan and exact-preview flow.
 - [ ] Missing OpenAI acknowledgement blocks provider use.
 - [ ] Invalid OpenAI credentials fail without exposing the key.
 - [ ] Valid acknowledged OpenAI configuration can complete a scan.
@@ -112,6 +116,7 @@ Obsidian desktop.
 ## Provider Release Reports
 
 - [ ] `evals/reports/northstar-ollama.json` passes all release thresholds.
+- [ ] `evals/reports/northstar-hyperfusion.json` passes all provider-validation thresholds before HyperFusion is described as supported.
 - [ ] `evals/reports/northstar-openai.json` passes all release thresholds.
 - [ ] Both reports use the same committed corpus fingerprint.
 - [ ] `npm run eval:marketplace:gate` passes.

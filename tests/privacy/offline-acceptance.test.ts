@@ -3,8 +3,10 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  createHyperFusionProvider,
   createLocalProvider,
   createOpenAIProvider,
+  HYPERFUSION_API_BASE_URL,
   OPENAI_API_BASE_URL
 } from "../../src/model-provider/local-provider.js";
 
@@ -25,7 +27,7 @@ describe("offline and privacy acceptance", () => {
     ).toEqual(["model-provider/local-provider.ts"]);
   });
 
-  it("rejects cloud and private-network local endpoints and pins OpenAI to its API origin", () => {
+  it("rejects cloud and private-network local endpoints and pins cloud providers to their API origins", () => {
     for (const endpoint of [
       "https://api.example.com",
       "http://10.0.0.1:11434",
@@ -47,6 +49,16 @@ describe("offline and privacy acceptance", () => {
         endpoint: "https://example.com/v1" as typeof OPENAI_API_BASE_URL,
         model: "gpt-4o-mini",
         apiKey: "sk-test",
+        timeoutMs: 100,
+        maxResponseBytes: 1000
+      })
+    ).toThrow("configuration");
+    expect(() =>
+      createHyperFusionProvider({
+        kind: "hyperfusion",
+        endpoint: "https://example.com/v1" as typeof HYPERFUSION_API_BASE_URL,
+        model: "qwen/qwen3-32b",
+        apiKey: "hf-test",
         timeoutMs: 100,
         maxResponseBytes: 1000
       })

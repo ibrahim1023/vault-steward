@@ -25,7 +25,7 @@ const evaluation: EvaluationReport = {
 };
 
 describe("release quality report", () => {
-  it("fails closed until both provider evidence and manual acceptance are present", () => {
+  it("fails closed until Ollama evidence and manual acceptance are present", () => {
     const report = buildReleaseQualityReport({
       generatedAt: "2026-07-29T00:00:00.000Z",
       evaluation,
@@ -37,6 +37,7 @@ describe("release quality report", () => {
       privacy: { localByDefault: true, automaticPublishing: false, rawVaultContentIncluded: false }
     });
     expect(report.gates).toContainEqual({ name: "openai-provider", status: "pending" });
+    expect(report.gates).toContainEqual({ name: "hyperfusion-validation", status: "pending" });
     expect(JSON.stringify(report)).not.toMatch(/note body|\/Users\//i);
   });
 });

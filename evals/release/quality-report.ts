@@ -13,7 +13,10 @@ export type ReleaseQualityReport = {
     recall: number | null;
     f1: number | null;
   };
-  providers: Array<{ provider: "ollama" | "openai"; status: "passed" | "pending" | "failed" }>;
+  providers: Array<{
+    provider: "ollama" | "hyperfusion" | "openai";
+    status: "passed" | "pending" | "failed";
+  }>;
   calibration: { available: boolean; warningCount: number };
   privacy: { localByDefault: true; automaticPublishing: false; rawVaultContentIncluded: false };
   limitations: string[];
@@ -26,7 +29,7 @@ export function buildReleaseQualityReport(input: {
   calibration?: ConfidenceCalibrationReport;
   manualAcceptance: boolean;
 }): ReleaseQualityReport {
-  const providers = (["ollama", "openai"] as const).map((provider) => {
+  const providers = (["ollama", "hyperfusion", "openai"] as const).map((provider) => {
     const report = input.providerReports.find((item) => item.provider === provider);
     return {
       provider,
@@ -40,7 +43,7 @@ export function buildReleaseQualityReport(input: {
   const evaluationPassed = Boolean(
     input.evaluation && input.evaluation.cases.every((item) => item.outcome === "passed")
   );
-  const providerPassed = providers.every((item) => item.status === "passed");
+  const providerPassed = providers.find((item) => item.provider === "ollama")?.status === "passed";
   const ollamaStatus = providers.find((item) => item.provider === "ollama")?.status ?? "pending";
   const openAiStatus = providers.find((item) => item.provider === "openai")?.status ?? "pending";
   const gates: ReleaseQualityReport["gates"] = [
@@ -49,6 +52,10 @@ export function buildReleaseQualityReport(input: {
       status: !input.evaluation ? "pending" : evaluationPassed ? "passed" : "failed"
     },
     { name: "ollama-provider", status: ollamaStatus },
+    {
+      name: "hyperfusion-validation",
+      status: providers.find((item) => item.provider === "hyperfusion")?.status ?? "pending"
+    },
     { name: "openai-provider", status: openAiStatus },
     { name: "manual-obsidian-acceptance", status: input.manualAcceptance ? "passed" : "pending" },
     { name: "privacy-local-default", status: "passed" }

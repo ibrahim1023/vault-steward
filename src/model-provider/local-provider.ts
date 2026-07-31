@@ -1,6 +1,8 @@
 export type LocalProviderKind = "ollama" | "llama.cpp";
 export type OpenAIProviderKind = "openai";
-export type ModelProviderKind = LocalProviderKind | OpenAIProviderKind;
+export type HyperFusionProviderKind = "hyperfusion";
+export type CloudProviderKind = OpenAIProviderKind | HyperFusionProviderKind;
+export type ModelProviderKind = LocalProviderKind | CloudProviderKind;
 export type LocalProviderConfig = {
   kind: LocalProviderKind;
   endpoint: string;
@@ -16,7 +18,16 @@ export type OpenAIProviderConfig = {
   timeoutMs: number;
   maxResponseBytes: number;
 };
-export type ModelProviderConfig = LocalProviderConfig | OpenAIProviderConfig;
+export type HyperFusionProviderConfig = {
+  kind: HyperFusionProviderKind;
+  endpoint: typeof HYPERFUSION_API_BASE_URL;
+  model: string;
+  apiKey: string;
+  timeoutMs: number;
+  maxResponseBytes: number;
+};
+export type ModelProviderConfig =
+  LocalProviderConfig | OpenAIProviderConfig | HyperFusionProviderConfig;
 export type LocalGenerationRequest = {
   prompt: string;
   maxOutputTokens: number;
@@ -41,6 +52,7 @@ export const MAX_PROVIDER_TIMEOUT_MS = 10 * 60 * 1_000;
 export const MAX_PROVIDER_RESPONSE_BYTES = 10 * 1_024 * 1_024;
 export const MAX_PROVIDER_OUTPUT_TOKENS = 4_096;
 export const OPENAI_API_BASE_URL = "https://api.openai.com/v1";
+export const HYPERFUSION_API_BASE_URL = "https://api.hyperfusion.io/v1";
 
 export function createLocalProvider(
   config: LocalProviderConfig,
@@ -111,13 +123,29 @@ export function createOpenAIProvider(
   });
 }
 
+export function createHyperFusionProvider(
+  config: HyperFusionProviderConfig,
+  fetcher: FetchLike = fetch
+): ModelProvider {
+  validateHyperFusionConfig(config, true);
+  return createProvider(config, fetcher, {
+    endpoint: `${HYPERFUSION_API_BASE_URL}/chat/completions`,
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${config.apiKey}`
+    },
+    body: (request) => hyperFusionBody(config, request),
+    output: hyperFusionOutput
+  });
+}
+
 export function createModelProvider(
   config: ModelProviderConfig,
   fetcher: FetchLike = fetch
 ): ModelProvider {
-  return config.kind === "openai"
-    ? createOpenAIProvider(config, fetcher)
-    : createLocalProvider(config, fetcher);
+  if (config.kind === "openai") return createOpenAIProvider(config, fetcher);
+  if (config.kind === "hyperfusion") return createHyperFusionProvider(config, fetcher);
+  return createLocalProvider(config, fetcher);
 }
 
 export function selectProvider(
@@ -150,6 +178,8 @@ export function isValidModelProviderConfig(value: unknown): value is ModelProvid
   try {
     if (candidate.kind === "openai") {
       validateOpenAIConfig(candidate as OpenAIProviderConfig, false);
+    } else if (candidate.kind === "hyperfusion") {
+      validateHyperFusionConfig(candidate as HyperFusionProviderConfig, false);
     } else if (candidate.kind === "ollama" || candidate.kind === "llama.cpp") {
       validateConfig(candidate as LocalProviderConfig);
     } else {
@@ -172,6 +202,22 @@ function validateOpenAIConfig(config: OpenAIProviderConfig, requireApiKey: boole
     !isBoundedPositiveInteger(config.maxResponseBytes, MAX_PROVIDER_RESPONSE_BYTES)
   )
     throw new Error("OpenAI provider configuration is invalid");
+}
+
+function validateHyperFusionConfig(
+  config: HyperFusionProviderConfig,
+  requireApiKey: boolean
+): void {
+  if (
+    config.endpoint !== HYPERFUSION_API_BASE_URL ||
+    !config.model.trim() ||
+    typeof config.apiKey !== "string" ||
+    config.apiKey.length > 1_024 ||
+    (requireApiKey && !config.apiKey.trim()) ||
+    !isBoundedPositiveInteger(config.timeoutMs, MAX_PROVIDER_TIMEOUT_MS) ||
+    !isBoundedPositiveInteger(config.maxResponseBytes, MAX_PROVIDER_RESPONSE_BYTES)
+  )
+    throw new Error("HyperFusion provider configuration is invalid");
 }
 
 function createProvider(
@@ -265,6 +311,26 @@ function openAIBody(config: OpenAIProviderConfig, request: LocalGenerationReques
   };
 }
 
+function hyperFusionBody(
+  config: HyperFusionProviderConfig,
+  request: LocalGenerationRequest
+): unknown {
+  if (!isBoundedPositiveInteger(request.maxOutputTokens, MAX_PROVIDER_OUTPUT_TOKENS)) {
+    throw new Error("provider output token limit is invalid");
+  }
+  return {
+    model: config.model,
+    messages: [
+      {
+        role: "system",
+        content: "Return only a valid JSON object. Do not use tools or external data."
+      },
+      { role: "user", content: request.prompt }
+    ],
+    max_tokens: request.maxOutputTokens
+  };
+}
+
 async function readResponseText(
   response: Response,
   maxBytes: number,
@@ -321,4 +387,14 @@ function openAIOutput(value: unknown): string | null {
   if (!value || typeof value !== "object") return null;
   const outputText = (value as { output_text?: unknown }).output_text;
   return typeof outputText === "string" ? outputText : null;
+}
+
+function hyperFusionOutput(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const choices = (value as { choices?: unknown }).choices;
+  if (!Array.isArray(choices) || choices.length === 0) return null;
+  const message = (choices[0] as { message?: unknown } | undefined)?.message;
+  if (!message || typeof message !== "object") return null;
+  const content = (message as { content?: unknown }).content;
+  return typeof content === "string" && content.length > 0 ? content : null;
 }

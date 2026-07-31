@@ -20,6 +20,10 @@ const providerReports = (
       validateReleaseProviderReport
     ),
     readValid<ReleaseProviderReport>(
+      "evals/reports/northstar-hyperfusion.json",
+      validateReleaseProviderReport
+    ),
+    readValid<ReleaseProviderReport>(
       "evals/reports/northstar-openai.json",
       validateReleaseProviderReport
     )

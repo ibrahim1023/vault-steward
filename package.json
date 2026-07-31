@@ -25,6 +25,7 @@
     "evals": "tsx scripts/run-evaluation-framework.ts",
     "eval:local-model": "tsx scripts/run-live-model-evals.ts",
     "eval:marketplace:ollama": "tsx scripts/run-marketplace-release-eval.ts --provider ollama",
+    "eval:marketplace:hyperfusion": "tsx scripts/run-marketplace-release-eval.ts --provider hyperfusion",
     "eval:marketplace:openai": "tsx scripts/run-marketplace-release-eval.ts --provider openai",
     "eval:marketplace:gate": "tsx scripts/check-marketplace-release.ts",
     "release:quality": "tsx scripts/generate-release-quality-report.ts",

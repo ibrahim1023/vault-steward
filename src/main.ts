@@ -9,6 +9,7 @@ import { displayVaultName } from "./plugin/vault-label.js";
 import { createGovernedIntegritySession, type GovernedIntegrityResult } from "./plugin/main.js";
 import {
   DEFAULT_PLUGIN_SETTINGS,
+  hyperFusionProviderSettings,
   openAIProviderSettings,
   parsePluginSettings,
   type PluginSettings
@@ -613,9 +614,9 @@ export default class VaultStewardPlugin extends Plugin {
   }
 
   private createSelectedModelProvider() {
-    if (this.settings.modelProvider.kind === "openai" && !this.settings.cloudModelConsent) {
+    if (isCloudProvider(this.settings.modelProvider.kind) && !this.settings.cloudModelConsent) {
       throw new Error(
-        "OpenAI access requires acknowledgement that selected vault evidence is sent to OpenAI."
+        `${cloudProviderLabel(this.settings.modelProvider.kind)} access requires acknowledgement that selected vault evidence is sent to ${cloudProviderLabel(this.settings.modelProvider.kind)}.`
       );
     }
     return createModelProvider(this.settings.modelProvider);
@@ -626,6 +627,14 @@ export default class VaultStewardPlugin extends Plugin {
     await leaf.setViewState({ type: STATUS_VIEW_TYPE, active: true });
     this.app.workspace.revealLeaf(leaf);
   }
+}
+
+function isCloudProvider(kind: ModelProviderConfig["kind"]): kind is "openai" | "hyperfusion" {
+  return kind === "openai" || kind === "hyperfusion";
+}
+
+function cloudProviderLabel(kind: "openai" | "hyperfusion"): "OpenAI" | "HyperFusion" {
+  return kind === "openai" ? "OpenAI" : "HyperFusion";
 }
 
 function hashMetadata(value: unknown): string {
@@ -750,11 +759,14 @@ class VaultStewardSettingsTab extends PluginSettingTab {
 
     new Setting(this.containerEl)
       .setName("Model provider")
-      .setDesc("Ollama keeps analysis local. OpenAI sends bounded selected evidence to OpenAI.")
+      .setDesc(
+        "Ollama keeps analysis local. Cloud providers receive bounded selected evidence after acknowledgement."
+      )
       .addDropdown((dropdown) =>
         dropdown
           .addOption("ollama", "Ollama (local)")
           .addOption("llama.cpp", "llama.cpp (local)")
+          .addOption("hyperfusion", "HyperFusion (cloud, validation in progress)")
           .addOption("openai", "OpenAI")
           .setValue(this.plugin.settings.modelProvider.kind)
           .onChange(async (kind) => {
@@ -762,7 +774,9 @@ class VaultStewardSettingsTab extends PluginSettingTab {
             let modelProvider: ModelProviderConfig;
             if (kind === "openai") {
               modelProvider = openAIProviderSettings(current);
-            } else if (current.kind === "openai") {
+            } else if (kind === "hyperfusion") {
+              modelProvider = hyperFusionProviderSettings(current);
+            } else if (current.kind === "openai" || current.kind === "hyperfusion") {
               modelProvider = {
                 kind: kind as "ollama" | "llama.cpp",
                 endpoint: "http://127.0.0.1:11434",
@@ -771,7 +785,13 @@ class VaultStewardSettingsTab extends PluginSettingTab {
                 maxResponseBytes: current.maxResponseBytes
               };
             } else {
-              modelProvider = { ...current, kind: kind as "ollama" | "llama.cpp" };
+              modelProvider = {
+                kind: kind as "ollama" | "llama.cpp",
+                endpoint: current.endpoint,
+                model: current.model,
+                timeoutMs: current.timeoutMs,
+                maxResponseBytes: current.maxResponseBytes
+              };
             }
             await this.plugin.saveSettings({ ...this.plugin.settings, modelProvider });
             this.display();
@@ -779,7 +799,7 @@ class VaultStewardSettingsTab extends PluginSettingTab {
       );
 
     const configuredProvider = this.plugin.settings.modelProvider;
-    if (configuredProvider.kind !== "openai") {
+    if (!("apiKey" in configuredProvider)) {
       new Setting(this.containerEl)
         .setName("Local model endpoint")
         .setDesc("A loopback Ollama or llama.cpp-compatible endpoint required for governed scans.")
@@ -795,11 +815,13 @@ class VaultStewardSettingsTab extends PluginSettingTab {
 
     new Setting(this.containerEl)
       .setName(
-        this.plugin.settings.modelProvider.kind === "openai" ? "OpenAI model" : "Local model"
+        isCloudProvider(this.plugin.settings.modelProvider.kind)
+          ? `${cloudProviderLabel(this.plugin.settings.modelProvider.kind)} model`
+          : "Local model"
       )
       .setDesc(
-        this.plugin.settings.modelProvider.kind === "openai"
-          ? "The OpenAI model used for required semantic analysis."
+        isCloudProvider(this.plugin.settings.modelProvider.kind)
+          ? `The ${cloudProviderLabel(this.plugin.settings.modelProvider.kind)} model used for required semantic analysis.`
           : "The installed local model used for required semantic analysis."
       )
       .addText((text) =>
@@ -811,11 +833,12 @@ class VaultStewardSettingsTab extends PluginSettingTab {
         })
       );
 
-    if (configuredProvider.kind === "openai") {
+    if ("apiKey" in configuredProvider) {
+      const providerName = cloudProviderLabel(configuredProvider.kind);
       new Setting(this.containerEl)
-        .setName("OpenAI API key")
+        .setName(`${providerName} API key`)
         .setDesc(
-          "Stored locally in this vault's plugin data and used only for OpenAI API requests."
+          `Stored locally in this vault's plugin data and used only for ${providerName} API requests.`
         )
         .addText((text) => {
           text.inputEl.type = "password";
@@ -829,9 +852,9 @@ class VaultStewardSettingsTab extends PluginSettingTab {
         });
 
       new Setting(this.containerEl)
-        .setName("Allow OpenAI to receive selected vault evidence")
+        .setName(`Allow ${providerName} to receive selected vault evidence`)
         .setDesc(
-          "Required. OpenAI analysis is remote and can send bounded note excerpts to OpenAI."
+          `Required. ${providerName} analysis is remote and can send bounded note excerpts to ${providerName}.`
         )
         .addToggle((toggle) =>
           toggle

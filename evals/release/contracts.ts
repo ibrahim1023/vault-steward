@@ -54,7 +54,7 @@ export type ReleaseProviderReport = {
   createdAt: string;
   corpusId: string;
   corpusFingerprint: string;
-  provider: "ollama" | "openai";
+  provider: "ollama" | "openai" | "hyperfusion";
   model: string;
   status: "passed" | "failed" | "incomplete";
   thresholds: {
@@ -173,7 +173,9 @@ export function validateReleaseProviderReport(value: unknown): value is ReleaseP
     isSafeId(value.corpusId) &&
     typeof value.corpusFingerprint === "string" &&
     /^[a-f0-9]{64}$/.test(value.corpusFingerprint) &&
-    (value.provider === "ollama" || value.provider === "openai") &&
+    (value.provider === "ollama" ||
+      value.provider === "openai" ||
+      value.provider === "hyperfusion") &&
     isSafeText(value.model) &&
     ["passed", "failed", "incomplete"].includes(value.status as string) &&
     Object.values(value.thresholds).every(isFiniteNonNegative) &&
