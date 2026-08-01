@@ -59,6 +59,16 @@ failure, abstention, and every unapproved mutation. Mixed task/decision/
 reference batches retain the same all-member preflight, rollback, and
 post-apply re-index assertions.
 
+Phase 25 extends it with a snapshot-bound side-by-side duplicate review,
+two-note-only canonical ranking or abstention, and deterministic consolidation.
+Fixtures cover hard negatives, unknown candidates, stale snapshots, duplicate
+aliases, and conflicting metadata. Consolidation tests prove that only resolved
+inbound wiki/Markdown links and embeds are rewritten, visible labels and
+anchors survive, aliases transfer only when exclusively owned, and neither note
+body is merged, deleted, or implicitly changed. Evaluation reports measure
+canonical-selection precision, recall, abstention quality, evidence validity,
+incorrect-canonical rate, and safe-repair validity.
+
 ## Marketplace Release Corpus
 
 `evals/release/northstar-v1.json` is the versioned product/project-management

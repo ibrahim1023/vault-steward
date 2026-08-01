@@ -6,21 +6,22 @@ This document owns agent roles, model boundaries, budgets, and guardrails. Evalu
 
 ## Operating Model
 
-The scanner, graph builder, reference integrity checks, task parsing, schema validation, policy evaluation, diff generation, outcome calculation, approval, and apply workflow are deterministic. The selected model provider performs the required semantic-analysis stage for governed scans, identifying candidate entities, propositions, staleness signals, or ranked evidence. For repair recommendations, it may choose an ID from a bounded list of target notes derived from the active immutable snapshot, or abstain. For structured task and decision repair, it may choose an allowed intent and snapshot-derived candidate ID, or draft a constrained cited rationale; deterministic code constructs the patch. Ollama and llama.cpp remain local; OpenAI requires an explicit cloud-data acknowledgement. Every model result is schema-validated and evidence-checked before it becomes a finding or recommendation.
+The scanner, graph builder, reference integrity checks, task parsing, schema validation, policy evaluation, diff generation, outcome calculation, approval, and apply workflow are deterministic. The selected model provider performs the required semantic-analysis stage for governed scans, identifying candidate entities, propositions, staleness signals, or ranked evidence. For repair recommendations, it may choose an ID from a bounded list of target notes derived from the active immutable snapshot, or abstain. In a duplicate-entity review it may rank only the two cited notes as canonical or abstain; deterministic code may then prepare inbound-link and exclusive-alias normalization, never a note merge or deletion. For structured task and decision repair, it may choose an allowed intent and snapshot-derived candidate ID, or draft a constrained cited rationale; deterministic code constructs the patch. Ollama and llama.cpp remain local; OpenAI requires an explicit cloud-data acknowledgement. Every model result is schema-validated and evidence-checked before it becomes a finding or recommendation.
 
-| Agent         | Input                              | Output                           | Model use                        |
-| ------------- | ---------------------------------- | -------------------------------- | -------------------------------- |
-| Scanner       | vault files                        | normalized records               | none                             |
-| Entity        | canonical graph and labels         | duplicate/alias candidates       | required                         |
-| Contradiction | bounded propositions and citations | conflict candidates              | expected                         |
-| Staleness     | timestamps, status, linked context | stale candidates                 | required                         |
-| Reference     | parsed links and vault index       | broken-reference findings        | none                             |
-| Task          | parsed tasks and graph             | task findings                    | required for ambiguous ownership |
-| Schema        | frontmatter and schema             | violations                       | none                             |
-| Decision      | decision records and links         | unresolved/superseded candidates | required                         |
-| Policy        | typed facts and YAML rules         | violations                       | none                             |
-| Coordinator   | validated candidates               | ranked recommendation set        | none                             |
-| Repair guide  | bounded target IDs                 | selected target ID or abstention | bounded                          |
+| Agent            | Input                              | Output                              | Model use                        |
+| ---------------- | ---------------------------------- | ----------------------------------- | -------------------------------- |
+| Scanner          | vault files                        | normalized records                  | none                             |
+| Entity           | canonical graph and labels         | duplicate/alias candidates          | required                         |
+| Contradiction    | bounded propositions and citations | conflict candidates                 | expected                         |
+| Staleness        | timestamps, status, linked context | stale candidates                    | required                         |
+| Reference        | parsed links and vault index       | broken-reference findings           | none                             |
+| Task             | parsed tasks and graph             | task findings                       | required for ambiguous ownership |
+| Schema           | frontmatter and schema             | violations                          | none                             |
+| Decision         | decision records and links         | unresolved/superseded candidates    | required                         |
+| Policy           | typed facts and YAML rules         | violations                          | none                             |
+| Coordinator      | validated candidates               | ranked recommendation set           | none                             |
+| Repair guide     | bounded target IDs                 | selected target ID or abstention    | bounded                          |
+| Canonical ranker | two cited duplicate-note IDs       | selected canonical ID or abstention | bounded                          |
 
 ## Workflow Controls
 

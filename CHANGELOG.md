@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Duplicate-entity review with bounded two-note canonical ranking, user-selected
+  canonical notes, and revision-safe inbound-link/exclusive-alias
+  consolidation. The feature never merges or deletes notes.
+
 ## 0.1.0 - Pre-release
 
 - Local Obsidian vault integrity scanning, evidence-backed review, explicit approval, and revision-safe repair flow.

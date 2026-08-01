@@ -69,13 +69,15 @@ before a submission-ready claim.
 
 ## Current Work
 
-Phase 25 begins with a snapshot-bound, side-by-side duplicate-entity review.
-It exposes only the two cited notes, their titles, aliases, bounded backlink
-counts, shared aliases, non-sensitive conflicting metadata, and the exact cited
-overlap. It fails closed for stale or malformed evidence and cannot select a
-canonical note, merge notes, delete content, or write changes. Canonical ranking
-and an explicitly approved link/alias-only consolidation plan are subsequent
-tasks in this phase.
+Phase 25 automated work provides a snapshot-bound, side-by-side duplicate-entity
+review with the two cited notes, their titles, aliases, bounded backlink counts,
+shared aliases, non-sensitive conflicting metadata, and exact cited overlap. A
+model can rank only those two existing notes or abstain; users explicitly select
+the canonical note. Deterministic planning can then prepare link normalization
+and transfer aliases exclusive to the duplicate, with exact previews and normal
+batch safety. It cannot merge notes, select a canonical note automatically,
+delete content, or rewrite substantive note bodies. Focused manual Obsidian
+acceptance remains open.
 The deferred Phase 19 manual desktop matrix and Phases 21-22 release evidence
 remain required before any submission-ready claim.
 

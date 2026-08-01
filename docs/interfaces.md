@@ -134,6 +134,26 @@ rejected before proposal construction. Deterministic code constructs every
 revision-bound `replace-range` operation, including a field-level Current →
 After preview.
 
+`EntityCanonicalIntent` is the equivalent selection boundary for a duplicate
+entity review:
+
+```ts
+type EntityCanonicalIntent = {
+  schemaVersion: 1;
+  kind: "select-canonical";
+  scanId: string;
+  findingId: string;
+  candidateId: string;
+};
+```
+
+The candidate ID must name one of the two notes cited by the active duplicate
+finding. A model may choose that ID or abstain, but the user selects it before
+consolidation. Deterministic code can then prepare only inbound reference
+normalization and transfers of aliases exclusive to the duplicate. It preserves
+link labels, anchors, embeds, source-relative paths, and both note bodies; it
+cannot merge, delete, rename, or automatically select notes.
+
 ## Tool Permissions
 
 Agents receive only read-scoped tools: retrieve indexed evidence, resolve paths within the active vault, and inspect parsed policy/graph data. The apply tool is not agent-callable; it is invoked by the review workflow only after explicit approval and stale-revision validation.

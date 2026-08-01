@@ -73,6 +73,16 @@ Obsidian desktop.
 - [ ] The actual result matches the changed notes and refreshed findings.
 - [ ] Runtime write failure rolls back earlier writes or enters recovery-required state.
 
+## Duplicate Entity Consolidation
+
+- [ ] A duplicate finding opens a side-by-side review of exactly the two cited notes.
+- [ ] The canonical suggestion is clearly advisory; either cited note can be selected by the user.
+- [ ] The prepared preview shows every inbound-link and exclusive-alias change with exact Current -> After values.
+- [ ] Wiki links, Markdown links, labels, anchors, and embeds are preserved after consolidation.
+- [ ] Aliases shared with a third note are not transferred.
+- [ ] Applying the batch changes no note body, does not merge or delete notes, and re-indexes successfully.
+- [ ] Editing any affected note after preparation causes the entire consolidation batch to fail closed.
+
 ## Judgment Actions
 
 - [ ] A non-repairable issue shows one plain-language sentence.

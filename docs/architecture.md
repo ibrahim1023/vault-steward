@@ -120,6 +120,22 @@ batch, but all members must pass digest, revision, expected-content, and
 overlap preflight before the first write. The UI displays the exact field or
 task fragment before and after the change, then reports the re-indexed result.
 
+## Duplicate-Entity Consolidation Boundary
+
+A duplicate-entity finding opens a snapshot-bound comparison of the two cited
+notes. The model may rank one of those two existing paths as the likely
+canonical note or abstain; it cannot introduce a third note, create a merge,
+or authorize a write. The user selects the canonical note before any proposal
+is prepared.
+
+The deterministic planner rewrites only inbound references that resolve
+unambiguously to the selected duplicate. It preserves labels, anchors, embeds,
+and Markdown path encoding. It can transfer only aliases that are exclusive to
+the duplicate note, updating the two existing frontmatter fields together.
+Neither note body is merged, deleted, or otherwise rewritten. The resulting
+operations are revision-bound and flow through the normal exact-preview,
+approval, all-member preflight, rollback, and re-index path.
+
 ## Scale and Bottlenecks
 
 The first release targets one desktop vault and batch scans. Expected bottlenecks are Markdown parsing, SQLite writes, and model inference. The adapter normalizes vault events into a bounded plan and conservatively falls back to a full governed scan for create, rename, delete, invalid, or overflowed batches. Within a running plugin process, immutable parsed notes are reused only when normalized path and revision are exact; SQLite stores eligibility metadata and dependency edges without retaining note bodies. A bounded in-memory coordinator cache reuses a model route only when its provider identity and declared route context are exact; changing one route's evidence invalidates that route without authorizing reuse of another. Model concurrency remains capped at one and per-agent context is bounded before considering background workers or a vector store.
