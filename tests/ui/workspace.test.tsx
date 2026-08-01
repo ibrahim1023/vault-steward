@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Finding } from "../../src/contracts/index.js";
 import type { PreparedReferenceRepair } from "../../src/review/prepare-repair-batch.js";
 import type { DuplicateEntityReview } from "../../src/review/entity-duplicate-review.js";
+import { buildEntityCanonicalCandidates } from "../../src/review/entity-canonical-recommendation.js";
 import { VaultStewardWorkspace } from "../../src/ui/VaultStewardWorkspace.js";
 
 const finding: Finding = {
@@ -286,6 +287,43 @@ describe("VaultStewardWorkspace", () => {
           element?.tagName === "DD" && element.textContent?.includes("research") === true
       )
     ).toHaveTextContent("engineering");
+  });
+
+  it("keeps canonical selection advisory until the user prepares an exact consolidation", async () => {
+    const canonical = buildEntityCanonicalCandidates(duplicateReview)[0]!;
+    const prepareConsolidation = vi.fn(async () => prepared);
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [duplicateFinding] })}
+        loadFindings={() => [duplicateFinding]}
+        prepareRepairs={async () => null}
+        loadDuplicateEntityReview={() => duplicateReview}
+        recommendCanonicalEntity={async () => ({
+          status: "ai-suggested",
+          findingId: duplicateFinding.id,
+          reason: "The complete title is more stable.",
+          intent: {
+            schemaVersion: 1,
+            kind: "select-canonical",
+            scanId: "scan",
+            findingId: duplicateFinding.id,
+            candidateId: canonical.id
+          }
+        })}
+        prepareEntityConsolidation={prepareConsolidation}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    expect(await screen.findByText(/AI suggests/)).toHaveTextContent("Ada Lovelace");
+    const choose = screen.getByRole("button", {
+      name: "Prepare consolidation with Ada Lovelace"
+    });
+    fireEvent.click(choose);
+    expect(choose).toHaveTextContent("Preparing exact changes...");
+    expect(await screen.findByRole("region", { name: "Prepared result" })).toBeInTheDocument();
+    expect(prepareConsolidation).toHaveBeenCalledWith(duplicateFinding, canonical.id);
   });
 
   it("uses one Apply click as approval and reports the actual result", async () => {

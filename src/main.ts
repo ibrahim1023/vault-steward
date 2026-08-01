@@ -52,6 +52,11 @@ import { promptRegistryFingerprint } from "./observability/prompt-registry.js";
 import type { TracePreferences } from "./contracts/trace.js";
 import { buildContextualNormalizationFindings } from "./reference/normalization.js";
 import { buildDuplicateEntityReview } from "./review/entity-duplicate-review.js";
+import {
+  recommendCanonicalEntity as recommendCanonicalEntityWithProvider,
+  selectCanonicalEntityWithProviders
+} from "./review/entity-canonical-recommendation.js";
+import { prepareEntityConsolidation } from "./review/entity-consolidation.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 
@@ -248,6 +253,57 @@ export default class VaultStewardPlugin extends Plugin {
 
   loadDuplicateEntityReview(finding: Finding) {
     return this.activeSnapshot ? buildDuplicateEntityReview(this.activeSnapshot, finding) : null;
+  }
+
+  async recommendCanonicalEntity(finding: Finding) {
+    if (!this.activeSnapshot) throw new Error("Run Check vault before ranking duplicate notes.");
+    return recommendCanonicalEntityWithProvider({
+      finding,
+      snapshot: this.activeSnapshot,
+      selectCandidate: (request) =>
+        selectCanonicalEntityWithProviders([this.createSelectedModelProvider()], request)
+    });
+  }
+
+  async prepareEntityConsolidation(finding: Finding, candidateId: string) {
+    if (!this.database || !this.activeSnapshot)
+      throw new Error("Run Check vault before preparing duplicate consolidation.");
+    const writer = new ObsidianVaultWriter(this.app.vault);
+    const prepared = await prepareEntityConsolidation({
+      snapshot: this.activeSnapshot,
+      finding,
+      intent: {
+        schemaVersion: 1,
+        kind: "select-canonical",
+        scanId: this.activeSnapshot.id,
+        findingId: finding.id,
+        candidateId
+      },
+      activeFindingCount: this.loadFindings().filter((item) => item.status === "open").length,
+      readSource: (path) => writer.read(path),
+      persistProposal: (proposal) => {
+        const existing = this.database!.repository.findProposal(proposal.id);
+        if (existing) {
+          const persisted = parseStoredProposal(existing.patchJson, existing.proposalDigest);
+          if (
+            existing.status === "pending" &&
+            proposalDigest(persisted) === proposalDigest(proposal)
+          )
+            return;
+          throw new Error("A previous proposal for this finding must be reviewed first.");
+        }
+        this.database!.repository.saveProposal({
+          id: proposal.id,
+          findingId: proposal.findingId,
+          patchJson: JSON.stringify(proposal),
+          sourceRevisionsJson: "{}",
+          status: "pending",
+          proposalDigest: proposalDigest(proposal)
+        });
+      }
+    });
+    await this.database.flush();
+    return prepared;
   }
 
   loadHistory() {
@@ -635,6 +691,9 @@ class VaultStewardStatusItemView extends ItemView {
           markNotImportant: (finding) =>
             this.plugin.submitFeedback(finding, "false-positive", "Not important"),
           loadDuplicateEntityReview: (finding) => this.plugin.loadDuplicateEntityReview(finding),
+          recommendCanonicalEntity: (finding) => this.plugin.recommendCanonicalEntity(finding),
+          prepareEntityConsolidation: (finding, candidateId) =>
+            this.plugin.prepareEntityConsolidation(finding, candidateId),
           openProviderSettings: () => this.plugin.openProviderSettings(),
           policyStudio: {
             loadDraft: () => this.plugin.loadPolicyDraft(),

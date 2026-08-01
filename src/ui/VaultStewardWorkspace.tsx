@@ -4,6 +4,10 @@ import type { Finding } from "../contracts/index.js";
 import type { PreparedRepairBatch } from "../contracts/prepared-repair.js";
 import type { PreparedRepair, PreparedRepairItem } from "../review/prepare-repair-batch.js";
 import type { DuplicateEntityReview as DuplicateEntityReviewData } from "../review/entity-duplicate-review.js";
+import {
+  buildEntityCanonicalCandidates,
+  type EntityCanonicalRecommendation
+} from "../review/entity-canonical-recommendation.js";
 import type { BatchApplyResult } from "../review/workflow.js";
 import type {
   FindingLifecycleRecord,
@@ -34,6 +38,8 @@ export function VaultStewardWorkspace({
   openNote,
   markNotImportant,
   loadDuplicateEntityReview,
+  recommendCanonicalEntity,
+  prepareEntityConsolidation,
   openProviderSettings,
   loadHistory,
   policyStudio,
@@ -57,6 +63,11 @@ export function VaultStewardWorkspace({
   openNote?: (path: string) => void | Promise<void>;
   markNotImportant?: (finding: Finding) => Promise<void>;
   loadDuplicateEntityReview?: (finding: Finding) => DuplicateEntityReviewData | null;
+  recommendCanonicalEntity?: (finding: Finding) => Promise<EntityCanonicalRecommendation>;
+  prepareEntityConsolidation?: (
+    finding: Finding,
+    candidateId: string
+  ) => Promise<PreparedRepair | null>;
   openProviderSettings?: () => void;
   loadHistory?: () => { scans: ScanHistoryRecord[]; lifecycle: FindingLifecycleRecord[] };
   policyStudio?: {
@@ -203,6 +214,20 @@ export function VaultStewardWorkspace({
     }
   };
 
+  const prepareCanonicalConsolidation = async (finding: Finding, candidateId: string) => {
+    if (!prepareEntityConsolidation) return false;
+    try {
+      const nextPrepared = await prepareEntityConsolidation(finding, candidateId);
+      if (!nextPrepared) return false;
+      setPrepared(nextPrepared);
+      setJudgment(undefined);
+      setMode("recommendation");
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   return (
     <section className="vault-steward" aria-label="Vault Steward workspace">
       <header className="steward-header">
@@ -275,6 +300,15 @@ export function VaultStewardWorkspace({
           onNotImportant={dismissJudgment}
           {...(loadDuplicateEntityReview
             ? { duplicateReview: loadDuplicateEntityReview(judgment) }
+            : {})}
+          {...(recommendCanonicalEntity
+            ? { recommendCanonicalEntity: () => recommendCanonicalEntity(judgment) }
+            : {})}
+          {...(prepareEntityConsolidation
+            ? {
+                prepareConsolidation: (candidateId: string) =>
+                  prepareCanonicalConsolidation(judgment, candidateId)
+              }
             : {})}
         />
       ) : null}
@@ -492,13 +526,17 @@ function JudgmentView({
   openNote,
   dismissing,
   onNotImportant,
-  duplicateReview
+  duplicateReview,
+  recommendCanonicalEntity,
+  prepareConsolidation
 }: {
   finding: Finding;
   openNote?: (path: string) => void | Promise<void>;
   dismissing: boolean;
   onNotImportant: (finding: Finding) => Promise<void>;
   duplicateReview?: DuplicateEntityReviewData | null;
+  recommendCanonicalEntity?: () => Promise<EntityCanonicalRecommendation>;
+  prepareConsolidation?: (candidateId: string) => Promise<boolean>;
 }) {
   const paths = [
     ...new Set(
@@ -514,6 +552,13 @@ function JudgmentView({
       <h2>{finding.explanation}</h2>
       {paths[0] ? <p className="judgment-source">{paths.join(" and ")}</p> : null}
       {duplicateReview ? <DuplicateEntityReview review={duplicateReview} /> : null}
+      {duplicateReview && prepareConsolidation ? (
+        <CanonicalEntityActions
+          review={duplicateReview}
+          {...(recommendCanonicalEntity ? { recommend: recommendCanonicalEntity } : {})}
+          prepare={prepareConsolidation}
+        />
+      ) : null}
       <div className="judgment-actions">
         {paths[0] ? (
           <button
@@ -530,6 +575,92 @@ function JudgmentView({
           Not important
         </button>
       </div>
+    </section>
+  );
+}
+
+function CanonicalEntityActions({
+  review,
+  recommend,
+  prepare
+}: {
+  review: DuplicateEntityReviewData;
+  recommend?: () => Promise<EntityCanonicalRecommendation>;
+  prepare: (candidateId: string) => Promise<boolean>;
+}) {
+  const candidates = buildEntityCanonicalCandidates(review);
+  const [recommendation, setRecommendation] = useState<EntityCanonicalRecommendation>();
+  const [preparing, setPreparing] = useState<string>();
+  const [message, setMessage] = useState<string>();
+
+  useEffect(() => {
+    let active = true;
+    if (!recommend)
+      return () => {
+        active = false;
+      };
+    void recommend()
+      .then((result) => {
+        if (active) setRecommendation(result);
+      })
+      .catch(() => {
+        if (active)
+          setMessage(
+            "AI could not rank these notes. Choose the note you want to keep as canonical."
+          );
+      });
+    return () => {
+      active = false;
+    };
+  }, [recommend]);
+
+  const suggestedId =
+    recommendation?.status === "ai-suggested" ? recommendation.intent.candidateId : undefined;
+  return (
+    <section className="canonical-entity-actions" aria-label="Canonical note choice">
+      <h3>Choose the canonical note</h3>
+      {recommendation?.status === "ai-suggested" ? (
+        <p className="canonical-suggestion">
+          AI suggests{" "}
+          <strong>{candidates.find((candidate) => candidate.id === suggestedId)?.title}</strong>.
+          You decide what to prepare.
+        </p>
+      ) : null}
+      {recommendation?.status === "abstained" ? (
+        <p className="canonical-abstention">
+          AI did not choose a canonical note. You can still choose either existing note.
+        </p>
+      ) : null}
+      {message ? <p className="canonical-abstention">{message}</p> : null}
+      <div className="canonical-choices">
+        {candidates.map((candidate) => (
+          <button
+            className={candidate.id === suggestedId ? "steward-primary" : undefined}
+            type="button"
+            key={candidate.id}
+            disabled={preparing !== undefined}
+            onClick={() => {
+              setPreparing(candidate.id);
+              setMessage(undefined);
+              void prepare(candidate.id).then((prepared) => {
+                if (!prepared) {
+                  setPreparing(undefined);
+                  setMessage(
+                    "A safe consolidation could not be prepared. The notes were not changed."
+                  );
+                }
+              });
+            }}
+          >
+            {preparing === candidate.id
+              ? "Preparing exact changes..."
+              : `Prepare consolidation with ${candidate.title}`}
+          </button>
+        ))}
+      </div>
+      <p className="canonical-safety">
+        Preparing a plan never changes either note. You will review every edit before Apply.
+      </p>
     </section>
   );
 }
@@ -570,6 +701,7 @@ function formatCount(count: number, noun: string): string {
 function repairStatusLabel(item: PreparedRepairItem): string {
   if (item.repairFamily === "task") return "Bounded task repair";
   if (item.repairFamily === "decision") return "Cited decision repair";
+  if (item.repairFamily === "entity") return "Duplicate consolidation";
   switch (item.targetStatus) {
     case "verified-rename":
       return "Verified rename";
@@ -606,6 +738,8 @@ function repairKindLabel(kind: PreparedRepairItem["repairKind"]): string {
       return "Block anchor";
     case "normalize-reference":
       return "Reference normalization";
+    case "transfer-alias":
+      return "Alias transfer";
     default:
       return "Reference target";
   }

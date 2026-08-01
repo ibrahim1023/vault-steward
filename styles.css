@@ -224,6 +224,33 @@
   overflow-wrap: anywhere;
 }
 
+.canonical-entity-actions {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-left: 3px solid var(--steward-blue);
+  background: var(--background-primary);
+}
+
+.canonical-entity-actions h3,
+.canonical-entity-actions p {
+  margin-bottom: 0;
+}
+
+.canonical-suggestion {
+  color: var(--steward-green);
+}
+
+.canonical-abstention,
+.canonical-safety {
+  color: var(--text-muted);
+}
+
+.canonical-choices {
+  display: grid;
+  gap: 8px;
+}
+
 .prepared-result {
   display: grid;
   gap: 16px;

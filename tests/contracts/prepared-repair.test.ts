@@ -117,6 +117,26 @@ describe("prepared repair batch contracts", () => {
     });
   });
 
+  it("allows an evidence-backed semantic repair to defer resolution to re-indexing", () => {
+    const outcome = calculatePreparedRepairOutcome(
+      [proposal("proposal-1", "finding-1", "Home.md")],
+      4,
+      0
+    );
+    expect(outcome).toEqual({
+      expectedFindingsResolved: 0,
+      notesEdited: 1,
+      notesCreated: 0,
+      notesDeleted: 0,
+      findingsLeftUnchanged: 4
+    });
+    const semanticBatch = batch({
+      proposalIds: ["proposal-1"],
+      findingIds: ["finding-1"]
+    }) as Record<string, unknown>;
+    expect(parsePreparedRepairBatch({ ...semanticBatch, outcome }).ok).toBe(true);
+  });
+
   it("rejects cross-scan proposals and impossible active finding counts", () => {
     expect(() =>
       calculatePreparedRepairOutcome(

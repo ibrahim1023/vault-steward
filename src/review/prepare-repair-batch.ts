@@ -24,7 +24,7 @@ export type PreparedRepairItem = {
   locator: string;
   currentReference: string;
   replacementReference: string;
-  repairFamily: "reference" | "task" | "decision";
+  repairFamily: "reference" | "task" | "decision" | "entity";
   repairKind: string;
   targetPath?: string;
   targetExists?: true;

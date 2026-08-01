@@ -60,7 +60,8 @@ export function parsePreparedRepairBatch(value: unknown): PreparedRepairBatchPar
 
 export function calculatePreparedRepairOutcome(
   proposals: readonly Proposal[],
-  activeFindingCount: number
+  activeFindingCount: number,
+  expectedFindingsResolved = new Set(proposals.map((proposal) => proposal.findingId)).size
 ): PreparedRepairOutcome {
   if (proposals.length === 0 || proposals.length > MAX_BATCH_ITEMS)
     throw new Error(`prepared repair batch must contain 1-${MAX_BATCH_ITEMS} proposals`);
@@ -76,18 +77,20 @@ export function calculatePreparedRepairOutcome(
     throw new Error("prepared repair proposal IDs must be unique");
   if (findingIds.size !== proposals.length)
     throw new Error("prepared repair finding IDs must be unique");
-  if (activeFindingCount < findingIds.size)
-    throw new Error("active finding count cannot be lower than selected findings");
+  if (!isCount(expectedFindingsResolved) || expectedFindingsResolved > findingIds.size)
+    throw new Error("expected finding outcome is invalid");
+  if (activeFindingCount < expectedFindingsResolved)
+    throw new Error("active finding count cannot be lower than expected findings resolved");
 
   const notePaths = new Set(
     proposals.flatMap((proposal) => proposal.operations.map((operation) => operation.path))
   );
   return {
-    expectedFindingsResolved: findingIds.size,
+    expectedFindingsResolved,
     notesEdited: notePaths.size,
     notesCreated: 0,
     notesDeleted: 0,
-    findingsLeftUnchanged: activeFindingCount - findingIds.size
+    findingsLeftUnchanged: activeFindingCount - expectedFindingsResolved
   };
 }
 
@@ -137,10 +140,11 @@ function parseOutcome(
   }
   if (value.notesCreated !== 0 || value.notesDeleted !== 0)
     diagnostics.push("prepared repair batches cannot create or delete notes");
-  if (value.expectedFindingsResolved !== selectedCount)
-    diagnostics.push("expected findings resolved must match the selected finding count");
-  if (typeof value.notesEdited === "number" && value.notesEdited > selectedCount)
-    diagnostics.push("notes edited cannot exceed the selected proposal count");
+  if (
+    typeof value.expectedFindingsResolved === "number" &&
+    value.expectedFindingsResolved > selectedCount
+  )
+    diagnostics.push("expected findings resolved cannot exceed the selected finding count");
 
   return diagnostics.length > 0
     ? null
