@@ -78,6 +78,32 @@ does not promise unrelated changes. Select **Apply fixes**. Verify that only the
 approved reference changes, the vault is re-indexed, and the actual result
 matches the write.
 
+## Duplicate Entity Consolidation
+
+Reset the fixture. The paired notes `People/Elena Markova.md` and
+`People/Elena M.md` intentionally describe the same partner-operations lead.
+`Work/Partner Contact Review.md` links to the older note through a labelled wiki
+link, an embed with an anchor, and a percent-encoded relative Markdown link.
+
+Run **Check vault**. When the duplicate-entity finding is available, open its
+comparison. It must show exactly the two cited notes and may make an advisory
+canonical suggestion or abstain. Select `People/Elena Markova.md` as the
+canonical note. The prepared result must show these exact classes of change:
+
+```text
+[[People/Elena M|Elena]] -> [[People/Elena Markova|Elena]]
+![[People/Elena M#Elena M]] -> ![[People/Elena Markova#Elena M]]
+[Elena's profile](../People/Elena%20M.md)
+  -> [Elena's profile](../People/Elena%20Markova.md)
+```
+
+It may also transfer the exclusive `E. Markova` alias into the canonical note.
+Do not accept a preview that changes either note body, deletes either note,
+renames files, alters visible labels, or removes the embed anchor. Edit one
+affected source after preparation and verify the whole batch rejects as stale;
+then reset and apply it. Confirm the vault re-indexes and all three references
+now resolve to `People/Elena Markova.md`.
+
 ## Structured Task And Decision Repairs
 
 Use a disposable copy of the Northstar fixture for this section. Append these

@@ -19,5 +19,8 @@ template for a production vault.
 - `Research/Customer Interviews.md` contains a broken anchor and a missing
   embedded note.
 - `Notes/Working Agreement.md` contains an unsupported external-style target.
+- `People/Elena Markova.md` and `People/Elena M.md` describe an intentional
+  duplicate entity; `Work/Partner Contact Review.md` supplies wiki, embed, and
+  Markdown inbound references for the Phase 25 manual consolidation pass.
 
 Keep a pristine copy. Several test cases modify or rename the supplied files.
