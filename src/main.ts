@@ -84,7 +84,10 @@ export default class VaultStewardPlugin extends Plugin {
         this.app.vault.adapter.getResourcePath(`${this.pluginDirectory()}/${file}`)
     });
     this.register(this.vaultReader.watchInvalidations());
+    this.registerEvent(this.app.vault.on("create", () => this.recordMaintenanceEvent()));
     this.registerEvent(this.app.vault.on("modify", () => this.recordMaintenanceEvent()));
+    this.registerEvent(this.app.vault.on("delete", () => this.recordMaintenanceEvent()));
+    this.registerEvent(this.app.vault.on("rename", () => this.recordMaintenanceEvent()));
     this.registerInterval(window.setInterval(() => void this.runMaintenanceTick(), 60_000));
     this.addSettingTab(new VaultStewardSettingsTab(this.app, this));
     this.registerView(STATUS_VIEW_TYPE, (leaf) => new VaultStewardStatusItemView(leaf, this));
