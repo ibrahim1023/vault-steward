@@ -90,6 +90,7 @@ export function VaultStewardWorkspace({
   const [findings, setFindings] = useState<Finding[]>([]);
   const [prepared, setPrepared] = useState<PreparedRepair | null>(null);
   const [actualResult, setActualResult] = useState<BatchApplyResult | null>(null);
+  const [reviewingNext, setReviewingNext] = useState(false);
   const [judgment, setJudgment] = useState<Finding>();
   const [dismissedFindingIds, setDismissedFindingIds] = useState<Set<string>>(() => new Set());
   const [dismissing, setDismissing] = useState(false);
@@ -183,16 +184,22 @@ export function VaultStewardWorkspace({
   };
 
   const reviewNext = async () => {
+    setReviewingNext(true);
     setErrorMessage(undefined);
     try {
-      const nextFindings = loadFindings
-        ? await loadFindings()
-        : findings.filter((finding) => !prepared?.batch.findingIds.includes(finding.id));
+      const loadedFindings = loadFindings ? await loadFindings() : findings;
+      // A completed repair must never be selected again, even while a delayed
+      // re-index still exposes its former finding in the stored scan result.
+      const nextFindings = loadedFindings.filter(
+        (finding) => !prepared?.batch.findingIds.includes(finding.id)
+      );
       setFindings(nextFindings);
       await chooseNext(nextFindings);
     } catch {
       setMode("error");
       setErrorMessage("The next issue could not be prepared. Check the vault again.");
+    } finally {
+      setReviewingNext(false);
     }
   };
 
@@ -268,8 +275,11 @@ export function VaultStewardWorkspace({
           <p role="status" aria-live="polite">
             Checking your vault and preparing the best next action...
           </p>
-          <button className="steward-primary" type="button" disabled>
-            Check vault
+          <button className="steward-primary steward-scan-button" type="button" disabled>
+            <span>Checking vault...</span>
+            <span className="scan-progress-track" aria-hidden="true">
+              <span className="scan-progress-indicator" />
+            </span>
           </button>
         </section>
       ) : null}
@@ -289,7 +299,11 @@ export function VaultStewardWorkspace({
       ) : null}
 
       {mode === "result" ? (
-        <ResultView result={actualResult} onNext={actualResult ? reviewNext : checkVault} />
+        <ResultView
+          result={actualResult}
+          reviewingNext={reviewingNext}
+          onNext={actualResult ? reviewNext : checkVault}
+        />
       ) : null}
 
       {mode === "judgment" && judgment ? (
@@ -493,9 +507,11 @@ function PreparedResult({
 
 function ResultView({
   result,
+  reviewingNext,
   onNext
 }: {
   result: BatchApplyResult | null;
+  reviewingNext: boolean;
   onNext: () => Promise<void>;
 }) {
   if (!result)
@@ -519,8 +535,14 @@ function ResultView({
         <li>{formatCount(result.notesEdited, "note")} changed</li>
         <li>{result.reindexed ? "Vault checked again" : "Vault check needs to be retried"}</li>
       </ul>
-      <button className="steward-primary" type="button" onClick={() => void onNext()}>
-        Review next issue
+      <button
+        className="steward-primary"
+        type="button"
+        disabled={reviewingNext}
+        aria-busy={reviewingNext}
+        onClick={() => void onNext()}
+      >
+        {reviewingNext ? "Preparing next issue..." : "Review next issue"}
       </button>
     </section>
   );

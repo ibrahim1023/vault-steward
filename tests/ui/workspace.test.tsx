@@ -187,7 +187,7 @@ describe("VaultStewardWorkspace", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
-    expect(screen.getByRole("button", { name: "Check vault" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Checking vault..." })).toBeDisabled();
     expect(screen.getByRole("status")).toHaveTextContent("Checking your vault");
 
     const recommendation = await screen.findByRole("region", { name: "Prepared result" });
@@ -381,6 +381,48 @@ describe("VaultStewardWorkspace", () => {
     expect(screen.getByText("1 note changed")).toBeInTheDocument();
     expect(screen.getByText("Vault checked again")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Review next issue" })).toBeEnabled();
+  });
+
+  it("moves past an applied repair before a delayed re-index replaces the stored finding", async () => {
+    const remainingFinding: Finding = {
+      ...finding,
+      id: "remaining-finding",
+      type: "task",
+      explanation: "A remaining task needs your judgment.",
+      evidence: [{ notePath: "Tasks.md", locator: "line:4", excerpt: "- [ ] Review" }],
+      affectedNoteIds: ["Tasks.md"]
+    };
+    const prepareRepairs = vi
+      .fn<() => Promise<PreparedReferenceRepair | null>>()
+      .mockResolvedValueOnce(prepared)
+      .mockResolvedValue(null);
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [finding, remainingFinding] })}
+        // The old scan may be briefly visible while a post-apply index settles.
+        loadFindings={() => [finding, remainingFinding]}
+        prepareRepairs={prepareRepairs}
+        applyRepairs={async () => ({
+          ok: true,
+          appliedProposalIds: ["proposal-1"],
+          skippedProposalIds: [],
+          failedProposalIds: [],
+          notesEdited: 1,
+          reindexed: true
+        })}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apply 1 fix" }));
+    const next = await screen.findByRole("button", { name: "Review next issue" });
+    fireEvent.click(next);
+
+    expect(next).toBeDisabled();
+    expect(next).toHaveTextContent("Preparing next issue...");
+    expect(await screen.findByText(remainingFinding.explanation)).toBeInTheDocument();
+    expect(prepareRepairs).toHaveBeenCalledTimes(2);
   });
 
   it("shows one actionable recovery message when the prepared batch is stale", async () => {
