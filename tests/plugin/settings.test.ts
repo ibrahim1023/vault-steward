@@ -43,7 +43,11 @@ describe("plugin settings", () => {
         autoScanOnLoad: true,
         modelProvider: { kind: "ollama", endpoint: "https://example.com" }
       })
-    ).toEqual(DEFAULT_PLUGIN_SETTINGS);
+    ).toMatchObject({
+      vaultLabel: "Notes",
+      autoScanOnLoad: true,
+      modelProvider: DEFAULT_PLUGIN_SETTINGS.modelProvider
+    });
   });
 
   it("accepts only the fixed OpenAI origin and keeps cloud consent explicit", () => {
@@ -70,7 +74,12 @@ describe("plugin settings", () => {
         cloudModelConsent: true,
         modelProvider: { ...settings.modelProvider, endpoint: "https://example.com/v1" }
       })
-    ).toEqual(DEFAULT_PLUGIN_SETTINGS);
+    ).toMatchObject({
+      vaultLabel: "Notes",
+      autoScanOnLoad: false,
+      cloudModelConsent: true,
+      modelProvider: DEFAULT_PLUGIN_SETTINGS.modelProvider
+    });
   });
 
   it("accepts only the fixed HyperFusion origin and keeps cloud consent explicit", () => {
@@ -100,6 +109,32 @@ describe("plugin settings", () => {
         cloudModelConsent: true,
         modelProvider: { ...settings.modelProvider, endpoint: "https://example.com/v1" }
       })
-    ).toEqual(DEFAULT_PLUGIN_SETTINGS);
+    ).toMatchObject({
+      vaultLabel: "Notes",
+      autoScanOnLoad: false,
+      cloudModelConsent: true,
+      modelProvider: DEFAULT_PLUGIN_SETTINGS.modelProvider
+    });
+  });
+
+  it("preserves a valid HyperFusion selection from partial legacy settings", () => {
+    const settings = parsePluginSettings({
+      modelProvider: {
+        kind: "hyperfusion",
+        endpoint: HYPERFUSION_API_BASE_URL,
+        model: "qwen/qwen3-32b",
+        apiKey: "hf-test-key",
+        timeoutMs: 30_000,
+        maxResponseBytes: 1_000_000
+      },
+      cloudModelConsent: true
+    });
+
+    expect(settings).toMatchObject({
+      vaultLabel: DEFAULT_PLUGIN_SETTINGS.vaultLabel,
+      autoScanOnLoad: false,
+      cloudModelConsent: true,
+      modelProvider: { kind: "hyperfusion", model: "qwen/qwen3-32b" }
+    });
   });
 });

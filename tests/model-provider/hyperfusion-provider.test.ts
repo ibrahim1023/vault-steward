@@ -44,11 +44,14 @@ describe("HyperFusion model provider", () => {
       messages: [
         {
           role: "system",
-          content: "Return only a valid JSON object. Do not use tools or external data."
+          content:
+            "Return only a valid JSON object. Do not include reasoning, commentary, tools, or external data."
         },
         { role: "user", content: "check" }
       ],
-      max_tokens: 32
+      max_tokens: 32,
+      enable_thinking: false,
+      response_format: { type: "json_object" }
     });
   });
 

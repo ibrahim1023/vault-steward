@@ -323,11 +323,15 @@ function hyperFusionBody(
     messages: [
       {
         role: "system",
-        content: "Return only a valid JSON object. Do not use tools or external data."
+        content:
+          "Return only a valid JSON object. Do not include reasoning, commentary, tools, or external data."
       },
       { role: "user", content: request.prompt }
     ],
-    max_tokens: request.maxOutputTokens
+    max_tokens: request.maxOutputTokens,
+    // qwen/qwen3-32b otherwise can spend its completion budget in reasoning_content.
+    enable_thinking: false,
+    response_format: { type: "json_object" }
   };
 }
 

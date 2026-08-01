@@ -37,26 +37,34 @@ export function parsePluginSettings(value: unknown): PluginSettings {
   if (value === null || typeof value !== "object") return DEFAULT_PLUGIN_SETTINGS;
 
   const candidate = value as Partial<PluginSettings>;
-  if (typeof candidate.vaultLabel !== "string" || typeof candidate.autoScanOnLoad !== "boolean") {
-    return DEFAULT_PLUGIN_SETTINGS;
-  }
-
-  const vaultLabel = candidate.vaultLabel.trim();
-  if (vaultLabel.length === 0 || vaultLabel.length > 120) return DEFAULT_PLUGIN_SETTINGS;
-
-  const modelProvider = candidate.modelProvider ?? DEFAULT_PLUGIN_SETTINGS.modelProvider;
-  if (!isValidProviderConfig(modelProvider)) return DEFAULT_PLUGIN_SETTINGS;
-  const cloudModelConsent = candidate.cloudModelConsent ?? false;
-  if (typeof cloudModelConsent !== "boolean") return DEFAULT_PLUGIN_SETTINGS;
+  const vaultLabel = validVaultLabel(candidate.vaultLabel) ?? DEFAULT_PLUGIN_SETTINGS.vaultLabel;
+  const autoScanOnLoad =
+    typeof candidate.autoScanOnLoad === "boolean"
+      ? candidate.autoScanOnLoad
+      : DEFAULT_PLUGIN_SETTINGS.autoScanOnLoad;
+  const modelProvider = isValidProviderConfig(candidate.modelProvider)
+    ? candidate.modelProvider
+    : DEFAULT_PLUGIN_SETTINGS.modelProvider;
+  const cloudModelConsent =
+    typeof candidate.cloudModelConsent === "boolean"
+      ? candidate.cloudModelConsent
+      : DEFAULT_PLUGIN_SETTINGS.cloudModelConsent;
   const maintenanceSchedule = candidate.maintenanceSchedule ?? DEFAULT_MAINTENANCE_SCHEDULE;
-  if (!isValidMaintenanceSchedule(maintenanceSchedule)) return DEFAULT_PLUGIN_SETTINGS;
   return {
     vaultLabel,
-    autoScanOnLoad: candidate.autoScanOnLoad,
+    autoScanOnLoad,
     modelProvider,
     cloudModelConsent,
-    maintenanceSchedule
+    maintenanceSchedule: isValidMaintenanceSchedule(maintenanceSchedule)
+      ? maintenanceSchedule
+      : DEFAULT_MAINTENANCE_SCHEDULE
   };
+}
+
+function validVaultLabel(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  return normalized.length > 0 && normalized.length <= 120 ? normalized : null;
 }
 
 function isValidMaintenanceSchedule(value: unknown): value is MaintenanceSchedule {
