@@ -65,4 +65,17 @@ describe("maintenance scheduler", () => {
     expect(next).toMatchObject({ lastRunAt: 2, runsInWindow: 1, scanInProgress: true });
     expect(next.pendingEventAt).toBeUndefined();
   });
+
+  it("preserves a metadata-only record of the latest conservative scan plan", () => {
+    const state = {
+      runsInWindow: 0,
+      scanInProgress: false,
+      lastPlanMode: "full" as const,
+      lastPlanReason: "ambiguous-event"
+    };
+    expect(nextScheduleState(DEFAULT_MAINTENANCE_SCHEDULE, state, 5, false)).toMatchObject({
+      lastPlanMode: "full",
+      lastPlanReason: "ambiguous-event"
+    });
+  });
 });

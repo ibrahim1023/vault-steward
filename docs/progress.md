@@ -102,6 +102,8 @@ remain required before any submission-ready claim.
 
 ## Important Decisions
 
+- Phase 26 adds local-only, evidence-backed maintenance signals for rename/delete impact and newly superseded decisions. Safe modify event batches record an incremental reuse plan; all ambiguous events retain conservative full-vault behavior. The maintenance queue provides review actions only and never writes notes.
+
 - Obsidian plugin with local TypeScript core.
 - SQLite is canonical; LanceDB is optional and derived.
 - `sql.js` is the initial desktop-compatible SQLite runtime; its WebAssembly asset ships with the plugin bundle.

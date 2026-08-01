@@ -17,6 +17,13 @@ export function MaintenanceScheduleView({
       <p>{schedule.enabled ? (schedule.paused ? "Paused" : "Active") : "Disabled"}</p>
       <p>Next run: {nextRun}</p>
       <p>Last scheduled run: {lastRun}</p>
+      {state.lastPlanMode ? (
+        <p>
+          Last scan plan:{" "}
+          {state.lastPlanMode === "incremental" ? "changed notes reused" : "full vault check"}
+          {state.lastPlanReason ? ` (${state.lastPlanReason})` : ""}.
+        </p>
+      ) : null}
       <button
         type="button"
         disabled={!schedule.enabled}

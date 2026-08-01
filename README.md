@@ -71,6 +71,7 @@ Read the detailed [privacy statement](PRIVACY.md) and [security guidance](SECURI
 - Markdown/frontmatter schema violations, task integrity problems, unresolved decisions, and deterministic YAML policy violations.
 - Bounded local-model candidates for duplicate entities, contradictions, staleness, and ambiguous decisions, subject to citation and schema validation.
 - Rename/delete impact, scan history, finding lifecycle, trace lineage, and operational metadata.
+- Change-aware maintenance signals for references to renamed/deleted notes and newly superseded decisions. These remain review-only, cite the affected note, and run only within the active Obsidian process.
 
 ## Installation
 

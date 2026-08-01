@@ -366,7 +366,16 @@ export function VaultStewardWorkspace({
         {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
         {maintenance ? <MaintenanceScheduleView {...maintenance} /> : null}
         {inspectImpact ? (
-          <MaintenanceView findings={findings} inspectImpact={inspectImpact} />
+          <MaintenanceView
+            findings={findings}
+            inspectImpact={inspectImpact}
+            {...(openNote ? { openNote } : {})}
+            {...(markNotImportant
+              ? {
+                  dismissFinding: (finding: Finding) => markNotImportant(finding)
+                }
+              : {})}
+          />
         ) : null}
         {history && loadObservability ? (
           <ObservabilityView

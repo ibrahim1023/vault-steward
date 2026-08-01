@@ -90,6 +90,15 @@ Obsidian desktop.
 - [ ] It exposes one concrete action such as `Open note`, `Review both notes`, or `Not important`.
 - [ ] The action never creates or applies an unsupported patch.
 
+## Change-Aware Maintenance
+
+- [ ] Rename a cited decision or project, run a check, and confirm the affected source note receives a review-only change signal with its exact reference and locator.
+- [ ] Mark a decision as superseded, run a check, and confirm a citing plan says it cites a superseded decision.
+- [ ] Confirm maintenance actions can open the cited note, review related notes, and dismiss the signal, but cannot write a note automatically.
+- [ ] Make one Markdown modification and inspect Diagnostics > Maintenance schedule for `changed notes reused`; rename, delete, create, or an ambiguous event must report `full vault check`.
+- [ ] Enable the optional schedule, wait for one debounced run while Obsidian remains open, then disable it. Confirm there is no run after the plugin or vault is unavailable.
+- [ ] Confirm History shows aggregate recurrence/resolution/dismissal state without note-body telemetry.
+
 ## Settings, History, And Diagnostics
 
 - [ ] `Settings` opens provider configuration without exposing controls in the primary path.

@@ -14,6 +14,8 @@ export type MaintenanceScheduleState = {
   windowStartedAt?: number;
   runsInWindow: number;
   scanInProgress: boolean;
+  lastPlanMode?: "incremental" | "full";
+  lastPlanReason?: string;
 };
 
 export type MaintenanceDecision = {

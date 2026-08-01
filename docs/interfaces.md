@@ -194,3 +194,7 @@ match exactly.
 `ChangeImpact` reports affected inbound references, aliases, task/decision/policy dependencies, and deterministic rename-repair records. For an exact internal rename, each record captures the source path and revision, locator, exact current reference, and replacement. Wiki links, wiki embeds, Markdown links, and Markdown embeds preserve their labels and anchors; Markdown destinations are source-relative and percent-encoded. These records remain read-only until a later workflow binds them to a finding, proposal digest, explicit approval, and apply preflight. Ambiguous aliases and delete events remain review-only impact records.
 
 `FindingLifecycleRecord` contains aggregate type/evidence-key state: first and last completed observation, recurrence count, stale state, and whether the finding was absent from a later completed scan. History UI renders only aggregate state and timestamps, never the persisted evidence payload.
+
+## Change-Aware Maintenance Contract
+
+`buildChangeAwareFindings` consumes only vault-relative events plus the immutable parsed snapshots before and after a completed scan. It creates review-only `staleness` findings for citations affected by rename/delete events and for citations to a decision that has newly become superseded. Every signal carries the existing source reference and locator; it has no repair operation, model authority, or write path. Safe modify batches record an incremental reuse plan, while create, rename, delete, overflow, malformed, and ambiguous events remain conservative full-vault plans.

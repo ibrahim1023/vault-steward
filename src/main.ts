@@ -58,6 +58,8 @@ import {
   selectCanonicalEntityWithProviders
 } from "./review/entity-canonical-recommendation.js";
 import { prepareEntityConsolidation } from "./review/entity-consolidation.js";
+import { buildChangeAwareFindings } from "./maintenance/change-aware.js";
+import { planIncrementalScan } from "./indexing/plan.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 
@@ -132,6 +134,15 @@ export default class VaultStewardPlugin extends Plugin {
     // Consume events here so a subsequent incremental worker can operate from a bounded batch.
     // The governed scan remains vault-wide: reference and semantic checks need global context.
     const events = this.vaultReader.consumeInvalidatedEvents();
+    if (events.length > 0) {
+      const scanPlan = planIncrementalScan(events, { maxEvents: 50 });
+      this.maintenanceState = {
+        ...this.maintenanceState,
+        lastPlanMode: scanPlan.mode,
+        lastPlanReason: scanPlan.reasons.join(", ")
+      };
+    }
+    const previousNotes = [...this.parsedNotes.values()];
     const files = await this.vaultReader.listFiles();
     const snapshot = scanVaultFiles(files, this.parsedNotes);
     const policySource = await this.loadPolicyDraft();
@@ -170,9 +181,15 @@ export default class VaultStewardPlugin extends Plugin {
         targetPath: rename.path
       }))
     );
+    const maintenanceFindings = buildChangeAwareFindings({
+      scanId: snapshot.id,
+      events,
+      previousNotes,
+      snapshot
+    });
     const completedResult: GovernedIntegrityResult = {
       ...result,
-      findings: [...result.findings, ...normalizationFindings]
+      findings: [...result.findings, ...normalizationFindings, ...maintenanceFindings]
     };
     this.database.saveCompletedScan({
       id: result.scanId,
