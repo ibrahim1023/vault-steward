@@ -13,8 +13,9 @@ The roadmap tracks concrete product work rather than delivery dates.
   verified rename/canonical normalization, and a cumulative manual acceptance
   pass.
 - Complete structured task and decision repair intents and their cumulative
-  manual Obsidian acceptance, followed by duplicate-entity review, change-aware maintenance, guided policy intelligence, and faster
-  local batch review. Each step retains exact preview, explicit approval, stale
-  protection, and deterministic writes.
+  manual Obsidian acceptance, followed by duplicate-entity review, canonical
+  link/alias-only consolidation, change-aware maintenance, guided policy
+  intelligence, and faster local batch review. Each step retains exact preview,
+  explicit approval, stale protection, and deterministic writes.
 
 The roadmap is not a promise of release order or availability.

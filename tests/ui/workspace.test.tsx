@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { Finding } from "../../src/contracts/index.js";
 import type { PreparedReferenceRepair } from "../../src/review/prepare-repair-batch.js";
+import type { DuplicateEntityReview } from "../../src/review/entity-duplicate-review.js";
 import { VaultStewardWorkspace } from "../../src/ui/VaultStewardWorkspace.js";
 
 const finding: Finding = {
@@ -102,6 +103,44 @@ const preparedTask: PreparedReferenceRepair = {
       affectedNotes: ["Work.md"]
     }
   ]
+};
+
+const duplicateFinding: Finding = {
+  ...finding,
+  id: "duplicate-finding",
+  type: "entity-alias",
+  affectedNoteIds: ["People/Ada Lovelace.md", "People/Ada L.md"],
+  evidence: [
+    { notePath: "People/Ada Lovelace.md", locator: "line:1", excerpt: "Ada Lovelace" },
+    { notePath: "People/Ada L.md", locator: "line:1", excerpt: "Ada L" }
+  ],
+  explanation: "These notes may describe the same person."
+};
+
+const duplicateReview: DuplicateEntityReview = {
+  schemaVersion: 1,
+  scanId: "scan",
+  findingId: "duplicate-finding",
+  notes: [
+    {
+      path: "People/Ada Lovelace.md",
+      title: "Ada Lovelace",
+      aliases: ["Ada"],
+      backlinks: [{ sourcePath: "Research.md", locator: "line:1", excerpt: "[[Ada Lovelace]]" }]
+    },
+    {
+      path: "People/Ada L.md",
+      title: "Ada L",
+      aliases: ["Ada", "A. Lovelace"],
+      backlinks: [{ sourcePath: "Research.md", locator: "line:2", excerpt: "[[Ada L]]" }]
+    }
+  ],
+  citedEvidence: duplicateFinding.evidence as [
+    Finding["evidence"][number],
+    Finding["evidence"][number]
+  ],
+  sharedAliases: ["Ada"],
+  conflictingMetadata: [{ field: "role", left: "research", right: "engineering" }]
 };
 
 describe("VaultStewardWorkspace", () => {
@@ -208,6 +247,45 @@ describe("VaultStewardWorkspace", () => {
 
     expect(await screen.findByText(taskFinding.explanation)).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("AI review was incomplete");
+  });
+
+  it("shows a safe side-by-side comparison for a possible duplicate", async () => {
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [duplicateFinding] })}
+        loadFindings={() => [duplicateFinding]}
+        prepareRepairs={async () => null}
+        loadDuplicateEntityReview={() => duplicateReview}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+
+    const review = await screen.findByRole("region", { name: "Possible duplicate review" });
+    expect(within(review).getByText("Ada Lovelace")).toBeInTheDocument();
+    expect(within(review).getByText("Ada L")).toBeInTheDocument();
+    expect(within(review).getByText("Shared aliases:")).toBeInTheDocument();
+    expect(
+      within(review).getByText("No notes will be combined, deleted, or changed from this review.")
+    ).toBeInTheDocument();
+    const evidence = within(review).getByText("View cited overlap").closest("details");
+    expect(evidence).not.toHaveAttribute("open");
+    fireEvent.click(evidence!.querySelector("summary")!);
+    expect(evidence).toHaveAttribute("open");
+    expect(within(evidence!).getByText("People/Ada Lovelace.md")).toBeInTheDocument();
+    const conflicts = within(review)
+      .getByText("Compare conflicting metadata (1)")
+      .closest("details");
+    expect(conflicts).not.toHaveAttribute("open");
+    fireEvent.click(conflicts!.querySelector("summary")!);
+    expect(conflicts).toHaveAttribute("open");
+    expect(
+      within(review).getByText(
+        (_, element) =>
+          element?.tagName === "DD" && element.textContent?.includes("research") === true
+      )
+    ).toHaveTextContent("engineering");
   });
 
   it("uses one Apply click as approval and reports the actual result", async () => {

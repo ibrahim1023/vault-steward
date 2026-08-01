@@ -51,6 +51,7 @@ import { configurationFingerprint } from "./observability/fingerprint.js";
 import { promptRegistryFingerprint } from "./observability/prompt-registry.js";
 import type { TracePreferences } from "./contracts/trace.js";
 import { buildContextualNormalizationFindings } from "./reference/normalization.js";
+import { buildDuplicateEntityReview } from "./review/entity-duplicate-review.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 
@@ -243,6 +244,10 @@ export default class VaultStewardPlugin extends Plugin {
 
   loadFindings() {
     return this.database?.loadFindings() ?? [];
+  }
+
+  loadDuplicateEntityReview(finding: Finding) {
+    return this.activeSnapshot ? buildDuplicateEntityReview(this.activeSnapshot, finding) : null;
   }
 
   loadHistory() {
@@ -629,6 +634,7 @@ class VaultStewardStatusItemView extends ItemView {
           openNote: (path) => this.plugin.openVaultNote(path),
           markNotImportant: (finding) =>
             this.plugin.submitFeedback(finding, "false-positive", "Not important"),
+          loadDuplicateEntityReview: (finding) => this.plugin.loadDuplicateEntityReview(finding),
           openProviderSettings: () => this.plugin.openProviderSettings(),
           policyStudio: {
             loadDraft: () => this.plugin.loadPolicyDraft(),

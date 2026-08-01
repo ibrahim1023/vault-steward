@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { Finding } from "../contracts/index.js";
 import type { PreparedRepairBatch } from "../contracts/prepared-repair.js";
 import type { PreparedRepair, PreparedRepairItem } from "../review/prepare-repair-batch.js";
+import type { DuplicateEntityReview as DuplicateEntityReviewData } from "../review/entity-duplicate-review.js";
 import type { BatchApplyResult } from "../review/workflow.js";
 import type {
   FindingLifecycleRecord,
@@ -10,6 +11,7 @@ import type {
   ScanHistoryRecord
 } from "../storage/repositories.js";
 import { HistoryView } from "./HistoryView.js";
+import { DuplicateEntityReview } from "./DuplicateEntityReview.js";
 import { MaintenanceScheduleView } from "./MaintenanceScheduleView.js";
 import { MaintenanceView } from "./MaintenanceView.js";
 import { ModelReadinessView } from "./ModelReadinessView.js";
@@ -31,6 +33,7 @@ export function VaultStewardWorkspace({
   applyRepairs,
   openNote,
   markNotImportant,
+  loadDuplicateEntityReview,
   openProviderSettings,
   loadHistory,
   policyStudio,
@@ -53,6 +56,7 @@ export function VaultStewardWorkspace({
   applyRepairs?: (batch: PreparedRepairBatch) => Promise<BatchApplyResult>;
   openNote?: (path: string) => void | Promise<void>;
   markNotImportant?: (finding: Finding) => Promise<void>;
+  loadDuplicateEntityReview?: (finding: Finding) => DuplicateEntityReviewData | null;
   openProviderSettings?: () => void;
   loadHistory?: () => { scans: ScanHistoryRecord[]; lifecycle: FindingLifecycleRecord[] };
   policyStudio?: {
@@ -269,6 +273,9 @@ export function VaultStewardWorkspace({
           {...(openNote ? { openNote } : {})}
           dismissing={dismissing}
           onNotImportant={dismissJudgment}
+          {...(loadDuplicateEntityReview
+            ? { duplicateReview: loadDuplicateEntityReview(judgment) }
+            : {})}
         />
       ) : null}
 
@@ -484,12 +491,14 @@ function JudgmentView({
   finding,
   openNote,
   dismissing,
-  onNotImportant
+  onNotImportant,
+  duplicateReview
 }: {
   finding: Finding;
   openNote?: (path: string) => void | Promise<void>;
   dismissing: boolean;
   onNotImportant: (finding: Finding) => Promise<void>;
+  duplicateReview?: DuplicateEntityReviewData | null;
 }) {
   const paths = [
     ...new Set(
@@ -504,6 +513,7 @@ function JudgmentView({
       <p className="steward-eyebrow">Needs your judgment</p>
       <h2>{finding.explanation}</h2>
       {paths[0] ? <p className="judgment-source">{paths.join(" and ")}</p> : null}
+      {duplicateReview ? <DuplicateEntityReview review={duplicateReview} /> : null}
       <div className="judgment-actions">
         {paths[0] ? (
           <button
