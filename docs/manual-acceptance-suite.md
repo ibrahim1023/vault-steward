@@ -78,6 +78,40 @@ does not promise unrelated changes. Select **Apply fixes**. Verify that only the
 approved reference changes, the vault is re-indexed, and the actual result
 matches the write.
 
+## Structured Task And Decision Repairs
+
+Use a disposable copy of the Northstar fixture for this section. Append these
+two tasks to `Work/Launch Readiness.md` after the existing checklist:
+
+```text
+- [ ] Reconcile the approved launch record owner:maya project:Projects/Northstar Launch.md status:done ^reconcile-launch-record
+- [ ] Confirm the revised handoff date owner:maya project:Projects/Northstar Launch.md due:2026-07-01 ^handoff-date
+```
+
+Add `due: 2026-08-15` to the `Projects/Northstar Launch.md` frontmatter. In
+`Decisions/ADR-004-Launch-window.md`, add a frontmatter `project` value of
+`Projects/Missing.md`. Keep the decision's missing rationale state for the
+separate rationale test.
+
+Run **Check vault**. When a model prepares an eligible repair, confirm that
+the preview identifies its repair kind and shows the exact task fragment or
+frontmatter field under **Current** and **After**. A completion proposal may
+only change `- [ ]` to `- [x]` for `reconcile-launch-record`; it must not infer
+completion from prose. A due-date proposal must select the date exposed by the
+task/project/linked-decision context. A decision association proposal must
+replace only the broken existing `project` field with an existing project path.
+
+For a missing rationale, accept only a one-to-three-sentence cited value in
+the `rationale` frontmatter field. Reject a preview containing a link, a path,
+multiple lines, a new note, or unrelated prose. Restore the disposable fixture
+after this section.
+
+When reference and structured proposals are simultaneously eligible, inspect
+the mixed batch. Each row must identify its source and exact change. Edit any
+one source note after the preview, then select **Apply**: the entire batch must
+fail stale without writing any member. Restore the source and repeat; the
+approved batch must re-index and report actual applied fixes.
+
 ## Batch And Stale Protection
 
 When more than one safe proposal is prepared, confirm that each source,
