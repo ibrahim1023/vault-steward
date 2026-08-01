@@ -573,4 +573,24 @@ describe("VaultStewardWorkspace", () => {
     fireEvent.click(screen.getByText("View all issues (1)"));
     expect(screen.getByText(finding.explanation)).toBeInTheDocument();
   });
+
+  it("explains incomplete HyperFusion setup and links directly to settings", async () => {
+    const openProviderSettings = vi.fn();
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () =>
+          Promise.reject(new Error("HyperFusion provider configuration is invalid"))
+        }
+        openProviderSettings={openProviderSettings}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "HyperFusion needs a model and API key. Open Settings to continue."
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Open Settings" }));
+    expect(openProviderSettings).toHaveBeenCalledOnce();
+  });
 });

@@ -316,6 +316,11 @@ export function VaultStewardWorkspace({
       {mode === "error" && errorMessage ? (
         <section className="steward-error" aria-label="Action needed">
           <p role="alert">{errorMessage}</p>
+          {openProviderSettings && errorMessage.includes("Open Settings") ? (
+            <button type="button" onClick={openProviderSettings}>
+              Open Settings
+            </button>
+          ) : null}
           <button className="steward-primary" type="button" onClick={checkVault}>
             Check vault again
           </button>
@@ -747,6 +752,14 @@ function repairKindLabel(kind: PreparedRepairItem["repairKind"]): string {
 
 function scanFailureMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
+  if (message.includes("HyperFusion access requires acknowledgement"))
+    return "HyperFusion needs permission before selected vault evidence can be sent. Open Settings to continue.";
+  if (message.includes("OpenAI access requires acknowledgement"))
+    return "OpenAI needs permission before selected vault evidence can be sent. Open Settings to continue.";
+  if (message.includes("HyperFusion provider configuration"))
+    return "HyperFusion needs a model and API key. Open Settings to continue.";
+  if (message.includes("OpenAI provider configuration"))
+    return "OpenAI needs a model and API key. Open Settings to continue.";
   if (message.includes("model output"))
     return "Model output could not be validated. Try again or review provider settings.";
   if (message.includes("model provider"))
