@@ -13,5 +13,6 @@ npm-debug.log*
 
 # docs
 task.md
+.env
 spec.md
 starter.md
