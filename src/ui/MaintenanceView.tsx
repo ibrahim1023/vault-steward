@@ -7,12 +7,14 @@ export function MaintenanceView({
   findings,
   inspectImpact,
   openNote,
-  dismissFinding
+  dismissFinding,
+  prepareSupportedRepair
 }: {
   findings: Finding[];
   inspectImpact: (path: string) => ChangeImpact;
   openNote?: (path: string) => void | Promise<void>;
   dismissFinding?: (finding: Finding) => Promise<void>;
+  prepareSupportedRepair?: () => Promise<boolean>;
 }) {
   const [path, setPath] = useState("");
   const [impact, setImpact] = useState<ChangeImpact>();
@@ -48,6 +50,11 @@ export function MaintenanceView({
                 <button type="button" onClick={() => void dismissFinding?.(group.representative)}>
                   Dismiss signal
                 </button>
+                {prepareSupportedRepair && supportsRepair(group.representative) ? (
+                  <button type="button" onClick={() => void prepareSupportedRepair()}>
+                    Prepare supported fix
+                  </button>
+                ) : null}
               </div>
             </li>
           );
@@ -72,4 +79,8 @@ export function MaintenanceView({
       ) : null}
     </section>
   );
+}
+
+function supportsRepair(finding: Finding): boolean {
+  return finding.type === "broken-reference" || finding.type === "reference-normalization";
 }

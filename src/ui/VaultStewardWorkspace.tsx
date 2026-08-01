@@ -235,6 +235,20 @@ export function VaultStewardWorkspace({
     }
   };
 
+  const prepareMaintenanceRepair = async (): Promise<boolean> => {
+    if (!prepareRepairs) return false;
+    try {
+      const nextPrepared = await prepareRepairs();
+      if (!nextPrepared) return false;
+      setPrepared(nextPrepared);
+      setJudgment(undefined);
+      setMode("recommendation");
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   return (
     <section className="vault-steward" aria-label="Vault Steward workspace">
       <header className="steward-header">
@@ -375,6 +389,7 @@ export function VaultStewardWorkspace({
                   dismissFinding: (finding: Finding) => markNotImportant(finding)
                 }
               : {})}
+            {...(prepareRepairs ? { prepareSupportedRepair: prepareMaintenanceRepair } : {})}
           />
         ) : null}
         {history && loadObservability ? (
