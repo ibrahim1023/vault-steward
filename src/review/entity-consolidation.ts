@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 
-import type { EntityCanonicalIntent, Finding } from "../contracts/index.js";
+import {
+  parseEntityCanonicalIntent,
+  type EntityCanonicalIntent,
+  type Finding
+} from "../contracts/index.js";
 import {
   calculatePreparedRepairOutcome,
   type PreparedRepairBatch
@@ -57,9 +61,20 @@ export async function prepareEntityConsolidation(input: {
   const items: PreparedRepairItem[] = [];
   for (const sourceNote of input.snapshot.notes) {
     if (sourceNote.path === canonical.path || sourceNote.path === duplicate.path) continue;
+    const relevantReferences = sourceNote.references.filter((reference) => {
+      const resolution = resolveInternalReference(input.snapshot, reference, sourceNote.path);
+      return resolution.status === "resolved" && resolution.canonicalPath === duplicate.path;
+    });
+    if (relevantReferences.length === 0) continue;
     const source = await read(sourceNote);
     if (!source) return null;
+    const bodyStart = source.content.indexOf(sourceNote.content);
+    if (bodyStart < 0) return null;
+    let cursor = bodyStart;
     for (const reference of sourceNote.references) {
+      const start = source.content.indexOf(reference.excerpt, cursor);
+      if (start < cursor) return null;
+      cursor = start + reference.excerpt.length;
       if (operations.length >= MAX_OPERATIONS) break;
       const resolution = resolveInternalReference(input.snapshot, reference, sourceNote.path);
       if (resolution.status !== "resolved" || resolution.canonicalPath !== duplicate.path) continue;
@@ -69,13 +84,7 @@ export async function prepareEntityConsolidation(input: {
         canonical.path
       );
       if (!replacement || replacement === reference.excerpt) continue;
-      const operation = referenceOperation(
-        source,
-        sourceNote,
-        reference.excerpt,
-        replacement,
-        reference.locator
-      );
+      const operation = referenceOperation(source, start, reference.excerpt, replacement);
       if (!operation || operationOverlaps(operations, operation)) continue;
       operations.push(operation);
       items.push(
@@ -145,33 +154,22 @@ export async function prepareEntityConsolidation(input: {
 }
 
 function validIntent(intent: EntityCanonicalIntent, finding: Finding, scanId: string): boolean {
+  const parsed = parseEntityCanonicalIntent(intent);
   return (
-    intent.schemaVersion === 1 &&
-    intent.kind === "select-canonical" &&
-    intent.scanId === scanId &&
-    intent.scanId === finding.scanId &&
-    intent.findingId === finding.id &&
-    intent.candidateId.length > 0 &&
-    intent.candidateId.length <= 512
+    parsed.ok &&
+    parsed.value.scanId === scanId &&
+    parsed.value.scanId === finding.scanId &&
+    parsed.value.findingId === finding.id
   );
 }
 
 function referenceOperation(
   source: EntityConsolidationSource,
-  note: ScannedNote,
+  start: number,
   expected: string,
-  replacement: string,
-  locator: string
+  replacement: string
 ): ReplaceRangeOperation | null {
-  const bodyStart = source.content.indexOf(note.content);
-  const line = Number(/^line:(\d+)$/.exec(locator)?.[1]);
-  if (bodyStart < 0 || !Number.isSafeInteger(line) || line < 1) return null;
-  const lines = note.content.split("\n");
-  const prefix = lines.slice(0, line - 1).join("\n");
-  const startAt = bodyStart + prefix.length + (line > 1 ? 1 : 0);
-  const start = source.content.indexOf(expected, startAt);
-  if (start < startAt || source.content.slice(start, start + expected.length) !== expected)
-    return null;
+  if (source.content.slice(start, start + expected.length) !== expected) return null;
   return {
     kind: "replace-range",
     path: source.path,

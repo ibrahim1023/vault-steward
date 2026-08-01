@@ -21,7 +21,7 @@ function fixture() {
     {
       path: "Projects/Research.md",
       revision: "research",
-      content: "[[People/Ada L|lead]]\n![[People/Ada L#Plan]]\n"
+      content: "[[People/Ada L|lead]] and [[People/Ada L|backup]]\n![[People/Ada L#Plan]]\n"
     },
     {
       path: "Notes/History.md",
@@ -98,6 +98,11 @@ describe("entity consolidation", () => {
           sourcePath: "Projects/Research.md",
           currentReference: "[[People/Ada L|lead]]",
           replacementReference: "[[People/Ada Lovelace|lead]]"
+        }),
+        expect.objectContaining({
+          sourcePath: "Projects/Research.md",
+          currentReference: "[[People/Ada L|backup]]",
+          replacementReference: "[[People/Ada Lovelace|backup]]"
         }),
         expect.objectContaining({
           sourcePath: "Projects/Research.md",
