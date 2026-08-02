@@ -162,6 +162,31 @@ export function combinePreparedRepairs(
   };
 }
 
+export function selectPreparedRepairItems(
+  prepared: PreparedRepair,
+  selectedIds: readonly string[],
+  activeFindingCount: number
+): PreparedRepair | null {
+  const selected = new Set(selectedIds);
+  if (selected.size === 0 || selected.size !== selectedIds.length) return null;
+  const proposals = prepared.proposals.filter((proposal) => selected.has(proposal.id));
+  const items = prepared.items.filter((item) => selected.has(item.proposalId));
+  if (proposals.length !== selected.size || items.length !== selected.size) return null;
+  const proposalIds = proposals.map((proposal) => proposal.id);
+  return {
+    proposals,
+    items,
+    batch: {
+      schemaVersion: 1,
+      id: `batch:${prepared.batch.scanId}:${shortHash(proposalIds)}`,
+      scanId: prepared.batch.scanId,
+      proposalIds,
+      findingIds: proposals.map((proposal) => proposal.findingId),
+      outcome: calculatePreparedRepairOutcome(proposals, activeFindingCount)
+    }
+  };
+}
+
 function shortHash(values: readonly string[]): string {
   return createHash("sha256").update(JSON.stringify(values)).digest("hex").slice(0, 16);
 }

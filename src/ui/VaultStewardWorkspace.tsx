@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 
 import type { Finding } from "../contracts/index.js";
 import type { PreparedRepairBatch } from "../contracts/prepared-repair.js";
-import type { PreparedRepair, PreparedRepairItem } from "../review/prepare-repair-batch.js";
+import {
+  selectPreparedRepairItems,
+  type PreparedRepair,
+  type PreparedRepairItem
+} from "../review/prepare-repair-batch.js";
 import type { DuplicateEntityReview as DuplicateEntityReviewData } from "../review/entity-duplicate-review.js";
 import {
   buildEntityCanonicalCandidates,
@@ -93,6 +97,7 @@ export function VaultStewardWorkspace({
   const [mode, setMode] = useState<WorkspaceMode>("ready");
   const [findings, setFindings] = useState<Finding[]>([]);
   const [prepared, setPrepared] = useState<PreparedRepair | null>(null);
+  const [selectedProposalIds, setSelectedProposalIds] = useState<string[]>([]);
   const [actualResult, setActualResult] = useState<BatchApplyResult | null>(null);
   const [reviewingNext, setReviewingNext] = useState(false);
   const [judgment, setJudgment] = useState<Finding>();
@@ -132,6 +137,7 @@ export function VaultStewardWorkspace({
     }
     if (nextPrepared) {
       setPrepared(nextPrepared);
+      setSelectedProposalIds(nextPrepared.batch.proposalIds);
       setJudgment(undefined);
       setMode("recommendation");
       return;
@@ -163,8 +169,8 @@ export function VaultStewardWorkspace({
     }
   };
 
-  const applyPrepared = async () => {
-    if (!prepared || !applyRepairs) {
+  const applyPrepared = async (repair = prepared) => {
+    if (!repair || !applyRepairs) {
       setMode("error");
       setErrorMessage("Applying fixes is unavailable. Check the plugin installation.");
       return;
@@ -172,7 +178,7 @@ export function VaultStewardWorkspace({
     setMode("applying");
     setErrorMessage(undefined);
     try {
-      const result = await applyRepairs(prepared.batch);
+      const result = await applyRepairs(repair.batch);
       if (!result.ok) {
         setMode("error");
         setErrorMessage(batchFailureMessage(result.reason));
@@ -305,8 +311,21 @@ export function VaultStewardWorkspace({
       {prepared && (mode === "recommendation" || mode === "applying") ? (
         <PreparedResult
           prepared={prepared}
+          selectedProposalIds={selectedProposalIds}
+          onSelectionChange={setSelectedProposalIds}
           applying={mode === "applying"}
-          onApply={applyPrepared}
+          onApply={async () => {
+            const selected = selectPreparedRepairItems(
+              prepared,
+              selectedProposalIds,
+              activeFindings.length
+            );
+            if (!selected) {
+              setErrorMessage("Select at least one compatible fix.");
+              return;
+            }
+            await applyPrepared(selected);
+          }}
         />
       ) : null}
 
@@ -423,20 +442,32 @@ export function VaultStewardWorkspace({
 
 function PreparedResult({
   prepared,
+  selectedProposalIds,
+  onSelectionChange,
   applying,
   onApply
 }: {
   prepared: PreparedRepair;
+  selectedProposalIds: readonly string[];
+  onSelectionChange: (ids: string[]) => void;
   applying: boolean;
   onApply: () => Promise<void>;
 }) {
   const count = prepared.batch.proposalIds.length;
+  const selected = new Set(selectedProposalIds);
+  const selectedRepair = selectPreparedRepairItems(
+    prepared,
+    selectedProposalIds,
+    prepared.batch.outcome.expectedFindingsResolved + prepared.batch.outcome.findingsLeftUnchanged
+  );
+  const selectedCount = selectedRepair?.batch.proposalIds.length ?? 0;
+  const outcome = selectedRepair?.batch.outcome;
   return (
     <section className="prepared-result" aria-label="Prepared result">
       <div className="prepared-heading">
         <div>
           <p className="steward-eyebrow">Ready for your approval</p>
-          <h2>{formatCount(count, "safe fix")} prepared</h2>
+          <h2>{formatCount(selectedCount, "safe fix")} selected</h2>
         </div>
         <span className="target-status">Evidence checked</span>
       </div>
@@ -444,9 +475,32 @@ function PreparedResult({
         Review the exact result below. Vault Steward will apply only these changes.
       </p>
       <div className="repair-items">
+        {count > 1 ? (
+          <div className="repair-selection-controls" aria-label="Repair selection">
+            <button type="button" onClick={() => onSelectionChange(prepared.batch.proposalIds)}>
+              Select all
+            </button>
+            <button type="button" onClick={() => onSelectionChange([])}>
+              Select none
+            </button>
+          </div>
+        ) : null}
         {prepared.items.map((item) => (
           <details className="repair-item" key={item.proposalId}>
             <summary>
+              <input
+                aria-label={`Select ${item.proposalId}`}
+                type="checkbox"
+                checked={selected.has(item.proposalId)}
+                onClick={(event) => event.stopPropagation()}
+                onChange={() =>
+                  onSelectionChange(
+                    selected.has(item.proposalId)
+                      ? selectedProposalIds.filter((id) => id !== item.proposalId)
+                      : [...selectedProposalIds, item.proposalId]
+                  )
+                }
+              />
               <span className="repair-status">
                 <strong>{repairStatusLabel(item)}</strong>
                 <small>{repairKindLabel(item.repairKind)}</small>
@@ -503,28 +557,26 @@ function PreparedResult({
       <section className="expected-result" aria-label="Expected result">
         <h3>Expected result</h3>
         <ul>
-          <li>{formatCount(prepared.batch.outcome.expectedFindingsResolved, "issue")} resolved</li>
-          <li>{formatCount(prepared.batch.outcome.notesEdited, "note")} edited</li>
-          <li>
-            {formatCount(prepared.batch.outcome.findingsLeftUnchanged, "issue")} left unchanged
-          </li>
+          <li>{formatCount(outcome?.expectedFindingsResolved ?? 0, "issue")} resolved</li>
+          <li>{formatCount(outcome?.notesEdited ?? 0, "note")} edited</li>
+          <li>{formatCount(outcome?.findingsLeftUnchanged ?? 0, "issue")} left unchanged</li>
         </ul>
       </section>
       <button
         className="steward-primary"
         type="button"
-        disabled={applying}
+        disabled={applying || selectedCount === 0}
         aria-busy={applying}
         onClick={() => void onApply()}
       >
         {applying ? (
           <>
             <span className="button-spinner" aria-hidden="true" />
-            Applying {count} {count === 1 ? "fix" : "fixes"}...
+            Applying {selectedCount} {selectedCount === 1 ? "fix" : "fixes"}...
           </>
         ) : (
           <>
-            Apply {count} {count === 1 ? "fix" : "fixes"}
+            Apply {selectedCount} {selectedCount === 1 ? "fix" : "fixes"}
           </>
         )}
       </button>

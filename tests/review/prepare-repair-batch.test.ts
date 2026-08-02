@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { Finding } from "../../src/contracts/index.js";
 import {
   combinePreparedRepairs,
-  prepareReferenceRepairBatch
+  prepareReferenceRepairBatch,
+  selectPreparedRepairItems,
+  type PreparedRepair
 } from "../../src/review/prepare-repair-batch.js";
 import { scanVaultFiles } from "../../src/scanner/scan.js";
 
@@ -25,7 +27,7 @@ function brokenFinding(scanId: string): Finding {
 
 describe("prepared reference repair orchestration", () => {
   it("combines compatible prepared repairs into one all-member review batch", () => {
-    const repair = {
+    const repair: PreparedRepair = {
       batch: {
         schemaVersion: 1 as const,
         id: "batch-a",
@@ -77,6 +79,47 @@ describe("prepared reference repair orchestration", () => {
     expect(combinePreparedRepairs("scan-1", 2, [repair])).toMatchObject({
       batch: { scanId: "scan-1", findingIds: ["finding-a"] }
     });
+
+    const proposalA = repair.proposals[0]!;
+    const itemA = repair.items[0]!;
+    const repairB: PreparedRepair = {
+      ...repair,
+      batch: {
+        ...repair.batch,
+        id: "batch-b",
+        proposalIds: ["proposal-b"],
+        findingIds: ["finding-b"]
+      },
+      proposals: [
+        {
+          ...proposalA,
+          id: "proposal-b",
+          findingId: "finding-b",
+          operations: [{ ...proposalA.operations[0]!, path: "Other.md" }]
+        }
+      ],
+      items: [
+        {
+          ...itemA,
+          proposalId: "proposal-b",
+          findingId: "finding-b",
+          sourcePath: "Other.md",
+          affectedNotes: ["Other.md"]
+        }
+      ]
+    };
+    const combined = combinePreparedRepairs("scan-1", 3, [repair, repairB])!;
+
+    expect(selectPreparedRepairItems(combined, ["proposal-b"], 3)).toMatchObject({
+      batch: {
+        scanId: "scan-1",
+        proposalIds: ["proposal-b"],
+        findingIds: ["finding-b"],
+        outcome: { expectedFindingsResolved: 1, findingsLeftUnchanged: 2 }
+      }
+    });
+    expect(selectPreparedRepairItems(combined, [], 3)).toBeNull();
+    expect(selectPreparedRepairItems(combined, ["unknown"], 3)).toBeNull();
   });
 
   it("persists a verified rename and derives exact preview and outcome metadata", async () => {
