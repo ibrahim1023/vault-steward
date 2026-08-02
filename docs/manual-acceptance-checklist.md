@@ -74,6 +74,18 @@ Obsidian desktop.
 - [ ] The actual result matches the changed notes and refreshed findings.
 - [ ] Runtime write failure rolls back earlier writes or enters recovery-required state.
 
+## Faster Batch Review And Local Learning
+
+- [ ] Prepare at least two compatible fixes; confirm they are grouped by repair family, source folder, and affected notes while each change remains individually selectable.
+- [ ] Select none and confirm Apply is disabled with a zero-fix expected result; select all and confirm the aggregate result is recalculated.
+- [ ] Exclude one item and confirm Apply count, resolved-finding count, note count, and unchanged-finding count describe only the remaining selected proposals.
+- [ ] Prepare overlapping selected operations in a controlled fixture; confirm the workspace names the conflicting note, disables Apply, and requires one item to be excluded.
+- [ ] Confirm a stale, altered, missing, conflicting, or unauthorized selected member still rejects the whole selected batch before its first write.
+- [ ] Dismiss a non-repairable finding with each reason: false positive, expected exception, duplicate report, and revisit later. Confirm the next issue is immediately available.
+- [ ] Record three matching false-positive dismissals in a disposable test vault, open Diagnostics > Local review feedback, and confirm only then that a reviewed `Suppress from primary review` action appears.
+- [ ] Activate that suppression and confirm it only deprioritizes the matching local finding pattern from the primary path. Confirm the finding remains visible through `View all issues` and that scans, evidence, policy evaluation, and writes are unchanged.
+- [ ] Confirm local review feedback exposes no note body, prompt, model output, API key, or remote telemetry.
+
 ## Duplicate Entity Consolidation
 
 - [ ] A duplicate finding opens a side-by-side review of exactly the two cited notes.
