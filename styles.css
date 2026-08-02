@@ -304,6 +304,30 @@
   background: var(--background-primary);
 }
 
+.repair-group {
+  display: grid;
+  gap: 8px;
+}
+
+.repair-group > header {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.repair-group > header small {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.repair-selection-controls {
+  display: flex;
+  gap: 8px;
+}
+
 .repair-item > summary {
   display: grid;
   gap: 10px;

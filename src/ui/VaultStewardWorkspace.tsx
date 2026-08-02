@@ -7,6 +7,7 @@ import {
   type PreparedRepair,
   type PreparedRepairItem
 } from "../review/prepare-repair-batch.js";
+import { groupPreparedRepairItems } from "../review/prepared-repair-groups.js";
 import type { DuplicateEntityReview as DuplicateEntityReviewData } from "../review/entity-duplicate-review.js";
 import {
   buildEntityCanonicalCandidates,
@@ -462,6 +463,7 @@ function PreparedResult({
   );
   const selectedCount = selectedRepair?.batch.proposalIds.length ?? 0;
   const outcome = selectedRepair?.batch.outcome;
+  const groups = groupPreparedRepairItems(prepared.items);
   return (
     <section className="prepared-result" aria-label="Prepared result">
       <div className="prepared-heading">
@@ -485,15 +487,18 @@ function PreparedResult({
             </button>
           </div>
         ) : null}
-        {prepared.items.map((item) => (
-          <details className="repair-item" key={item.proposalId}>
-            <summary>
-              <input
-                aria-label={`Select ${item.proposalId}`}
-                type="checkbox"
-                checked={selected.has(item.proposalId)}
-                onClick={(event) => event.stopPropagation()}
-                onChange={() =>
+        {groups.map((group) => (
+          <section className="repair-group" key={group.id} aria-label={group.label}>
+            <header>
+              <strong>{group.label}</strong>
+              <small>{group.affectedNotes.join(", ")}</small>
+            </header>
+            {group.items.map((item) => (
+              <RepairItem
+                item={item}
+                key={item.proposalId}
+                selected={selected.has(item.proposalId)}
+                onSelectionChange={() =>
                   onSelectionChange(
                     selected.has(item.proposalId)
                       ? selectedProposalIds.filter((id) => id !== item.proposalId)
@@ -501,57 +506,8 @@ function PreparedResult({
                   )
                 }
               />
-              <span className="repair-status">
-                <strong>{repairStatusLabel(item)}</strong>
-                <small>{repairKindLabel(item.repairKind)}</small>
-              </span>
-              <span className="repair-change" aria-label="Exact repair change">
-                <span>
-                  <small>Current</small>
-                  <code className="current-reference">{item.currentReference}</code>
-                </span>
-                <span className="repair-arrow" aria-hidden="true">
-                  →
-                </span>
-                <span>
-                  <small>After</small>
-                  <code className="after-reference">{item.replacementReference}</code>
-                </span>
-              </span>
-            </summary>
-            <dl className="repair-details">
-              <div>
-                <dt>Source</dt>
-                <dd>{item.sourcePath}</dd>
-              </div>
-              <div>
-                <dt>Location</dt>
-                <dd>{item.locator}</dd>
-              </div>
-              {item.targetPath ? (
-                <div>
-                  <dt>Target</dt>
-                  <dd>{item.targetPath}</dd>
-                </div>
-              ) : null}
-              {item.targetAnchor ? (
-                <div>
-                  <dt>{item.targetAnchor.kind === "block" ? "Block" : "Heading"}</dt>
-                  <dd>{item.targetAnchor.value}</dd>
-                </div>
-              ) : null}
-              {item.targetExists !== undefined ? (
-                <div>
-                  <dt>Target check</dt>
-                  <dd>{item.targetExists ? "Existing target" : "Target unavailable"}</dd>
-                </div>
-              ) : null}
-              <div>
-                <dt>Affected notes</dt>
-                <dd>{item.affectedNotes.join(", ")}</dd>
-              </div>
-            </dl>
-          </details>
+            ))}
+          </section>
         ))}
       </div>
       <section className="expected-result" aria-label="Expected result">
@@ -582,6 +538,79 @@ function PreparedResult({
       </button>
       <p className="approval-note">Nothing changes until you select Apply.</p>
     </section>
+  );
+}
+
+function RepairItem({
+  item,
+  selected,
+  onSelectionChange
+}: {
+  item: PreparedRepairItem;
+  selected: boolean;
+  onSelectionChange: () => void;
+}) {
+  return (
+    <details className="repair-item">
+      <summary>
+        <input
+          aria-label={`Select ${item.proposalId}`}
+          type="checkbox"
+          checked={selected}
+          onClick={(event) => event.stopPropagation()}
+          onChange={onSelectionChange}
+        />
+        <span className="repair-status">
+          <strong>{repairStatusLabel(item)}</strong>
+          <small>{repairKindLabel(item.repairKind)}</small>
+        </span>
+        <span className="repair-change" aria-label="Exact repair change">
+          <span>
+            <small>Current</small>
+            <code className="current-reference">{item.currentReference}</code>
+          </span>
+          <span className="repair-arrow" aria-hidden="true">
+            →
+          </span>
+          <span>
+            <small>After</small>
+            <code className="after-reference">{item.replacementReference}</code>
+          </span>
+        </span>
+      </summary>
+      <dl className="repair-details">
+        <div>
+          <dt>Source</dt>
+          <dd>{item.sourcePath}</dd>
+        </div>
+        <div>
+          <dt>Location</dt>
+          <dd>{item.locator}</dd>
+        </div>
+        {item.targetPath ? (
+          <div>
+            <dt>Target</dt>
+            <dd>{item.targetPath}</dd>
+          </div>
+        ) : null}
+        {item.targetAnchor ? (
+          <div>
+            <dt>{item.targetAnchor.kind === "block" ? "Block" : "Heading"}</dt>
+            <dd>{item.targetAnchor.value}</dd>
+          </div>
+        ) : null}
+        {item.targetExists !== undefined ? (
+          <div>
+            <dt>Target check</dt>
+            <dd>{item.targetExists ? "Existing target" : "Target unavailable"}</dd>
+          </div>
+        ) : null}
+        <div>
+          <dt>Affected notes</dt>
+          <dd>{item.affectedNotes.join(", ")}</dd>
+        </div>
+      </dl>
+    </details>
   );
 }
 
