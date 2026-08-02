@@ -17,5 +17,9 @@ The roadmap tracks concrete product work rather than delivery dates.
   review and canonical link/alias-only consolidation, change-aware maintenance, guided policy
   intelligence, and faster local batch review. Each step retains exact preview,
   explicit approval, stale protection, and deterministic writes.
+- Add local-only review feedback that can group compatible repairs, retain individual
+  selection, and offer reviewed primary-queue suppression only after repeated
+  false-positive evidence; it must never change detection, model training, or write
+  authorization.
 
 The roadmap is not a promise of release order or availability.

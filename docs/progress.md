@@ -2,12 +2,11 @@
 
 ## Current Phase
 
-Phase 24 structured task and decision repairs are promoted to `development`.
-Phase 25 duplicate-entity and canonical-note review is now active on its
-dedicated feature branch. Focused manual Obsidian acceptance remains unchecked
-and release-blocking. This parallel feature work does not alter the deferred
-Phase 19 manual acceptance or Phases 21-22 release gates; those remain required
-before a submission-ready claim.
+Phase 28 faster batch review and local learning is active on its dedicated
+feature branch. Automated implementation is being completed before the
+cumulative manual Obsidian acceptance pass. This parallel feature work does not
+alter the deferred Phase 19 manual acceptance or Phases 21-22 release gates;
+those remain required before a submission-ready claim.
 
 ## Completed Work
 
@@ -104,6 +103,12 @@ remain required before any submission-ready claim.
 
 - Phase 26 adds local-only, evidence-backed maintenance signals for rename/delete impact and newly superseded decisions. Safe modify event batches record an incremental reuse plan; all ambiguous events retain conservative full-vault behavior. The maintenance queue provides review actions only and never writes notes.
 - Phase 27 adds guided policy templates and deterministic, abstaining classification. A known template field can become a prepared repair only when the active snapshot contains exactly one safe existing candidate value; it remains exact-preview and approval gated.
+- Phase 28 adds individually selectable, deterministically grouped repair previews with
+  aggregate outcomes. The selected subset still uses the existing all-member digest,
+  revision, conflict, rollback, and re-index protections. Dismissal reasons and
+  repeated false-positive patterns remain local; only three matching reports expose a
+  user-reviewed suppression control in Diagnostics. Suppression changes primary-review
+  presentation only, never scanning, evidence validation, policy execution, or writes.
 
 - Obsidian plugin with local TypeScript core.
 - SQLite is canonical; LanceDB is optional and derived.
