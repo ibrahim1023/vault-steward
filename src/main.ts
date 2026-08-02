@@ -746,8 +746,8 @@ class VaultStewardStatusItemView extends ItemView {
           prepareRepairs: () => this.plugin.prepareRecommendedRepairBatch(),
           applyRepairs: (batch) => this.plugin.applyPreparedRepairBatch(batch),
           openNote: (path) => this.plugin.openVaultNote(path),
-          markNotImportant: (finding) =>
-            this.plugin.submitFeedback(finding, "false-positive", "Not important"),
+          markNotImportant: (finding, reason) =>
+            this.plugin.submitFeedback(finding, "false-positive", reason),
           loadDuplicateEntityReview: (finding) => this.plugin.loadDuplicateEntityReview(finding),
           recommendCanonicalEntity: (finding) => this.plugin.recommendCanonicalEntity(finding),
           prepareEntityConsolidation: (finding, candidateId) =>

@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 
 import type { Finding } from "../contracts/index.js";
+import {
+  DISMISSAL_REASONS,
+  dismissalReasonLabel,
+  type DismissalReason
+} from "../feedback/review.js";
 import type { PreparedRepairBatch } from "../contracts/prepared-repair.js";
 import {
   selectPreparedRepairItems,
@@ -66,7 +71,7 @@ export function VaultStewardWorkspace({
   prepareRepairs?: () => Promise<PreparedRepair | null>;
   applyRepairs?: (batch: PreparedRepairBatch) => Promise<BatchApplyResult>;
   openNote?: (path: string) => void | Promise<void>;
-  markNotImportant?: (finding: Finding) => Promise<void>;
+  markNotImportant?: (finding: Finding, reason: DismissalReason) => Promise<void>;
   loadDuplicateEntityReview?: (finding: Finding) => DuplicateEntityReviewData | null;
   recommendCanonicalEntity?: (finding: Finding) => Promise<EntityCanonicalRecommendation>;
   prepareEntityConsolidation?: (
@@ -214,12 +219,12 @@ export function VaultStewardWorkspace({
     }
   };
 
-  const dismissJudgment = async (finding: Finding) => {
+  const dismissJudgment = async (finding: Finding, reason: DismissalReason) => {
     if (dismissing) return;
     setDismissing(true);
     setErrorMessage(undefined);
     try {
-      await markNotImportant?.(finding);
+      await markNotImportant?.(finding, reason);
       const nextDismissedIds = new Set(dismissedFindingIds);
       nextDismissedIds.add(finding.id);
       setDismissedFindingIds(nextDismissedIds);
@@ -410,7 +415,7 @@ export function VaultStewardWorkspace({
             {...(openNote ? { openNote } : {})}
             {...(markNotImportant
               ? {
-                  dismissFinding: (finding: Finding) => markNotImportant(finding)
+                  dismissFinding: (finding: Finding) => markNotImportant(finding, "false-positive")
                 }
               : {})}
             {...(prepareRepairs ? { prepareSupportedRepair: prepareMaintenanceRepair } : {})}
@@ -669,11 +674,12 @@ function JudgmentView({
   finding: Finding;
   openNote?: (path: string) => void | Promise<void>;
   dismissing: boolean;
-  onNotImportant: (finding: Finding) => Promise<void>;
+  onNotImportant: (finding: Finding, reason: DismissalReason) => Promise<void>;
   duplicateReview?: DuplicateEntityReviewData | null;
   recommendCanonicalEntity?: () => Promise<EntityCanonicalRecommendation>;
   prepareConsolidation?: (candidateId: string) => Promise<boolean>;
 }) {
+  const [dismissalReason, setDismissalReason] = useState<DismissalReason>("false-positive");
   const paths = [
     ...new Set(
       finding.affectedNoteIds.length
@@ -707,8 +713,27 @@ function JudgmentView({
             {multiple ? "Review both notes" : "Open note"}
           </button>
         ) : null}
-        <button type="button" disabled={dismissing} onClick={() => void onNotImportant(finding)}>
-          Not important
+        <label className="dismissal-reason">
+          <span className="sr-only">Dismissal reason</span>
+          <select
+            aria-label="Dismissal reason"
+            value={dismissalReason}
+            disabled={dismissing}
+            onChange={(event) => setDismissalReason(event.target.value as DismissalReason)}
+          >
+            {DISMISSAL_REASONS.map((reason) => (
+              <option value={reason} key={reason}>
+                {dismissalReasonLabel(reason)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          disabled={dismissing}
+          onClick={() => void onNotImportant(finding, dismissalReason)}
+        >
+          {dismissing ? "Dismissing..." : "Not important"}
         </button>
       </div>
     </section>

@@ -475,8 +475,11 @@ describe("VaultStewardWorkspace", () => {
     expect(await screen.findByText(taskFinding.explanation)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Open note" }));
     expect(openNote).toHaveBeenCalledWith("Home.md");
+    fireEvent.change(screen.getByRole("combobox", { name: "Dismissal reason" }), {
+      target: { value: "expected-exception" }
+    });
     fireEvent.click(screen.getByRole("button", { name: "Not important" }));
-    expect(markNotImportant).toHaveBeenCalledWith(taskFinding);
+    expect(markNotImportant).toHaveBeenCalledWith(taskFinding, "expected-exception");
     expect(await screen.findByText("Your vault looks clear")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /apply/i })).not.toBeInTheDocument();
   });
@@ -517,8 +520,8 @@ describe("VaultStewardWorkspace", () => {
     expect(await screen.findByText(secondTask.explanation)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Not important" }));
     expect(await screen.findByText(thirdTask.explanation)).toBeInTheDocument();
-    expect(markNotImportant).toHaveBeenNthCalledWith(1, firstTask);
-    expect(markNotImportant).toHaveBeenNthCalledWith(2, secondTask);
+    expect(markNotImportant).toHaveBeenNthCalledWith(1, firstTask, "false-positive");
+    expect(markNotImportant).toHaveBeenNthCalledWith(2, secondTask, "false-positive");
   });
 
   it("advances immediately without waiting for another repair recommendation", async () => {
