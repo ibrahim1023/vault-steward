@@ -757,6 +757,7 @@ function repairStatusLabel(item: PreparedRepairItem): string {
   if (item.repairFamily === "task") return "Bounded task repair";
   if (item.repairFamily === "decision") return "Cited decision repair";
   if (item.repairFamily === "entity") return "Duplicate consolidation";
+  if (item.repairFamily === "schema") return "Template field repair";
   switch (item.targetStatus) {
     case "verified-rename":
       return "Verified rename";

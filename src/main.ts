@@ -27,6 +27,7 @@ import {
 } from "./review/prepare-repair-batch.js";
 import { selectReferenceCandidateWithProviders } from "./review/reference-recommendation.js";
 import { prepareTaskDecisionRepairBatch } from "./review/prepare-task-decision-batch.js";
+import { prepareTemplateRepairBatch } from "./review/prepare-template-repair-batch.js";
 import { selectTaskDecisionRepairWithProviders } from "./review/task-decision-recommendation.js";
 import { getPluginDatabasePath } from "./storage/sqlite-runtime.js";
 import { VaultStewardWorkspace } from "./ui/VaultStewardWorkspace.js";
@@ -494,10 +495,27 @@ export default class VaultStewardPlugin extends Plugin {
         });
       }
     });
+    const templatePrepared = await prepareTemplateRepairBatch({
+      snapshot: this.activeSnapshot,
+      findings,
+      readSource: (path) => writer.read(path),
+      persistProposal: (proposal) => {
+        const existing = this.database!.repository.findProposal(proposal.id);
+        if (existing) return;
+        this.database!.repository.saveProposal({
+          id: proposal.id,
+          findingId: proposal.findingId,
+          patchJson: JSON.stringify(proposal),
+          sourceRevisionsJson: "{}",
+          status: "pending",
+          proposalDigest: proposalDigest(proposal)
+        });
+      }
+    });
     const prepared = combinePreparedRepairs(
       this.activeSnapshot.id,
       findings.filter((finding) => finding.status === "open").length,
-      [referencePrepared, taskDecisionPrepared]
+      [referencePrepared, taskDecisionPrepared, templatePrepared]
     );
     await this.database.flush();
     return prepared;

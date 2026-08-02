@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { prepareTemplateRepairBatch } from "../../src/review/prepare-template-repair-batch.js";
 import {
   buildTemplateRepairCandidates,
   proposeTemplateFrontmatterRepair
@@ -64,3 +65,18 @@ describe("template frontmatter repairs", () =>
       proposal: { operations: [expect.objectContaining({ replacement: '---\nowner: "Maya"\n' })] }
     });
   }));
+
+it("prepares only an unambiguous snapshot-derived template repair", async () => {
+  const persisted = vi.fn();
+  const prepared = await prepareTemplateRepairBatch({
+    snapshot,
+    findings: [finding],
+    readSource: async () => ({ revision: "a", content: snapshot.notes[0]!.content }),
+    persistProposal: persisted
+  });
+  expect(prepared?.items[0]).toMatchObject({
+    repairFamily: "schema",
+    repairKind: "set-frontmatter"
+  });
+  expect(persisted).toHaveBeenCalledOnce();
+});
