@@ -80,3 +80,26 @@ it("prepares only an unambiguous snapshot-derived template repair", async () => 
   });
   expect(persisted).toHaveBeenCalledOnce();
 });
+
+it("abstains when snapshot candidates conflict", async () => {
+  const conflicting = {
+    ...snapshot,
+    notes: [
+      ...snapshot.notes,
+      {
+        ...snapshot.notes[1]!,
+        path: "Projects/Gamma.md",
+        frontmatter: { kind: "project", owner: "Lee" }
+      }
+    ]
+  };
+  expect(buildTemplateRepairCandidates(conflicting, finding)).toHaveLength(2);
+  expect(
+    await prepareTemplateRepairBatch({
+      snapshot: conflicting,
+      findings: [finding],
+      readSource: async () => ({ revision: "a", content: snapshot.notes[0]!.content }),
+      persistProposal: () => undefined
+    })
+  ).toBeNull();
+});
