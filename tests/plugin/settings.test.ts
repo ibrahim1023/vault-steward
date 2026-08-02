@@ -18,7 +18,8 @@ describe("plugin settings", () => {
         autoScanOnLoad: true,
         modelProvider: DEFAULT_PLUGIN_SETTINGS.modelProvider,
         cloudModelConsent: false,
-        maintenanceSchedule: DEFAULT_PLUGIN_SETTINGS.maintenanceSchedule
+        maintenanceSchedule: DEFAULT_PLUGIN_SETTINGS.maintenanceSchedule,
+        suppressedFindingPatterns: []
       }
     );
   });
@@ -136,5 +137,13 @@ describe("plugin settings", () => {
       cloudModelConsent: true,
       modelProvider: { kind: "hyperfusion", model: "qwen/qwen3-32b" }
     });
+  });
+
+  it("keeps only bounded unique local suppression patterns", () => {
+    expect(
+      parsePluginSettings({
+        suppressedFindingPatterns: ["task:Work/Plan.md", "task:Work/Plan.md", 12, "  "]
+      }).suppressedFindingPatterns
+    ).toEqual(["task:Work/Plan.md"]);
   });
 });

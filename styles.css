@@ -184,6 +184,35 @@
   border: 0;
 }
 
+.feedback-learning-view {
+  display: grid;
+  gap: 10px;
+}
+
+.feedback-learning-view p {
+  color: var(--text-muted);
+}
+
+.feedback-learning-view ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feedback-learning-view li {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border-left: 3px solid var(--steward-amber);
+  background: var(--background-secondary);
+}
+
+.feedback-learning-view small {
+  color: var(--text-muted);
+}
+
 .duplicate-entity-review {
   display: grid;
   gap: 10px;

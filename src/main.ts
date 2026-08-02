@@ -44,6 +44,7 @@ import { explainFinding, type FindingExplanation } from "./agents/finding-explan
 import { checkModelReadiness } from "./model-provider/readiness.js";
 import type { Finding } from "./contracts/index.js";
 import { validateReviewerFeedback, type FeedbackVerdict } from "./feedback/review.js";
+import { findingFeedbackPattern } from "./feedback/local-learning.js";
 import { analyzeChangeImpact, type ChangeImpact } from "./indexing/impact.js";
 import {
   decideMaintenanceRun,
@@ -596,9 +597,24 @@ export default class VaultStewardPlugin extends Plugin {
       proposalId: null,
       verdict,
       label: label || null,
+      patternKey: findingFeedbackPattern(finding),
       createdAt: new Date().toISOString()
     });
     await this.database.flush();
+  }
+
+  listReviewerFeedback() {
+    return this.database?.repository.listReviewerFeedback() ?? [];
+  }
+
+  async suppressFindingPattern(pattern: string): Promise<void> {
+    const normalized = pattern.trim();
+    if (!normalized || normalized.length > 512)
+      throw new Error("The suppression pattern is invalid.");
+    await this.saveSettings({
+      ...this.settings,
+      suppressedFindingPatterns: [...this.settings.suppressedFindingPatterns, normalized]
+    });
   }
 
   async applyProposal(proposalId: string) {
@@ -748,6 +764,9 @@ class VaultStewardStatusItemView extends ItemView {
           openNote: (path) => this.plugin.openVaultNote(path),
           markNotImportant: (finding, reason) =>
             this.plugin.submitFeedback(finding, "false-positive", reason),
+          loadReviewerFeedback: () => this.plugin.listReviewerFeedback(),
+          suppressedFindingPatterns: this.plugin.settings.suppressedFindingPatterns,
+          suppressFindingPattern: (pattern) => this.plugin.suppressFindingPattern(pattern),
           loadDuplicateEntityReview: (finding) => this.plugin.loadDuplicateEntityReview(finding),
           recommendCanonicalEntity: (finding) => this.plugin.recommendCanonicalEntity(finding),
           prepareEntityConsolidation: (finding, candidateId) =>

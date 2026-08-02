@@ -176,6 +176,7 @@ export type ReviewerFeedbackRecord = {
   proposalId: string | null;
   verdict: "false-positive" | "useful" | "needs-review";
   label: string | null;
+  patternKey: string;
   createdAt: string;
 };
 
@@ -963,13 +964,14 @@ export class VaultStewardRepository {
 
   saveReviewerFeedback(record: ReviewerFeedbackRecord): void {
     this.database.run(
-      "INSERT INTO reviewer_feedback (id, finding_id, proposal_id, verdict, label, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO reviewer_feedback (id, finding_id, proposal_id, verdict, label, pattern_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [
         record.id,
         record.findingId,
         record.proposalId,
         record.verdict,
         record.label,
+        record.patternKey,
         record.createdAt
       ]
     );
@@ -978,13 +980,14 @@ export class VaultStewardRepository {
   listReviewerFeedback(): ReviewerFeedbackRecord[] {
     return (
       this.database.exec(
-        "SELECT id, finding_id, proposal_id, verdict, label, created_at FROM reviewer_feedback ORDER BY created_at, id"
+        "SELECT id, finding_id, proposal_id, verdict, label, pattern_key, created_at FROM reviewer_feedback ORDER BY created_at, id"
       )[0]?.values ?? []
     ).flatMap((row) =>
       typeof row[0] === "string" &&
       typeof row[1] === "string" &&
       typeof row[3] === "string" &&
       typeof row[5] === "string" &&
+      typeof row[6] === "string" &&
       (typeof row[2] === "string" || row[2] === null) &&
       (typeof row[4] === "string" || row[4] === null) &&
       ["false-positive", "useful", "needs-review"].includes(row[3])
@@ -995,7 +998,8 @@ export class VaultStewardRepository {
               proposalId: row[2],
               verdict: row[3] as ReviewerFeedbackRecord["verdict"],
               label: row[4],
-              createdAt: row[5]
+              patternKey: row[5],
+              createdAt: row[6]
             }
           ]
         : []

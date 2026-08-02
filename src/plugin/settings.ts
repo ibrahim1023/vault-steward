@@ -17,12 +17,14 @@ export type PluginSettings = {
   modelProvider: ModelProviderConfig;
   cloudModelConsent: boolean;
   maintenanceSchedule: MaintenanceSchedule;
+  suppressedFindingPatterns: string[];
 };
 
 export const DEFAULT_PLUGIN_SETTINGS: PluginSettings = {
   vaultLabel: "Current vault",
   autoScanOnLoad: false,
   cloudModelConsent: false,
+  suppressedFindingPatterns: [],
   maintenanceSchedule: DEFAULT_MAINTENANCE_SCHEDULE,
   modelProvider: {
     kind: "ollama",
@@ -50,15 +52,25 @@ export function parsePluginSettings(value: unknown): PluginSettings {
       ? candidate.cloudModelConsent
       : DEFAULT_PLUGIN_SETTINGS.cloudModelConsent;
   const maintenanceSchedule = candidate.maintenanceSchedule ?? DEFAULT_MAINTENANCE_SCHEDULE;
+  const suppressedFindingPatterns = validSuppressionPatterns(candidate.suppressedFindingPatterns);
   return {
     vaultLabel,
     autoScanOnLoad,
     modelProvider,
     cloudModelConsent,
+    suppressedFindingPatterns,
     maintenanceSchedule: isValidMaintenanceSchedule(maintenanceSchedule)
       ? maintenanceSchedule
       : DEFAULT_MAINTENANCE_SCHEDULE
   };
+}
+
+function validSuppressionPatterns(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((item): item is string => typeof item === "string"))]
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0 && item.length <= 512)
+    .slice(0, 100);
 }
 
 function validVaultLabel(value: unknown): string | null {

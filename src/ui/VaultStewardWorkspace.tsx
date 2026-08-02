@@ -6,6 +6,7 @@ import {
   dismissalReasonLabel,
   type DismissalReason
 } from "../feedback/review.js";
+import { isLocallySuppressed } from "../feedback/local-learning.js";
 import type { PreparedRepairBatch } from "../contracts/prepared-repair.js";
 import {
   selectPreparedRepairItems,
@@ -25,6 +26,7 @@ import type {
   ScanHistoryRecord
 } from "../storage/repositories.js";
 import { HistoryView } from "./HistoryView.js";
+import { FeedbackLearningView } from "./FeedbackLearningView.js";
 import { DuplicateEntityReview } from "./DuplicateEntityReview.js";
 import { MaintenanceScheduleView } from "./MaintenanceScheduleView.js";
 import { MaintenanceView } from "./MaintenanceView.js";
@@ -58,7 +60,10 @@ export function VaultStewardWorkspace({
   inspectImpact,
   loadObservability,
   deleteScanTrace,
-  deleteAllTraceData
+  deleteAllTraceData,
+  loadReviewerFeedback,
+  suppressedFindingPatterns = [],
+  suppressFindingPattern
 }: {
   vaultLabel: string;
   scan: () => Promise<{
@@ -99,6 +104,9 @@ export function VaultStewardWorkspace({
   loadObservability?: (scanId?: string) => ObservabilitySnapshot;
   deleteScanTrace?: (scanId: string) => Promise<void>;
   deleteAllTraceData?: () => Promise<void>;
+  loadReviewerFeedback?: () => import("../storage/repositories.js").ReviewerFeedbackRecord[];
+  suppressedFindingPatterns?: readonly string[];
+  suppressFindingPattern?: (pattern: string) => Promise<void>;
 }) {
   const [mode, setMode] = useState<WorkspaceMode>("ready");
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -111,8 +119,20 @@ export function VaultStewardWorkspace({
   const [dismissing, setDismissing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>();
   const [scanLimitations, setScanLimitations] = useState<string[]>([]);
+  const [localSuppressionPatterns, setLocalSuppressionPatterns] = useState<string[]>([
+    ...suppressedFindingPatterns
+  ]);
   const history = loadHistory?.();
+  const reviewerFeedback = loadReviewerFeedback?.() ?? [];
   const activeFindings = rankDashboardFindings(
+    findings.filter(
+      (finding) =>
+        finding.status === "open" &&
+        !dismissedFindingIds.has(finding.id) &&
+        !isLocallySuppressed(finding, localSuppressionPatterns)
+    )
+  );
+  const listedFindings = rankDashboardFindings(
     findings.filter((finding) => finding.status === "open" && !dismissedFindingIds.has(finding.id))
   );
 
@@ -129,12 +149,27 @@ export function VaultStewardWorkspace({
     includeRepairRecommendation = true
   ) => {
     const active = rankDashboardFindings(
-      nextFindings.filter((finding) => finding.status === "open" && !dismissedIds.has(finding.id))
+      nextFindings.filter(
+        (finding) =>
+          finding.status === "open" &&
+          !dismissedIds.has(finding.id) &&
+          !isLocallySuppressed(finding, localSuppressionPatterns)
+      )
     );
     let nextPrepared: PreparedRepair | null = null;
     if (includeRepairRecommendation) {
       try {
         nextPrepared = prepareRepairs ? await prepareRepairs() : null;
+        if (nextPrepared) {
+          const allowedFindingIds = new Set(active.map((finding) => finding.id));
+          nextPrepared = selectPreparedRepairItems(
+            nextPrepared,
+            nextPrepared.proposals
+              .filter((proposal) => allowedFindingIds.has(proposal.findingId))
+              .map((proposal) => proposal.id),
+            active.length
+          );
+        }
       } catch {
         // A repair recommendation is optional. Keep the review loop usable when
         // the provider cannot rank a bounded repair candidate.
@@ -384,7 +419,7 @@ export function VaultStewardWorkspace({
         </section>
       ) : null}
 
-      <IssueList findings={activeFindings} />
+      <IssueList findings={listedFindings} />
 
       {openProviderSettings || history ? (
         <section className="workspace-utilities" aria-label="Workspace tools">
@@ -405,6 +440,16 @@ export function VaultStewardWorkspace({
       ) : null}
 
       <MoreTools>
+        {suppressFindingPattern ? (
+          <FeedbackLearningView
+            records={reviewerFeedback}
+            suppressedPatterns={localSuppressionPatterns}
+            suppressPattern={async (pattern) => {
+              await suppressFindingPattern(pattern);
+              setLocalSuppressionPatterns((current) => [...new Set([...current, pattern])]);
+            }}
+          />
+        ) : null}
         {checkModelReadiness ? <ModelReadinessView checkReadiness={checkModelReadiness} /> : null}
         {policyStudio ? <PolicyStudio {...policyStudio} findings={findings} /> : null}
         {maintenance ? <MaintenanceScheduleView {...maintenance} /> : null}

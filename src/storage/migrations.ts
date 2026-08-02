@@ -198,6 +198,13 @@ export const MIGRATIONS: readonly Migration[] = [
       ALTER TABLE proposals ADD COLUMN proposal_digest TEXT NOT NULL DEFAULT '';
       ALTER TABLE approvals ADD COLUMN proposal_digest TEXT;
     `
+  },
+  {
+    version: 11,
+    sql: `
+      ALTER TABLE reviewer_feedback ADD COLUMN pattern_key TEXT NOT NULL DEFAULT '';
+      CREATE INDEX reviewer_feedback_pattern_idx ON reviewer_feedback (pattern_key);
+    `
   }
 ];
 
