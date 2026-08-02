@@ -9,6 +9,7 @@ import {
 import { isLocallySuppressed } from "../feedback/local-learning.js";
 import type { PreparedRepairBatch } from "../contracts/prepared-repair.js";
 import {
+  findPreparedRepairConflicts,
   selectPreparedRepairItems,
   type PreparedRepair,
   type PreparedRepairItem
@@ -133,7 +134,8 @@ export function VaultStewardWorkspace({
     )
   );
   const listedFindings = rankDashboardFindings(
-    findings.filter((finding) => finding.status === "open" && !dismissedFindingIds.has(finding.id))
+    findings.filter((finding) => finding.status === "open" && !dismissedFindingIds.has(finding.id)),
+    { deprioritizedPatterns: localSuppressionPatterns }
   );
 
   useEffect(() => {
@@ -365,6 +367,10 @@ export function VaultStewardWorkspace({
               setErrorMessage("Select at least one compatible fix.");
               return;
             }
+            if (findPreparedRepairConflicts(prepared, selectedProposalIds).length > 0) {
+              setErrorMessage("Selected fixes overlap. Remove one before applying.");
+              return;
+            }
             await applyPrepared(selected);
           }}
         />
@@ -513,6 +519,7 @@ function PreparedResult({
   );
   const selectedCount = selectedRepair?.batch.proposalIds.length ?? 0;
   const outcome = selectedRepair?.batch.outcome;
+  const conflicts = findPreparedRepairConflicts(prepared, selectedProposalIds);
   const groups = groupPreparedRepairItems(prepared.items);
   return (
     <section className="prepared-result" aria-label="Prepared result">
@@ -568,10 +575,16 @@ function PreparedResult({
           <li>{formatCount(outcome?.findingsLeftUnchanged ?? 0, "issue")} left unchanged</li>
         </ul>
       </section>
+      {conflicts.length ? (
+        <p className="steward-notice" role="alert">
+          Selected fixes overlap in {conflicts.map((conflict) => conflict.path).join(", ")}. Remove
+          one before applying.
+        </p>
+      ) : null}
       <button
         className="steward-primary"
         type="button"
-        disabled={applying || selectedCount === 0}
+        disabled={applying || selectedCount === 0 || conflicts.length > 0}
         aria-busy={applying}
         onClick={() => void onApply()}
       >

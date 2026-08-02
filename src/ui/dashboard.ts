@@ -1,4 +1,5 @@
 import type { Finding, FindingSeverity } from "../contracts/index.js";
+import { findingFeedbackPattern } from "../feedback/local-learning.js";
 
 export const DASHBOARD_SEVERITIES = ["critical", "high", "medium", "low", "info"] as const;
 
@@ -10,12 +11,17 @@ export function activeDashboardFindings(findings: readonly Finding[]): Finding[]
   return findings.filter((finding) => finding.status === "open");
 }
 
-export function rankDashboardFindings(findings: readonly Finding[]): Finding[] {
+export function rankDashboardFindings(
+  findings: readonly Finding[],
+  options: { deprioritizedPatterns?: readonly string[] } = {}
+): Finding[] {
   const severityIndex = new Map<FindingSeverity, number>(
     DASHBOARD_SEVERITIES.map((severity, index) => [severity, index])
   );
   return [...findings].sort(
     (left, right) =>
+      Number((options.deprioritizedPatterns ?? []).includes(findingFeedbackPattern(left))) -
+        Number((options.deprioritizedPatterns ?? []).includes(findingFeedbackPattern(right))) ||
       (severityIndex.get(left.severity) ?? DASHBOARD_SEVERITIES.length) -
         (severityIndex.get(right.severity) ?? DASHBOARD_SEVERITIES.length) ||
       right.confidence - left.confidence ||

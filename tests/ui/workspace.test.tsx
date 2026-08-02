@@ -106,6 +106,30 @@ const preparedTask: PreparedReferenceRepair = {
   ]
 };
 
+const overlappingPrepared: PreparedReferenceRepair = {
+  ...prepared,
+  batch: {
+    ...prepared.batch,
+    id: "batch-overlap",
+    proposalIds: ["proposal-1", "proposal-2"],
+    findingIds: ["finding", "finding-2"],
+    outcome: { ...prepared.batch.outcome, expectedFindingsResolved: 2, findingsLeftUnchanged: 1 }
+  },
+  proposals: [
+    prepared.proposals[0]!,
+    {
+      ...prepared.proposals[0]!,
+      id: "proposal-2",
+      findingId: "finding-2",
+      operations: [{ ...prepared.proposals[0]!.operations[0]!, start: 5, end: 12 }]
+    }
+  ],
+  items: [
+    prepared.items[0]!,
+    { ...prepared.items[0]!, proposalId: "proposal-2", findingId: "finding-2" }
+  ]
+};
+
 const duplicateFinding: Finding = {
   ...finding,
   id: "duplicate-finding",
@@ -207,6 +231,21 @@ describe("VaultStewardWorkspace", () => {
     expect(within(recommendation).getByText("1 issue resolved")).toBeInTheDocument();
     expect(within(recommendation).getByText("1 note edited")).toBeInTheDocument();
     expect(within(recommendation).getByRole("button", { name: "Apply 1 fix" })).toBeEnabled();
+  });
+
+  it("warns before apply when selected fixes overlap", async () => {
+    const secondFinding = { ...finding, id: "finding-2" };
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [finding, secondFinding] })}
+        loadFindings={() => [finding, secondFinding]}
+        prepareRepairs={async () => overlappingPrepared}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Selected fixes overlap");
+    expect(screen.getByRole("button", { name: "Apply 2 fixes" })).toBeDisabled();
   });
 
   it("labels task repair previews without reference-only language", async () => {

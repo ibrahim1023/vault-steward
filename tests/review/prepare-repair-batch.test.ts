@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Finding } from "../../src/contracts/index.js";
 import {
   combinePreparedRepairs,
+  findPreparedRepairConflicts,
   prepareReferenceRepairBatch,
   selectPreparedRepairItems,
   type PreparedRepair
@@ -120,6 +121,49 @@ describe("prepared reference repair orchestration", () => {
     });
     expect(selectPreparedRepairItems(combined, [], 3)).toBeNull();
     expect(selectPreparedRepairItems(combined, ["unknown"], 3)).toBeNull();
+  });
+
+  it("identifies overlapping selected operations before approval", () => {
+    const proposal = (id: string, start: number, end: number) => ({
+      schemaVersion: 1 as const,
+      id,
+      findingId: `finding-${id}`,
+      scanId: "scan-1",
+      explanation: "Repair",
+      operations: [
+        {
+          kind: "replace-range" as const,
+          path: "Home.md",
+          sourceRevision: "revision",
+          start,
+          end,
+          expected: "x",
+          replacement: "y"
+        }
+      ]
+    });
+    const prepared: PreparedRepair = {
+      batch: {
+        schemaVersion: 1,
+        id: "batch-1",
+        scanId: "scan-1",
+        proposalIds: ["one", "two"],
+        findingIds: ["finding-one", "finding-two"],
+        outcome: {
+          expectedFindingsResolved: 2,
+          notesEdited: 1,
+          notesCreated: 0,
+          notesDeleted: 0,
+          findingsLeftUnchanged: 0
+        }
+      },
+      proposals: [proposal("one", 0, 4), proposal("two", 3, 6)],
+      items: []
+    };
+    expect(findPreparedRepairConflicts(prepared, ["one", "two"])).toEqual([
+      { path: "Home.md", proposalIds: ["one", "two"] }
+    ]);
+    expect(findPreparedRepairConflicts(prepared, ["one"])).toEqual([]);
   });
 
   it("persists a verified rename and derives exact preview and outcome metadata", async () => {

@@ -41,6 +41,11 @@ export type PreparedRepair = {
 
 export type PreparedReferenceRepair = PreparedRepair;
 
+export type PreparedRepairConflict = {
+  path: string;
+  proposalIds: string[];
+};
+
 export async function prepareReferenceRepairBatch(input: {
   snapshot: ScanSnapshot;
   findings: readonly Finding[];
@@ -185,6 +190,38 @@ export function selectPreparedRepairItems(
       outcome: calculatePreparedRepairOutcome(proposals, activeFindingCount)
     }
   };
+}
+
+export function findPreparedRepairConflicts(
+  prepared: PreparedRepair,
+  selectedIds: readonly string[]
+): PreparedRepairConflict[] {
+  const selected = new Set(selectedIds);
+  const operations = prepared.proposals
+    .filter((proposal) => selected.has(proposal.id))
+    .flatMap((proposal) =>
+      proposal.operations.map((operation) => ({ proposalId: proposal.id, operation }))
+    );
+  const byPath = new Map<string, typeof operations>();
+  for (const item of operations)
+    byPath.set(item.operation.path, [...(byPath.get(item.operation.path) ?? []), item]);
+
+  return [...byPath.entries()].flatMap(([path, items]) => {
+    const sorted = [...items].sort(
+      (left, right) =>
+        left.operation.start - right.operation.start || left.operation.end - right.operation.end
+    );
+    const proposalIds = new Set<string>();
+    for (let index = 1; index < sorted.length; index += 1) {
+      const current = sorted[index]!;
+      const previous = sorted[index - 1]!;
+      if (current.operation.start < previous.operation.end) {
+        proposalIds.add(previous.proposalId);
+        proposalIds.add(current.proposalId);
+      }
+    }
+    return proposalIds.size ? [{ path, proposalIds: [...proposalIds].sort() }] : [];
+  });
 }
 
 function shortHash(values: readonly string[]): string {

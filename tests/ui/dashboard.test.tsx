@@ -53,6 +53,23 @@ describe("dashboard model", () => {
     expect(selectNextBestAction([finding, high])).toMatchObject({ id: "high" });
   });
 
+  it("deprioritizes reviewed local patterns without changing finding data", () => {
+    const reviewed = { ...finding, id: "reviewed", severity: "critical" as const };
+    const fresh = {
+      ...finding,
+      id: "fresh",
+      severity: "low" as const,
+      affectedNoteIds: ["Fresh.md"],
+      evidence: [{ notePath: "Fresh.md", locator: "line:1", excerpt: "- [ ] Fresh" }]
+    };
+    expect(
+      rankDashboardFindings([reviewed, fresh], {
+        deprioritizedPatterns: ["broken-reference:Home.md"]
+      }).map((item) => item.id)
+    ).toEqual(["fresh", "reviewed"]);
+    expect(reviewed.severity).toBe("critical");
+  });
+
   it("counts each severity and rejects selected findings outside the active queue", () => {
     const critical = { ...finding, id: "critical", severity: "critical" as const };
     const low = { ...finding, id: "low", severity: "low" as const };
