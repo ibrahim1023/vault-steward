@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  draftRuleFromFinding,
   DEFAULT_POLICY_DRAFT,
   POLICY_STUDIO_PATH,
   previewPolicyDraft,
@@ -56,5 +57,37 @@ describe("policy studio", () => {
       ]
     });
     expect(DEFAULT_POLICY_DRAFT).toContain("version: 1");
+  });
+
+  it("creates a template rule only as a validated draft from its matching schema finding", () => {
+    const finding = {
+      schemaVersion: 1 as const,
+      id: "finding",
+      scanId: "scan",
+      type: "schema" as const,
+      severity: "medium" as const,
+      evidence: [{ notePath: "Projects/Atlas.md", locator: "frontmatter:owner", excerpt: "" }],
+      affectedNoteIds: ["Projects/Atlas.md"],
+      explanation: "Project notes require 'owner'.",
+      suggestedFixes: [],
+      confidence: 1,
+      status: "open" as const
+    };
+    const result = draftRuleFromFinding({
+      source: "id: project\nversion: 1\ntemplates: [project]\nrules: []\n",
+      finding,
+      note: { path: "Projects/Atlas.md", frontmatter: { kind: "project" }, headings: ["Atlas"] }
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({ ok: true, source: expect.stringContaining("project.owner") })
+    );
+    expect(
+      draftRuleFromFinding({
+        source: "id: project\nversion: 1\ntemplates: [project]\nrules: []\n",
+        finding: { ...finding, type: "task" },
+        note: { path: "Projects/Atlas.md", frontmatter: { kind: "project" }, headings: ["Atlas"] }
+      }).ok
+    ).toBe(false);
   });
 });

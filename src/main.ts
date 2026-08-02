@@ -33,6 +33,7 @@ import { VaultStewardWorkspace } from "./ui/VaultStewardWorkspace.js";
 import { scanVaultFiles, type ScannedNote, type ScanSnapshot } from "./scanner/scan.js";
 import {
   DEFAULT_POLICY_DRAFT,
+  draftRuleFromFinding,
   POLICY_STUDIO_PATH,
   previewPolicyDraft,
   validatePolicyStudioPath
@@ -535,6 +536,16 @@ export default class VaultStewardPlugin extends Plugin {
     );
   }
 
+  async draftPolicyRuleFromFinding(findingId: string, source: string) {
+    const finding = this.loadFindings().find((candidate) => candidate.id === findingId);
+    const note = finding?.evidence[0]
+      ? this.parsedNotes.get(finding.evidence[0].notePath)
+      : undefined;
+    if (!finding || !note)
+      throw new Error("The selected finding is unavailable from the active scan.");
+    return draftRuleFromFinding({ source, finding, note });
+  }
+
   async savePolicyDraft(source: string): Promise<void> {
     const path = validatePolicyStudioPath(POLICY_STUDIO_PATH);
     if (!path.ok) throw new Error(path.diagnostic);
@@ -727,7 +738,9 @@ class VaultStewardStatusItemView extends ItemView {
           policyStudio: {
             loadDraft: () => this.plugin.loadPolicyDraft(),
             previewDraft: (source) => this.plugin.previewPolicyDraft(source),
-            saveDraft: (source) => this.plugin.savePolicyDraft(source)
+            saveDraft: (source) => this.plugin.savePolicyDraft(source),
+            draftRuleFromFinding: (findingId, source) =>
+              this.plugin.draftPolicyRuleFromFinding(findingId, source)
           },
           checkModelReadiness: () => this.plugin.checkModelReadiness(),
           maintenance: {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import type { PolicyPreview } from "../policy/studio.js";
+import type { Finding } from "../contracts/index.js";
 import {
   listPolicyTemplates,
   renderPolicyTemplateDraft,
@@ -10,11 +11,18 @@ import {
 export function PolicyStudio({
   loadDraft,
   previewDraft,
-  saveDraft
+  saveDraft,
+  findings = [],
+  draftRuleFromFinding
 }: {
   loadDraft: () => Promise<string>;
   previewDraft: (source: string) => Promise<PolicyPreview>;
   saveDraft: (source: string) => Promise<void>;
+  findings?: readonly Finding[];
+  draftRuleFromFinding?: (
+    findingId: string,
+    source: string
+  ) => Promise<import("../policy/studio.js").PolicyRuleDraft>;
 }) {
   const [source, setSource] = useState("");
   const [diagnostics, setDiagnostics] = useState<string[]>([]);
@@ -22,6 +30,10 @@ export function PolicyStudio({
   const [message, setMessage] = useState<string>();
   const [loading, setLoading] = useState(true);
   const [templateId, setTemplateId] = useState<PolicyTemplateId>("project");
+  const schemaFindings = findings.filter(
+    (finding) => finding.type === "schema" && finding.status === "open"
+  );
+  const [findingId, setFindingId] = useState("");
 
   useEffect(() => {
     void loadDraft()
@@ -84,6 +96,42 @@ export function PolicyStudio({
           setMessage(undefined);
         }}
       />
+      {draftRuleFromFinding && schemaFindings.length > 0 ? (
+        <div>
+          <label>
+            Finding to turn into a rule
+            <select
+              aria-label="Finding to turn into a rule"
+              value={findingId || schemaFindings[0]!.id}
+              onChange={(event) => setFindingId(event.target.value)}
+            >
+              {schemaFindings.map((finding) => (
+                <option key={finding.id} value={finding.id}>
+                  {finding.explanation}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              const selected = findingId || schemaFindings[0]!.id;
+              void draftRuleFromFinding(selected, source).then((result) => {
+                if (!result.ok) {
+                  setMessage(result.diagnostic);
+                  return;
+                }
+                setSource(result.source);
+                setPreview(undefined);
+                setDiagnostics([]);
+                setMessage("Rule added to the draft. Preview it before saving.");
+              });
+            }}
+          >
+            Create rule from finding
+          </button>
+        </div>
+      ) : null}
       <div>
         <button type="button" onClick={() => void validate()}>
           Preview policy

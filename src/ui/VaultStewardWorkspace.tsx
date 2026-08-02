@@ -74,6 +74,10 @@ export function VaultStewardWorkspace({
     loadDraft: () => Promise<string>;
     previewDraft: (source: string) => Promise<import("../policy/studio.js").PolicyPreview>;
     saveDraft: (source: string) => Promise<void>;
+    draftRuleFromFinding?: (
+      findingId: string,
+      source: string
+    ) => Promise<import("../policy/studio.js").PolicyRuleDraft>;
   };
   checkModelReadiness?: () => Promise<import("../model-provider/readiness.js").ModelReadiness>;
   maintenance?: {
@@ -377,7 +381,7 @@ export function VaultStewardWorkspace({
 
       <MoreTools>
         {checkModelReadiness ? <ModelReadinessView checkReadiness={checkModelReadiness} /> : null}
-        {policyStudio ? <PolicyStudio {...policyStudio} /> : null}
+        {policyStudio ? <PolicyStudio {...policyStudio} findings={findings} /> : null}
         {maintenance ? <MaintenanceScheduleView {...maintenance} /> : null}
         {inspectImpact ? (
           <MaintenanceView
