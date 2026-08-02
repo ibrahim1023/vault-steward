@@ -74,3 +74,4 @@ export * from "./prepared-repair.js";
 export * from "./reference-repair.js";
 export * from "./task-decision-repair.js";
 export * from "./entity-canonical.js";
+export * from "./template-repair.js";
