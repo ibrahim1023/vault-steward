@@ -110,3 +110,7 @@ Long model-dependent evals, performance/load checks, adversarial suites, and
 provider corpus runs execute locally or on a protected release runner.
 Snapshot tests are restricted to stable structured output, never free-form
 model text.
+
+## Policy Templates
+
+Policy-template coverage includes registry and YAML validation, explicit-kind precedence, folder/heading classification, ambiguity and unrelated-note abstention, activated-template schema findings, draft-only rule creation, malformed intents, snapshot-derived candidate validation, proposal integrity, and exact-preview application. Tests must prove that a missing template field remains review-only when zero or multiple candidate values exist.

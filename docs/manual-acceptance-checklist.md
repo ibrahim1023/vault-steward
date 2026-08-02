@@ -108,6 +108,14 @@ Obsidian desktop.
 - [ ] History records resolved and recurring findings.
 - [ ] Invalid policy YAML cannot be saved.
 - [ ] Rename/delete impact does not trigger destructive automatic rewrites.
+
+## Policy Templates
+
+- [ ] In Diagnostics > Policy Studio, load each guided template and confirm it changes only the unsaved YAML draft.
+- [ ] Preview and explicitly save a template, then confirm only unambiguous matching notes receive missing-field findings.
+- [ ] Confirm a folder/heading conflict receives no template finding.
+- [ ] Create a rule draft from a matching schema finding; preview it and confirm the active policy remains unchanged until Save policy.
+- [ ] Confirm a prepared template field repair shows exact Current/After text, rejects a stale source, and does not appear when multiple candidate values exist.
 - [ ] Observability excludes note bodies, prompts, API keys, and raw model output by default.
 
 ## Provider Recovery And Privacy
