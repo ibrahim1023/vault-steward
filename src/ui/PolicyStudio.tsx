@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 
 import type { PolicyPreview } from "../policy/studio.js";
+import {
+  listPolicyTemplates,
+  renderPolicyTemplateDraft,
+  type PolicyTemplateId
+} from "../policy/templates.js";
 
 export function PolicyStudio({
   loadDraft,
@@ -16,6 +21,7 @@ export function PolicyStudio({
   const [preview, setPreview] = useState<PolicyPreview>();
   const [message, setMessage] = useState<string>();
   const [loading, setLoading] = useState(true);
+  const [templateId, setTemplateId] = useState<PolicyTemplateId>("project");
 
   useEffect(() => {
     void loadDraft()
@@ -41,6 +47,33 @@ export function PolicyStudio({
   return (
     <section aria-label="Policy Studio">
       <h2>Policy Studio</h2>
+      <div>
+        <label>
+          Policy template
+          <select
+            aria-label="Policy template"
+            value={templateId}
+            onChange={(event) => setTemplateId(event.target.value as PolicyTemplateId)}
+          >
+            {listPolicyTemplates().map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={() => {
+            setSource(renderPolicyTemplateDraft(templateId));
+            setPreview(undefined);
+            setDiagnostics([]);
+            setMessage("Template loaded as a draft. Preview it before saving.");
+          }}
+        >
+          Use template
+        </button>
+      </div>
       <textarea
         aria-label="Active policy YAML"
         value={source}

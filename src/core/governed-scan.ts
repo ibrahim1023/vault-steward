@@ -7,6 +7,7 @@ import type { LocalProvider } from "../model-provider/local-provider.js";
 import type { ModelTrace } from "../model-provider/structured.js";
 import { evaluatePolicies, extractPolicyFacts } from "../policy/evaluate.js";
 import type { Policy } from "../policy/parse.js";
+import { getPolicyTemplate, validatePolicyTemplateNote } from "../policy/templates.js";
 import { checkReferenceIntegrity } from "../reference/check.js";
 import { scanVaultFiles, type ScanSnapshot } from "../scanner/scan.js";
 import { validateSchema, type SchemaDefinition } from "../schema/check.js";
@@ -37,7 +38,11 @@ export async function runGovernedScan(
 ): Promise<GovernedScanResult> {
   const snapshot = options.snapshot ?? scanVaultFiles(files);
   const agentEvidence = snapshot.notes.map(toEvidence);
-  const activeEvidence = collectActiveEvidence(snapshot, options.schemas ?? []);
+  const activeEvidence = collectActiveEvidence(
+    snapshot,
+    options.schemas ?? [],
+    options.policies ?? []
+  );
   const coordinator = options.coordinator ?? new LocalAgentCoordinator(providers);
   const semanticAnalysis = await coordinator.run({
     scanId: snapshot.id,
@@ -128,12 +133,40 @@ function normalizeFindings(
     ),
     ...decisionFindings(snapshot, evidence),
     ...schemaFindings(snapshot, evidence, options.schemas ?? []),
+    ...templateSchemaFindings(snapshot, evidence, options.policies ?? []),
     ...policyFindings(snapshot, evidence, options.policies ?? [])
   ];
   const semantic = semanticAnalysis.candidates.flatMap((candidate) =>
     normalizeSemanticCandidate(snapshot.id, evidence, candidate)
   );
   return [...deterministic, ...semantic];
+}
+
+function templateSchemaFindings(
+  snapshot: ScanSnapshot,
+  evidence: readonly AgentEvidence[],
+  policies: readonly Policy[]
+): Finding[] {
+  const enabledTemplates = [
+    ...new Set(
+      policies.filter((policy) => policy.enabled).flatMap((policy) => policy.templates ?? [])
+    )
+  ];
+  if (enabledTemplates.length === 0) return [];
+  return snapshot.notes.flatMap((note) =>
+    validatePolicyTemplateNote(note, enabledTemplates).flatMap((issue) => {
+      const finding = normalizeFinding({
+        scanId: snapshot.id,
+        type: "schema",
+        severity: "low",
+        evidence: [frontmatterEvidence(note.path, note.frontmatter, `frontmatter:${issue.field}`)],
+        availableEvidence: evidence,
+        explanation: issue.message,
+        confidence: 1
+      });
+      return finding ? [finding] : [];
+    })
+  );
 }
 
 function schemaFindings(
@@ -302,7 +335,8 @@ function frontmatterEvidence(
 
 function collectActiveEvidence(
   snapshot: ScanSnapshot,
-  schemas: readonly SchemaDefinition[]
+  schemas: readonly SchemaDefinition[],
+  policies: readonly Policy[]
 ): AgentEvidence[] {
   return snapshot.notes.flatMap((note) => {
     const lines = note.content.split("\n").slice(0, 100);
@@ -315,9 +349,16 @@ function collectActiveEvidence(
       ...Object.keys(schema.enums ?? {}),
       ...Object.keys(schema.types ?? {})
     ]);
+    const templateFields = policies
+      .filter((policy) => policy.enabled)
+      .flatMap((policy) => policy.templates ?? [])
+      .flatMap((templateId) => getPolicyTemplate(templateId)?.rules ?? [])
+      .map((rule) => rule.fact.split(".", 2)[1] ?? "");
     const frontmatterEvidenceEntries = [
-      ...new Set([...Object.keys(note.frontmatter), ...schemaFields])
-    ].map((field) => frontmatterEvidence(note.path, note.frontmatter, `frontmatter:${field}`));
+      ...new Set([...Object.keys(note.frontmatter), ...schemaFields, ...templateFields])
+    ]
+      .filter(Boolean)
+      .map((field) => frontmatterEvidence(note.path, note.frontmatter, `frontmatter:${field}`));
     return [
       toEvidence(note),
       ...lineEvidenceEntries,

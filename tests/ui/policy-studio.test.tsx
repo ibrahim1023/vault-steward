@@ -6,6 +6,28 @@ import { PolicyStudio } from "../../src/ui/PolicyStudio.js";
 const valid = "id: policy\nversion: 1\nrules: []\n";
 
 describe("PolicyStudio", () => {
+  it("loads a known template into the draft without saving it", async () => {
+    const saveDraft = vi.fn();
+    render(
+      <PolicyStudio
+        loadDraft={async () => "id: vault-policy\nversion: 1\nrules: []\n"}
+        previewDraft={async () => ({
+          ok: true,
+          policy: { id: "vault-policy", version: 1, enabled: true, rules: [] },
+          violations: []
+        })}
+        saveDraft={saveDraft}
+      />
+    );
+    await screen.findByLabelText("Policy template");
+    fireEvent.change(screen.getByLabelText("Policy template"), { target: { value: "project" } });
+    fireEvent.click(screen.getByRole("button", { name: "Use template" }));
+    expect((screen.getByLabelText("Active policy YAML") as HTMLTextAreaElement).value).toContain(
+      "- project"
+    );
+    expect(saveDraft).not.toHaveBeenCalled();
+  });
+
   afterEach(cleanup);
 
   it("blocks save for invalid drafts and previews valid drafts only on explicit action", async () => {

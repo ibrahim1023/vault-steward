@@ -1,7 +1,8 @@
 import { parseDocument } from "yaml";
+import { isPolicyTemplateId, type PolicyTemplateId } from "./templates.js";
 
 const MAX_POLICY_BYTES = 32_768;
-const POLICY_FIELDS = new Set(["id", "version", "enabled", "rules"]);
+const POLICY_FIELDS = new Set(["id", "version", "enabled", "templates", "rules"]);
 const RULE_FIELDS = new Set(["id", "fact", "operator", "value", "severity"]);
 const OPERATORS = new Set(["required", "equals", "not_equals", "forbidden"]);
 const SEVERITIES = new Set(["info", "low", "medium", "high", "critical"]);
@@ -18,6 +19,7 @@ export type Policy = {
   id: string;
   version: 1;
   enabled: boolean;
+  templates?: PolicyTemplateId[];
   rules: PolicyRule[];
 };
 
@@ -50,6 +52,13 @@ function validatePolicy(value: Record<string, unknown>): string[] {
   if (value.enabled !== undefined && typeof value.enabled !== "boolean") {
     diagnostics.push("policy enabled must be a boolean");
   }
+  if (value.templates !== undefined) {
+    if (!Array.isArray(value.templates) || !value.templates.every(isPolicyTemplateId)) {
+      diagnostics.push("policy templates must contain only known template ids");
+    } else if (new Set(value.templates).size !== value.templates.length) {
+      diagnostics.push("policy templates must not contain duplicates");
+    }
+  }
   if (!Array.isArray(value.rules)) return [...diagnostics, "policy rules must be an array"];
 
   for (const [index, rule] of value.rules.entries()) {
@@ -81,6 +90,7 @@ function toPolicy(value: Record<string, unknown>): Policy {
     id: value.id as string,
     version: 1,
     enabled: value.enabled !== false,
+    ...(Array.isArray(value.templates) ? { templates: value.templates as PolicyTemplateId[] } : {}),
     rules: (value.rules as Record<string, unknown>[]).map((rule) => ({
       id: rule.id as string,
       fact: rule.fact as string,

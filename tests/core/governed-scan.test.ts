@@ -54,6 +54,7 @@ describe("snapshot-derived governed scan", () => {
             id: "project-owner",
             version: 1,
             enabled: true,
+            templates: [],
             rules: [
               {
                 id: "owner-required",
@@ -69,6 +70,26 @@ describe("snapshot-derived governed scan", () => {
 
     expect(result.findings.map((finding) => finding.type)).toEqual(
       expect.arrayContaining(["schema", "policy"])
+    );
+  });
+
+  it("emits schema findings only for activated, unambiguous policy templates", async () => {
+    const result = await runGovernedScan(
+      [{ path: "Projects/Atlas.md", content: "---\nkind: project\n---\n# Atlas" }],
+      [provider],
+      "2026-07-14T00:00:00Z",
+      {
+        policies: [
+          { id: "project-template", version: 1, enabled: true, templates: ["project"], rules: [] }
+        ]
+      }
+    );
+
+    expect(result.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "schema", explanation: "Project notes require 'owner'." }),
+        expect.objectContaining({ type: "schema", explanation: "Project notes require 'status'." })
+      ])
     );
   });
 
