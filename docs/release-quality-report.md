@@ -5,8 +5,8 @@
 **No-go.** The release candidate is not ready for Community Plugins submission.
 The deterministic Northstar corpus harness and safety gates are implemented,
 but Phase 19 manual macOS acceptance and a passing Ollama report remain
-required. HyperFusion is the next cloud-provider validation target; OpenAI is
-deferred.
+required. HyperFusion has a passing corpus report but still requires manual
+macOS acceptance before a support claim. OpenAI is deferred.
 
 ## Scope
 
@@ -25,7 +25,7 @@ deferred.
 | Corpus contract and source-range validation  | Passing | `tests/evals/release-corpus.test.ts`       |
 | Provider grading and unsafe-repair rejection | Passing | `tests/evals/release-provider.test.ts`     |
 | Ollama live corpus report                    | Passing | `gemma3:12b`, 2026-07-29                   |
-| HyperFusion live corpus report               | Pending | `evals/reports/northstar-hyperfusion.json` |
+| HyperFusion live corpus report               | Passing | `qwen/qwen3-32b`, 2026-08-03               |
 | Ollama marketplace gate                      | Pending | `npm run eval:marketplace:gate`            |
 | Full repository completion gate              | Passing | 2026-07-29 command record                  |
 
@@ -71,6 +71,18 @@ An earlier 23-case result is superseded because its runner incorrectly asked the
 model to decide deterministic task, reference, decision, and policy outcomes.
 No safety, evidence, or remediation threshold was lowered.
 
+### Current HyperFusion Measurement
+
+The `qwen/qwen3-32b` governed-pipeline run against the same Northstar corpus
+passed on 2026-08-03. It recorded precision, recall, F1, evidence validity,
+and safe-repair validity of `1.000`, an unsupported-finding rate of `0.000`,
+zero incomplete cases/scans, and zero unsafe remediations. Median latency was
+823 ms and p95 latency was 8,416 ms, with no retries in the passing run.
+
+This is redacted synthetic-corpus evidence only. HyperFusion remains
+validation-in-progress until its manual macOS acknowledgement, recovery, and
+review-flow acceptance pass is complete.
+
 ## Manual macOS Evidence
 
 The following remain pending in `docs/manual-acceptance-checklist.md`:
@@ -81,7 +93,7 @@ The following remain pending in `docs/manual-acceptance-checklist.md`:
   re-index;
 - stale-proposal rejection and provider failure/recovery;
 - direct Settings and History plus collapsed Diagnostics;
-- Ollama pass and HyperFusion validation pass before HyperFusion is described as supported.
+- Ollama pass and HyperFusion manual validation pass before HyperFusion is described as supported.
 
 ## Release Thresholds
 

@@ -109,6 +109,10 @@ remain required before any submission-ready claim.
   repeated false-positive patterns remain local; only three matching reports expose a
   user-reviewed suppression control in Diagnostics. Suppression changes primary-review
   presentation only, never scanning, evidence validation, policy execution, or writes.
+- Phase 27 regression coverage now includes folder-classified template repairs and empty
+  frontmatter blocks, plus malformed or expanded repair-intent rejection. HyperFusion's
+  deterministic boundary tests and redacted `qwen/qwen3-32b` Northstar corpus report pass;
+  its manual macOS provider acceptance remains open.
 
 - Obsidian plugin with local TypeScript core.
 - SQLite is canonical; LanceDB is optional and derived.
