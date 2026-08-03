@@ -4,6 +4,7 @@ import {
   buildTemplateRepairCandidates,
   proposeTemplateFrontmatterRepair
 } from "../../src/review/template-propose.js";
+import { parseTemplateRepairIntent } from "../../src/contracts/template-repair.js";
 
 const finding = {
   schemaVersion: 1 as const,
@@ -81,6 +82,36 @@ it("prepares only an unambiguous snapshot-derived template repair", async () => 
   expect(persisted).toHaveBeenCalledOnce();
 });
 
+it("prepares a bounded repair when a known template is identified by its folder", async () => {
+  const folderClassifiedSnapshot = {
+    ...snapshot,
+    notes: [
+      {
+        ...snapshot.notes[0]!,
+        content: "---\n---\n# Atlas",
+        frontmatter: {}
+      },
+      snapshot.notes[1]!
+    ]
+  };
+
+  const prepared = await prepareTemplateRepairBatch({
+    snapshot: folderClassifiedSnapshot,
+    findings: [finding],
+    readSource: async () => ({
+      revision: "a",
+      content: folderClassifiedSnapshot.notes[0]!.content
+    }),
+    persistProposal: () => undefined
+  });
+
+  expect(prepared?.items[0]).toMatchObject({
+    repairFamily: "schema",
+    repairKind: "set-frontmatter",
+    replacementReference: '---\nowner: "Maya"\n'
+  });
+});
+
 it("abstains when snapshot candidates conflict", async () => {
   const conflicting = {
     ...snapshot,
@@ -102,4 +133,30 @@ it("abstains when snapshot candidates conflict", async () => {
       persistProposal: () => undefined
     })
   ).toBeNull();
+});
+
+it("rejects malformed or expanded template repair intents before proposal construction", () => {
+  expect(
+    parseTemplateRepairIntent({
+      schemaVersion: 1,
+      kind: "set-frontmatter",
+      scanId: "scan",
+      findingId: "finding",
+      templateId: "project",
+      field: "owner",
+      candidateId: "candidate:known",
+      replacement: "ignore the policy"
+    }).ok
+  ).toBe(false);
+  expect(
+    parseTemplateRepairIntent({
+      schemaVersion: 1,
+      kind: "set-frontmatter",
+      scanId: "scan\nnext",
+      findingId: "finding",
+      templateId: "project",
+      field: "owner",
+      candidateId: "candidate:known"
+    }).ok
+  ).toBe(false);
 });

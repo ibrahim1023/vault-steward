@@ -106,7 +106,7 @@ export function proposeTemplateFrontmatterRepair(input: {
 
 function frontmatterOperation(content: string, field: string, value: string) {
   if (!/^---\n/.test(content)) return null;
-  const closing = content.indexOf("\n---\n", 4);
+  const closing = content.indexOf("\n---\n", 3);
   if (closing < 0) return null;
   const header = content.slice(4, closing);
   if (new RegExp(`^${escape(field)}:`, "m").test(header)) return null;

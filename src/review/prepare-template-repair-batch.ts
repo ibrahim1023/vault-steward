@@ -12,6 +12,7 @@ import {
   buildTemplateRepairCandidates,
   proposeTemplateFrontmatterRepair
 } from "./template-propose.js";
+import { classifyPolicyTemplateNote } from "../policy/templates.js";
 
 export async function prepareTemplateRepairBatch(input: {
   snapshot: ScanSnapshot;
@@ -36,6 +37,8 @@ export async function prepareTemplateRepairBatch(input: {
     }
     const note = input.snapshot.notes.find((item) => item.path === evidence.notePath);
     if (!note) continue;
+    const templateId = classifyPolicyTemplateNote(note).templateId;
+    if (!templateId) continue;
     const result = proposeTemplateFrontmatterRepair({
       finding,
       snapshot: input.snapshot,
@@ -45,7 +48,7 @@ export async function prepareTemplateRepairBatch(input: {
         kind: "set-frontmatter",
         scanId: input.snapshot.id,
         findingId: finding.id,
-        templateId: String(note.frontmatter.kind),
+        templateId,
         field: evidence.locator.replace("frontmatter:", ""),
         candidateId: candidates[0]!.id
       }
