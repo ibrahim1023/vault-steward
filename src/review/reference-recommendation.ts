@@ -199,13 +199,15 @@ export async function selectReferenceCandidateWithProviders(
           },
           reason: {
             type: "string",
-            maxLength: 500
+            maxLength: 160
           }
         },
         responseRules: [
           "Return exactly one JSON object and no commentary.",
           "Choose only an existing bounded candidate supported by the evidence.",
-          "Use candidateId null when uncertain."
+          "Use candidateId null when uncertain.",
+          "Set candidateId to one allowed string ID or null. Never return a candidate object or list.",
+          "Keep reason to one sentence of at most 160 characters."
         ]
       }),
       maxOutputTokens: 256
@@ -343,7 +345,7 @@ function isSelection(
         value.candidateId.length <= 512)
     ) ||
     typeof value.reason !== "string" ||
-    value.reason.length > 500
+    value.reason.length > 160
   );
 }
 

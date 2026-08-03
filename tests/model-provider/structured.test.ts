@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { generateStructured } from "../../src/model-provider/structured.js";
 import type { LocalProvider } from "../../src/model-provider/local-provider.js";
 
@@ -41,6 +41,37 @@ describe("structured local output", () => {
     });
     expect(JSON.stringify(result.trace)).not.toContain("secret");
     expect(prompts[1]).toContain("exactly one JSON object");
+  });
+  it("retries one transient provider failure within the fixed two-attempt budget", async () => {
+    const generate = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("temporary provider failure"))
+      .mockResolvedValueOnce({
+        text: '{"label":"ok"}',
+        model: "test",
+        provider: "ollama" as const,
+        latencyMs: 2
+      });
+    const source: LocalProvider = {
+      ...provider([]),
+      generate
+    };
+
+    await expect(
+      generateStructured([source], { prompt: "x", maxOutputTokens: 10 }, validate)
+    ).resolves.toMatchObject({ ok: true, value: { label: "ok" }, trace: { retries: 1 } });
+    expect(generate).toHaveBeenCalledTimes(2);
+    expect(generate.mock.calls[1]?.[0].prompt).toBe("x");
+  });
+  it("keeps repeated provider failures typed and fail-closed", async () => {
+    const source: LocalProvider = {
+      ...provider([]),
+      generate: vi.fn().mockRejectedValue(new Error("unavailable"))
+    };
+
+    await expect(
+      generateStructured([source], { prompt: "x", maxOutputTokens: 10 }, validate)
+    ).resolves.toMatchObject({ ok: false, error: "provider-unavailable" });
   });
   it("accepts a JSON object wrapped in harmless model formatting", async () => {
     const result = await generateStructured(

@@ -17,13 +17,14 @@ export async function generateStructured<T>(
   validate: (value: unknown) => value is T
 ): Promise<StructuredResult<T>> {
   const traces: ModelTrace[] = [];
+  let sawInvalidOutput = false;
   for (const provider of providers) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const generation = await provider.generate({
           ...request,
           prompt:
-            attempt === 0
+            attempt === 0 || !sawInvalidOutput
               ? request.prompt
               : `${request.prompt}\nPrevious output was invalid. Return exactly one JSON object matching the requested schema. Do not include commentary, Markdown fences, or thinking.`
         });
@@ -37,6 +38,7 @@ export async function generateStructured<T>(
         };
         traces.push(trace);
         if (validate(value)) return { ok: true, value, trace };
+        sawInvalidOutput = true;
       } catch {
         traces.push({
           provider: provider.config.kind,
@@ -45,13 +47,12 @@ export async function generateStructured<T>(
           retries: attempt,
           outcome: "failure"
         });
-        break;
       }
     }
   }
   return {
     ok: false,
-    error: traces.length === 0 ? "provider-unavailable" : "structured-output-invalid",
+    error: sawInvalidOutput ? "structured-output-invalid" : "provider-unavailable",
     trace: traces
   };
 }

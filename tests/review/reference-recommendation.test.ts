@@ -372,6 +372,7 @@ describe("bounded reference repair recommendations", () => {
         const parsed = JSON.parse(prompt) as {
           request: Record<string, unknown>;
           responseContract: Record<string, unknown>;
+          responseRules: string[];
         };
         expect(parsed).toMatchObject({
           request: {
@@ -383,9 +384,13 @@ describe("bounded reference repair recommendations", () => {
             exactKeys: ["schemaVersion", "candidateId", "reason"],
             candidateId: {
               allowed: ["path:Guides/Similar Guide.md", null]
-            }
+            },
+            reason: { maxLength: 160 }
           }
         });
+        expect(parsed.responseRules).toContain(
+          "Set candidateId to one allowed string ID or null. Never return a candidate object or list."
+        );
         return {
           text: JSON.stringify({
             schemaVersion: 1,
