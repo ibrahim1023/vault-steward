@@ -1,0 +1,10 @@
+id: atlas-conventions
+version: 1
+enabled: true
+templates:
+  - project
+  - decision
+  - task
+  - meeting
+  - research
+rules: []

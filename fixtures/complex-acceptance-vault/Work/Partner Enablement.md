@@ -15,7 +15,8 @@ migration document.
 
 1. Validate the customer workspace configuration.
 2. Share [[Guides/Partner Migration Playbook]] with the delivery lead.
-3. Record any exception in [[Decisions/ADR-017-Release Criteria]].
+3. Send the [migration playbook](../Guides/Partner%20Migration%20Playbook.md) to the regional coordinator.
+4. Record any exception in [[Decisions/ADR-017-Release Criteria]].
 
 The intended existing guide is [[Guides/Partner Onboarding Checklist]], but the
 broken reference above is deliberate for a bounded model recommendation.

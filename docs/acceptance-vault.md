@@ -7,3 +7,8 @@ its own disposable Obsidian vault. Its README lists the deliberately injected
 safe-repair, review-only, task, decision, duplicate-entity, policy-template,
 and semantic-evidence cases. It is separate from the compact Northstar release
 fixture and should not be used to change marketplace quality claims.
+
+Use [the complex acceptance vault guide](complex-acceptance-vault.md) to map
+each content-driven manual acceptance scenario to its source notes. Installation,
+provider recovery, layouts, themes, keyboard navigation, VoiceOver, history,
+and diagnostics remain app-level checks and must still be performed in Obsidian.

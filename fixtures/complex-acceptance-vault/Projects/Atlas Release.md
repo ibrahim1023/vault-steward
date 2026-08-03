@@ -2,6 +2,7 @@
 kind: project
 owner: maya
 status: active
+due: 2026-08-29
 updatedAt: 2026-07-30
 ---
 

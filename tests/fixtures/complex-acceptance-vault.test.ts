@@ -15,9 +15,16 @@ describe("complex acceptance vault", () => {
     const references = checkReferenceIntegrity(scan);
     const controlRoom = files.find((file) => file.path === "Work/Launch Control Room.md");
 
-    expect(files).toHaveLength(21);
-    expect(references.filter((finding) => finding.type === "broken-reference")).toHaveLength(4);
+    expect(files).toHaveLength(23);
+    expect(references.filter((finding) => finding.type === "broken-reference")).toHaveLength(5);
     expect(references.filter((finding) => finding.type === "invalid-reference")).toHaveLength(1);
+    expect(files.map((file) => file.path)).toEqual(
+      expect.arrayContaining([
+        "Tasks/Regional Follow-ups.md",
+        "Work/Stakeholder Directory.md",
+        "Work/Partner Enablement.md"
+      ])
+    );
     expect(controlRoom).toBeDefined();
     expect(
       checkTasks(controlRoom!.content, "2026-08-03T00:00:00.000Z").map((issue) => issue.kind)

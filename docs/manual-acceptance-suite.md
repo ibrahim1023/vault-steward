@@ -8,6 +8,15 @@ Vault Steward makes the next useful action clear and safe.
 Track results in
 [manual-acceptance-checklist.md](manual-acceptance-checklist.md).
 
+## Extended Stress Vault
+
+After the Northstar release workflow passes, use the disposable
+`fixtures/complex-acceptance-vault/` for broader manual exploration. Its
+[coverage guide](complex-acceptance-vault.md) maps all content-driven checks to
+realistic notes, including structured repairs and duplicate-entity review. It
+does not replace Northstar as the release corpus or prove platform, provider,
+accessibility, installation, or package behavior on its own.
+
 ## Setup
 
 1. Run `npm run package:plugin`.

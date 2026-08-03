@@ -15,6 +15,7 @@ checks can distinguish actionable operational work from plain prose.
 - [ ] Confirm import audit retention owner:maya project:Projects/Atlas Release.md due:2026-07-22 ^audit-retention
 - [ ] Publish the regional support rota project:Projects/Atlas Release.md due:2026-07-23 ^support-rota
 - [ ] Reconcile the approved exception record owner:maya project:Projects/Atlas Release.md status:done ^exception-record
+- [ ] Confirm the revised partner handoff date owner:maya project:Projects/Atlas Release.md due:2026-07-01 ^handoff-date
 - [ ] Validate the staging permission map owner:lee project:Projects/Atlas Release.md due:2026-07-25 ^permission-map
 - [ ] Validate the production permission map owner:lee project:Projects/Atlas Release.md due:2026-07-25 ^permission-map
 - [ ] Retire the legacy import survey owner:maya project:Projects/Atlas Release.md abandoned:true ^legacy-survey
@@ -25,3 +26,4 @@ checks can distinguish actionable operational work from plain prose.
 
 No new customer import should proceed when the escalation owner is unknown.
 See [[Work/Escalation Drill]] and [[Decisions/ADR-017-Release Criteria]].
+The current partner workflow is [[Guides/Partner Onboarding Checklist]].

@@ -175,6 +175,7 @@ See [contributing](CONTRIBUTING.md) for fixture, prompt, policy, and quality-gat
 - [Changelog](CHANGELOG.md)
 - [Local models](docs/local-models.md)
 - [Troubleshooting](docs/troubleshooting.md)
+- [Complex acceptance vault](docs/complex-acceptance-vault.md)
 - [Release compatibility](docs/release-compatibility.md)
 - [Northstar release workflow](docs/northstar-release-workflow.md)
 - [Release quality report](docs/release-quality-report.md)
