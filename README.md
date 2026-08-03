@@ -105,9 +105,9 @@ Marketplace release validation uses the versioned 26-case Northstar corpus.
 The evaluator runs the actual governed scan: deterministic code owns task,
 reference, decision, and policy findings; providers handle semantic agent
 routes and bounded reference-target ranking.
-Ollama is the supported local-first release path. HyperFusion is evaluated
-independently before it can be described as supported; its report is not yet a
-marketplace release requirement. OpenAI evaluation remains deferred:
+Ollama is the local-first release path. HyperFusion has a passing redacted
+synthetic-corpus report, but remains validation-in-progress until its manual
+macOS acceptance pass completes. OpenAI evaluation remains deferred:
 
 ```bash
 OLLAMA_MODEL=<model> npm run eval:marketplace:ollama

@@ -13,7 +13,7 @@
   conflicting, missing, or unauthorized. Runtime write failures use rollback
   and may require explicit recovery.
 - Multi-vault operation, sync conflict resolution, encrypted-vault support, and future-extension agents are out of scope for the MVP.
-- Marketplace provider support is not a release claim until the same committed
-  Northstar corpus has passing Ollama and OpenAI reports. `gemma3:12b` currently
-  passes the Ollama report; OpenAI and the macOS acceptance sign-off remain
-  pending.
+- Marketplace readiness is not a release claim until the local-first Ollama
+  evidence and final macOS acceptance pass. HyperFusion has a passing redacted
+  synthetic-corpus report but remains validation-in-progress pending manual
+  macOS acceptance. OpenAI remains experimental and unvalidated.

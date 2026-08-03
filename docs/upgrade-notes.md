@@ -10,4 +10,4 @@ Vault Steward is distributed as a desktop-only Obsidian plugin directory contain
 
 The release manifest records SHA-256 hashes for every install artifact. The local SQLite database remains in the plugin data directory and is migrated forward on startup. Do not copy database files between unrelated vaults. To remove the plugin, disable it and delete only `.obsidian/plugins/vault-steward/`; this does not modify vault notes.
 
-Policy Studio stores the active policy at `.vault-steward/policy.yaml` only after an explicit Save. Use a completed scan before previewing policy violations. Selected-finding explanations and model readiness checks use the configured local provider and do not grant the model vault search or write access.
+Policy Studio stores the active policy at `.vault-steward/policy.yaml` only after an explicit Save. Use a completed scan before previewing policy violations. Selected-finding explanations and model readiness checks use the configured provider and do not grant it vault search or write access. Before an upgrade, record or apply any prepared repair: the plugin will reject stale proposals after source notes change.

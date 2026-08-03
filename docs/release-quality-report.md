@@ -20,14 +20,14 @@ macOS acceptance before a support claim. OpenAI is deferred.
 
 ## Automated Evidence
 
-| Evidence                                     | Status  | Record                                     |
-| -------------------------------------------- | ------- | ------------------------------------------ |
-| Corpus contract and source-range validation  | Passing | `tests/evals/release-corpus.test.ts`       |
-| Provider grading and unsafe-repair rejection | Passing | `tests/evals/release-provider.test.ts`     |
-| Ollama live corpus report                    | Passing | `gemma3:12b`, 2026-07-29                   |
-| HyperFusion live corpus report               | Passing | `qwen/qwen3-32b`, 2026-08-03               |
-| Ollama marketplace gate                      | Pending | `npm run eval:marketplace:gate`            |
-| Full repository completion gate              | Passing | 2026-07-29 command record                  |
+| Evidence                                     | Status  | Record                                 |
+| -------------------------------------------- | ------- | -------------------------------------- |
+| Corpus contract and source-range validation  | Passing | `tests/evals/release-corpus.test.ts`   |
+| Provider grading and unsafe-repair rejection | Passing | `tests/evals/release-provider.test.ts` |
+| Ollama live corpus report                    | Passing | `gemma3:12b`, 2026-07-29               |
+| HyperFusion live corpus report               | Passing | `qwen/qwen3-32b`, 2026-08-03           |
+| Ollama marketplace gate                      | Pending | `npm run eval:marketplace:gate`        |
+| Full repository completion gate              | Passing | 2026-07-29 command record              |
 
 Provider reports must include precision, recall, F1, evidence validity,
 unsupported-finding rate, safe-repair validity, median and p95 latency, retries,

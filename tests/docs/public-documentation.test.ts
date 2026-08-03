@@ -72,4 +72,16 @@ describe("public documentation", () => {
     expect(checklist).toContain("expected result");
     expect(checklist).toContain("actual result");
   });
+
+  it("keeps platform and cloud-provider release claims bounded", () => {
+    const compatibility = readFileSync(resolve(root, "docs/release-compatibility.md"), "utf8");
+    const troubleshooting = readFileSync(resolve(root, "docs/troubleshooting.md"), "utf8");
+    const privacy = readFileSync(resolve(root, "PRIVACY.md"), "utf8");
+
+    expect(compatibility).toContain("limited to macOS");
+    expect(compatibility).toContain("HyperFusion has a passing redacted synthetic-corpus report");
+    expect(compatibility).toContain("OpenAI is experimental");
+    expect(troubleshooting).toContain("HyperFusion remains validation-in-progress");
+    expect(privacy).toContain("HyperFusion and OpenAI are optional, explicit cloud providers");
+  });
 });

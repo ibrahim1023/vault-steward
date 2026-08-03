@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- HyperFusion fixed-origin provider integration, explicit cloud acknowledgement,
+  bounded structured-output recovery, and a passing redacted Northstar corpus
+  report for `qwen/qwen3-32b`. Manual macOS acceptance remains pending, so this
+  is not a support or marketplace claim.
+- Selectable grouped repair batches, conflict warnings, local dismissal reasons,
+  and reviewed local suppression controls. Every selected repair retains an
+  exact preview, approval record, and all-member preflight.
+- Policy-template repair hardening for folder/heading-classified notes and
+  empty frontmatter blocks.
 - Duplicate-entity review with bounded two-note canonical ranking, user-selected
   canonical notes, and revision-safe inbound-link/exclusive-alias
   consolidation. The feature never merges or deletes notes.

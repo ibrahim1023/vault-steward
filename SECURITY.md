@@ -9,7 +9,7 @@ Do not publish a vulnerability with vault content, proof-of-concept notes, or se
 ## Protections
 
 - Vault access is limited to normalized vault-relative paths through the Obsidian adapter.
-- Ollama and llama.cpp provider endpoints are restricted to loopback configuration. OpenAI is a fixed-origin, explicit opt-in provider that requires a local API key and cloud-data acknowledgement.
+- Ollama and llama.cpp provider endpoints are restricted to loopback configuration. HyperFusion and OpenAI are fixed-origin, explicit opt-in providers that require a local API key and cloud-data acknowledgement.
 - Model output is parsed against typed schemas, citation-checked, size-bounded, and cannot mutate state directly.
 - Prepared edits require one explicit **Apply N fixes** approval and a
   revision-safe preflight of every batch member before the first write.
