@@ -2,11 +2,11 @@
 
 ## Current Phase
 
-Phase 28 faster batch review and local learning is active on its dedicated
-feature branch. Automated implementation is being completed before the
-cumulative manual Obsidian acceptance pass. This parallel feature work does not
-alter the deferred Phase 19 manual acceptance or Phases 21-22 release gates;
-those remain required before a submission-ready claim.
+Phase 28 faster batch review and local learning has completed automated
+implementation and verification on its dedicated feature branch. The
+cumulative manual Obsidian acceptance pass remains deferred. This parallel
+feature work does not alter the deferred Phase 19 manual acceptance or Phases
+21-22 release gates; those remain required before a submission-ready claim.
 
 ## Completed Work
 
