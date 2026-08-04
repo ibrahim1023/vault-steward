@@ -109,6 +109,12 @@ remain required before any submission-ready claim.
   repeated false-positive patterns remain local; only three matching reports expose a
   user-reviewed suppression control in Diagnostics. Suppression changes primary-review
   presentation only, never scanning, evidence validation, policy execution, or writes.
+- On 2026-08-04, the approved minimal-Diagnostics design removes Policy Studio,
+  manual impact inspection, observability details, prompt registry, evaluation/replay
+  screens, and the debug console from the v0.1 workspace. The remaining four user
+  controls are model connection, automatic checks, reviewed local suppression, and
+  confirmed local trace deletion. Policy, maintenance, observability, evaluation, and
+  trace-storage systems remain internal safeguards and release tooling.
 - Phase 27 regression coverage now includes folder-classified template repairs and empty
   frontmatter blocks, plus malformed or expanded repair-intent rejection. HyperFusion's
   deterministic boundary tests and redacted `qwen/qwen3-32b` Northstar corpus report pass;

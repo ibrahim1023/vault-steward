@@ -21,6 +21,11 @@ export function dismissalReasonLabel(reason: DismissalReason): string {
       return "Revisit later";
   }
 }
+
+export function dismissalReasonVerdict(reason: DismissalReason): FeedbackVerdict {
+  return reason === "false-positive" ? "false-positive" : "needs-review";
+}
+
 export type ReviewerFeedback = {
   findingId: string;
   proposalId?: string;

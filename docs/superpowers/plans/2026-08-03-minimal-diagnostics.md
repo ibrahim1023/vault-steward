@@ -261,7 +261,10 @@ function feedbackPatternLabel(key: string): string {
   const separator = key.indexOf(":");
   if (separator < 1) return "Repeated issue pattern";
   const type = key.slice(0, separator).replaceAll("-", " ");
-  const notes = key.slice(separator + 1).split("|").filter(Boolean);
+  const notes = key
+    .slice(separator + 1)
+    .split("|")
+    .filter(Boolean);
   if (notes.length === 1) return `Repeated ${type} issue in ${notes[0]}`;
   return `Repeated ${type} issue across ${notes.length} notes`;
 }
@@ -367,19 +370,21 @@ In `VaultStewardWorkspace.tsx`:
 The render call must have this shape:
 
 ```tsx
-{diagnostics ? (
-  <DiagnosticsView
-    checkConnection={diagnostics.checkConnection}
-    maintenance={diagnostics.maintenance}
-    feedbackRecords={reviewerFeedback}
-    suppressedPatterns={localSuppressionPatterns}
-    suppressPattern={async (pattern) => {
-      await diagnostics.suppressPattern(pattern);
-      setLocalSuppressionPatterns((current) => [...new Set([...current, pattern])]);
-    }}
-    deleteDiagnosticTraces={diagnostics.deleteDiagnosticTraces}
-  />
-) : null}
+{
+  diagnostics ? (
+    <DiagnosticsView
+      checkConnection={diagnostics.checkConnection}
+      maintenance={diagnostics.maintenance}
+      feedbackRecords={reviewerFeedback}
+      suppressedPatterns={localSuppressionPatterns}
+      suppressPattern={async (pattern) => {
+        await diagnostics.suppressPattern(pattern);
+        setLocalSuppressionPatterns((current) => [...new Set([...current, pattern])]);
+      }}
+      deleteDiagnosticTraces={diagnostics.deleteDiagnosticTraces}
+    />
+  ) : null;
+}
 ```
 
 - [ ] **Step 4: Narrow the plugin-to-workspace wiring**

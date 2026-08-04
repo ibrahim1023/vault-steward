@@ -179,8 +179,32 @@ describe("VaultStewardWorkspace", () => {
         scan={async () => ({ scanId: "scan", findings: [] })}
         openProviderSettings={openProviderSettings}
         loadHistory={() => ({ scans: [], lifecycle: [] })}
-        checkModelReadiness={async () => {
-          throw new Error("not used");
+        diagnostics={{
+          checkConnection: async () => ({
+            available: true,
+            structuredOutput: true,
+            provider: "ollama",
+            model: "llama3.1:8b",
+            timeoutMs: 30_000,
+            maxResponseBytes: 65_536,
+            latencyMs: 1
+          }),
+          maintenance: {
+            schedule: {
+              enabled: false,
+              eventTriggered: true,
+              intervalMinutes: 60,
+              debounceMinutes: 5,
+              maxRunsPerHour: 4,
+              paused: false
+            },
+            state: { scanInProgress: false, runsInWindow: 0 },
+            setPaused: async () => undefined
+          },
+          loadFeedback: () => [],
+          suppressedPatterns: [],
+          suppressPattern: async () => undefined,
+          deleteDiagnosticTraces: async () => undefined
         }}
       />
     );
@@ -198,6 +222,22 @@ describe("VaultStewardWorkspace", () => {
     fireEvent.click(screen.getByText("History"));
     expect(screen.getByText("No completed scan history is available.")).toBeInTheDocument();
     expect(screen.getByText("Diagnostics").closest("details")).not.toHaveAttribute("open");
+    fireEvent.click(screen.getByText("Diagnostics"));
+    expect(screen.getByText("Model connection")).toBeInTheDocument();
+    expect(screen.getByText("Automatic checks")).toBeInTheDocument();
+    expect(screen.getByText("Review preferences")).toBeInTheDocument();
+    expect(screen.getByText("Local diagnostic data")).toBeInTheDocument();
+    for (const removed of [
+      "Policy Studio",
+      "Maintenance",
+      "Inspect change impact",
+      "Observability",
+      "Prompt registry",
+      "Evaluation and quality",
+      "AI debug console"
+    ]) {
+      expect(screen.queryByText(removed)).not.toBeInTheDocument();
+    }
   });
 
   it("checks the vault and shows an exact prepared result", async () => {
@@ -512,6 +552,7 @@ describe("VaultStewardWorkspace", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
     expect(await screen.findByText(taskFinding.explanation)).toBeInTheDocument();
+    expect(screen.getByText("Why is this not important?")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Open note" }));
     expect(openNote).toHaveBeenCalledWith("Home.md");
     fireEvent.change(screen.getByRole("combobox", { name: "Dismissal reason" }), {

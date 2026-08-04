@@ -32,18 +32,16 @@ import { selectTaskDecisionRepairWithProviders } from "./review/task-decision-re
 import { getPluginDatabasePath } from "./storage/sqlite-runtime.js";
 import { VaultStewardWorkspace } from "./ui/VaultStewardWorkspace.js";
 import { scanVaultFiles, type ScannedNote, type ScanSnapshot } from "./scanner/scan.js";
-import {
-  DEFAULT_POLICY_DRAFT,
-  draftRuleFromFinding,
-  POLICY_STUDIO_PATH,
-  previewPolicyDraft,
-  validatePolicyStudioPath
-} from "./policy/studio.js";
+import { DEFAULT_POLICY_DRAFT, POLICY_STUDIO_PATH } from "./policy/studio.js";
 import { parsePolicy } from "./policy/parse.js";
 import { explainFinding, type FindingExplanation } from "./agents/finding-explanation.js";
 import { checkModelReadiness } from "./model-provider/readiness.js";
 import type { Finding } from "./contracts/index.js";
-import { validateReviewerFeedback, type FeedbackVerdict } from "./feedback/review.js";
+import {
+  dismissalReasonVerdict,
+  validateReviewerFeedback,
+  type FeedbackVerdict
+} from "./feedback/review.js";
 import { findingFeedbackPattern } from "./feedback/local-learning.js";
 import { analyzeChangeImpact, type ChangeImpact } from "./indexing/impact.js";
 import {
@@ -542,39 +540,6 @@ export default class VaultStewardPlugin extends Plugin {
     }
   }
 
-  async previewPolicyDraft(source: string) {
-    if (this.parsedNotes.size === 0) {
-      throw new Error("Run a completed scan before previewing a policy.");
-    }
-    return previewPolicyDraft(
-      source,
-      [...this.parsedNotes.values()].map((note) => ({
-        path: note.path,
-        frontmatter: note.frontmatter
-      }))
-    );
-  }
-
-  async draftPolicyRuleFromFinding(findingId: string, source: string) {
-    const finding = this.loadFindings().find((candidate) => candidate.id === findingId);
-    const note = finding?.evidence[0]
-      ? this.parsedNotes.get(finding.evidence[0].notePath)
-      : undefined;
-    if (!finding || !note)
-      throw new Error("The selected finding is unavailable from the active scan.");
-    return draftRuleFromFinding({ source, finding, note });
-  }
-
-  async savePolicyDraft(source: string): Promise<void> {
-    const path = validatePolicyStudioPath(POLICY_STUDIO_PATH);
-    if (!path.ok) throw new Error(path.diagnostic);
-    if (!parsePolicy(source).ok) throw new Error("Policy draft is invalid.");
-    if (!(await this.app.vault.adapter.exists(".vault-steward"))) {
-      await this.app.vault.adapter.mkdir(".vault-steward");
-    }
-    await this.app.vault.adapter.write(POLICY_STUDIO_PATH, source);
-  }
-
   async explainFinding(finding: Finding): Promise<FindingExplanation> {
     return explainFinding(this.createSelectedModelProvider(), finding);
   }
@@ -756,36 +721,28 @@ class VaultStewardStatusItemView extends ItemView {
           scan: () => this.plugin.scanVault(),
           loadFindings: () => this.plugin.loadFindings(),
           loadHistory: () => this.plugin.loadHistory(),
-          loadObservability: (scanId) => this.plugin.loadObservability(scanId),
-          deleteScanTrace: (scanId) => this.plugin.deleteScanTrace(scanId),
-          deleteAllTraceData: () => this.plugin.deleteAllTraceData(),
           prepareRepairs: () => this.plugin.prepareRecommendedRepairBatch(),
           applyRepairs: (batch) => this.plugin.applyPreparedRepairBatch(batch),
           openNote: (path) => this.plugin.openVaultNote(path),
           markNotImportant: (finding, reason) =>
-            this.plugin.submitFeedback(finding, "false-positive", reason),
-          loadReviewerFeedback: () => this.plugin.listReviewerFeedback(),
-          suppressedFindingPatterns: this.plugin.settings.suppressedFindingPatterns,
-          suppressFindingPattern: (pattern) => this.plugin.suppressFindingPattern(pattern),
+            this.plugin.submitFeedback(finding, dismissalReasonVerdict(reason), reason),
           loadDuplicateEntityReview: (finding) => this.plugin.loadDuplicateEntityReview(finding),
           recommendCanonicalEntity: (finding) => this.plugin.recommendCanonicalEntity(finding),
           prepareEntityConsolidation: (finding, candidateId) =>
             this.plugin.prepareEntityConsolidation(finding, candidateId),
           openProviderSettings: () => this.plugin.openProviderSettings(),
-          policyStudio: {
-            loadDraft: () => this.plugin.loadPolicyDraft(),
-            previewDraft: (source) => this.plugin.previewPolicyDraft(source),
-            saveDraft: (source) => this.plugin.savePolicyDraft(source),
-            draftRuleFromFinding: (findingId, source) =>
-              this.plugin.draftPolicyRuleFromFinding(findingId, source)
-          },
-          checkModelReadiness: () => this.plugin.checkModelReadiness(),
-          maintenance: {
-            schedule: this.plugin.settings.maintenanceSchedule,
-            state: this.plugin.getMaintenanceState(),
-            setPaused: (paused) => this.plugin.setMaintenancePaused(paused)
-          },
-          inspectImpact: (path) => this.plugin.inspectImpact(path)
+          diagnostics: {
+            checkConnection: () => this.plugin.checkModelReadiness(),
+            maintenance: {
+              schedule: this.plugin.settings.maintenanceSchedule,
+              state: this.plugin.getMaintenanceState(),
+              setPaused: (paused) => this.plugin.setMaintenancePaused(paused)
+            },
+            loadFeedback: () => this.plugin.listReviewerFeedback(),
+            suppressedPatterns: this.plugin.settings.suppressedFindingPatterns,
+            suppressPattern: (pattern) => this.plugin.suppressFindingPattern(pattern),
+            deleteDiagnosticTraces: () => this.plugin.deleteAllTraceData()
+          }
         })
       )
     );

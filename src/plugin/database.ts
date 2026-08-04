@@ -100,23 +100,25 @@ export async function openPluginDatabase(input: {
             values: scan.traceConfiguration.values
           });
         repository.saveParseProducts(scan.id, scan.parserVersion, scan.parseProducts);
-        const findings = scan.findings.filter((finding) =>
-          validateFindingLineage({
-            schemaVersion: 1,
-            findingId: finding.id,
-            scanId: scan.id,
-            evidenceLocators: finding.evidence.map((item) => item.locator),
-            parsedArtifactIds: finding.evidence.map((item) => `parse:${item.notePath}`),
-            validatorId: "finding-normalization",
-            coordinatorDecisionId: `coordinator:${scan.id}`,
-            retrievalMetadata: ["not-run"],
-            policyEvaluationId: finding.violatedPolicyId ?? "not-run",
-            proposalSourceId:
-              finding.suggestedFixes.length > 0 ? "deterministic-proposal" : "not-applicable",
-            correlationId
-          })
+        const findings = persistReviewQueue(
+          repository,
+          scan.findings.filter((finding) =>
+            validateFindingLineage({
+              schemaVersion: 1,
+              findingId: finding.id,
+              scanId: scan.id,
+              evidenceLocators: finding.evidence.map((item) => item.locator),
+              parsedArtifactIds: finding.evidence.map((item) => `parse:${item.notePath}`),
+              validatorId: "finding-normalization",
+              coordinatorDecisionId: `coordinator:${scan.id}`,
+              retrievalMetadata: ["not-run"],
+              policyEvaluationId: finding.violatedPolicyId ?? "not-run",
+              proposalSourceId:
+                finding.suggestedFixes.length > 0 ? "deterministic-proposal" : "not-applicable",
+              correlationId
+            })
+          )
         );
-        persistReviewQueue(repository, findings);
         for (const [index, trace] of scan.modelTraces.entries()) {
           repository.saveModelTrace({
             id: `${scan.id}:trace:${index}`,

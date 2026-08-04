@@ -50,9 +50,59 @@ describe("HyperFusion model provider", () => {
         { role: "user", content: "check" }
       ],
       max_tokens: 32,
-      enable_thinking: false,
+      chat_template_kwargs: { enable_thinking: false },
       response_format: { type: "json_object" }
     });
+  });
+
+  it("accepts a strict JSON object returned in HyperFusion reasoning content", async () => {
+    const provider = createHyperFusionProvider(
+      config,
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                finish_reason: "stop",
+                message: {
+                  role: "assistant",
+                  content: null,
+                  reasoning_content: '{"ready":true}'
+                }
+              }
+            ]
+          })
+        )
+      )
+    );
+
+    await expect(
+      provider.generate({ prompt: "check", maxOutputTokens: 32 })
+    ).resolves.toMatchObject({ text: '{"ready":true}', provider: "hyperfusion" });
+  });
+
+  it("does not promote free-form HyperFusion reasoning to model output", async () => {
+    const provider = createHyperFusionProvider(
+      config,
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  content: null,
+                  reasoning_content: 'Thinking about it first. {"ready":true}'
+                }
+              }
+            ]
+          })
+        )
+      )
+    );
+
+    await expect(provider.generate({ prompt: "check", maxOutputTokens: 32 })).rejects.toThrow(
+      "unavailable"
+    );
   });
 
   it("rejects blank keys, non-HyperFusion origins, malformed responses, and oversized bodies", async () => {

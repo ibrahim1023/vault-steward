@@ -169,18 +169,22 @@ Selecting an item must never create or apply an unsupported patch.
 
 Confirm **Settings** opens provider configuration directly and **History**
 shows lifecycle metadata without exposing note content. Open **Diagnostics**
-only after completing the primary journey. Policy Studio, readiness,
-maintenance, impact inspection, observability, retention, and stored-data
-controls must remain there rather than in the default path.
+only after completing the primary journey. It stays collapsed until requested
+and contains only model connection, automatic-check status, reviewed local
+suppression, and confirmed deletion of local diagnostic traces. Developer
+observability, policy authoring, prompt registry, evaluation dashboards, replay
+guidance, manual impact inspection, and the AI debug console are not part of the
+release workspace.
 
 Verify:
 
 - two unchanged scans do not multiply persistent findings;
 - History shows resolved and recurring lifecycle states;
-- Observability displays metadata and evidence locators without raw note
-  bodies, prompts, API keys, or unredacted model output;
-- Policy Studio previews before saving and rejects invalid YAML;
-- Maintenance impact remains review-only for destructive rename/delete cases.
+- model connection reports readiness without timeout, prompt, content, or
+  credential details;
+- automatic checks show a human-readable status and pause/resume control;
+- deletion of diagnostic traces requires confirmation and leaves notes and
+  History unchanged.
 
 ## Provider Release Corpus
 

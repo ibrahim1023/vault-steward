@@ -329,8 +329,8 @@ function hyperFusionBody(
       { role: "user", content: request.prompt }
     ],
     max_tokens: request.maxOutputTokens,
-    // qwen/qwen3-32b otherwise can spend its completion budget in reasoning_content.
-    enable_thinking: false,
+    // Qwen's OpenAI-compatible serving contract passes the hard switch to the chat template.
+    chat_template_kwargs: { enable_thinking: false },
     response_format: { type: "json_object" }
   };
 }
@@ -400,5 +400,19 @@ function hyperFusionOutput(value: unknown): string | null {
   const message = (choices[0] as { message?: unknown } | undefined)?.message;
   if (!message || typeof message !== "object") return null;
   const content = (message as { content?: unknown }).content;
-  return typeof content === "string" && content.length > 0 ? content : null;
+  if (typeof content === "string" && content.length > 0) return content;
+
+  // HyperFusion currently places non-thinking Qwen JSON in reasoning_content with content: null.
+  // Accept only a complete JSON object here; free-form reasoning remains unavailable to callers.
+  const reasoningContent = (message as { reasoning_content?: unknown }).reasoning_content;
+  if (typeof reasoningContent !== "string") return null;
+  const structured = reasoningContent.trim();
+  try {
+    const parsed: unknown = JSON.parse(structured);
+    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+      ? structured
+      : null;
+  } catch {
+    return null;
+  }
 }

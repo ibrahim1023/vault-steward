@@ -23,24 +23,25 @@ import {
 import type { BatchApplyResult } from "../review/workflow.js";
 import type {
   FindingLifecycleRecord,
-  ObservabilitySnapshot,
+  ReviewerFeedbackRecord,
   ScanHistoryRecord
 } from "../storage/repositories.js";
 import { HistoryView } from "./HistoryView.js";
-import { FeedbackLearningView } from "./FeedbackLearningView.js";
+import { DiagnosticsView, type DiagnosticsViewProps } from "./DiagnosticsView.js";
 import { DuplicateEntityReview } from "./DuplicateEntityReview.js";
-import { MaintenanceScheduleView } from "./MaintenanceScheduleView.js";
-import { MaintenanceView } from "./MaintenanceView.js";
-import { ModelReadinessView } from "./ModelReadinessView.js";
-import { MoreTools } from "./MoreTools.js";
-import { ObservabilityView } from "./ObservabilityView.js";
-import { PromptRegistryView } from "./PromptRegistryView.js";
-import { AIDebugConsole, QualityDiagnostics } from "./QualityDiagnostics.js";
-import { PolicyStudio } from "./PolicyStudio.js";
 import { rankDashboardFindings } from "./dashboard.js";
 
 type WorkspaceMode =
   "ready" | "scanning" | "recommendation" | "applying" | "result" | "judgment" | "error";
+
+type WorkspaceDiagnostics = Omit<
+  DiagnosticsViewProps,
+  "feedbackRecords" | "suppressedPatterns" | "suppressPattern"
+> & {
+  loadFeedback: () => ReviewerFeedbackRecord[];
+  suppressedPatterns: readonly string[];
+  suppressPattern: (pattern: string) => Promise<void>;
+};
 
 export function VaultStewardWorkspace({
   vaultLabel,
@@ -55,16 +56,7 @@ export function VaultStewardWorkspace({
   prepareEntityConsolidation,
   openProviderSettings,
   loadHistory,
-  policyStudio,
-  checkModelReadiness,
-  maintenance,
-  inspectImpact,
-  loadObservability,
-  deleteScanTrace,
-  deleteAllTraceData,
-  loadReviewerFeedback,
-  suppressedFindingPatterns = [],
-  suppressFindingPattern
+  diagnostics
 }: {
   vaultLabel: string;
   scan: () => Promise<{
@@ -86,28 +78,7 @@ export function VaultStewardWorkspace({
   ) => Promise<PreparedRepair | null>;
   openProviderSettings?: () => void;
   loadHistory?: () => { scans: ScanHistoryRecord[]; lifecycle: FindingLifecycleRecord[] };
-  policyStudio?: {
-    loadDraft: () => Promise<string>;
-    previewDraft: (source: string) => Promise<import("../policy/studio.js").PolicyPreview>;
-    saveDraft: (source: string) => Promise<void>;
-    draftRuleFromFinding?: (
-      findingId: string,
-      source: string
-    ) => Promise<import("../policy/studio.js").PolicyRuleDraft>;
-  };
-  checkModelReadiness?: () => Promise<import("../model-provider/readiness.js").ModelReadiness>;
-  maintenance?: {
-    schedule: import("../maintenance/scheduler.js").MaintenanceSchedule;
-    state: import("../maintenance/scheduler.js").MaintenanceScheduleState;
-    setPaused: (paused: boolean) => Promise<void>;
-  };
-  inspectImpact?: (path: string) => import("../indexing/impact.js").ChangeImpact;
-  loadObservability?: (scanId?: string) => ObservabilitySnapshot;
-  deleteScanTrace?: (scanId: string) => Promise<void>;
-  deleteAllTraceData?: () => Promise<void>;
-  loadReviewerFeedback?: () => import("../storage/repositories.js").ReviewerFeedbackRecord[];
-  suppressedFindingPatterns?: readonly string[];
-  suppressFindingPattern?: (pattern: string) => Promise<void>;
+  diagnostics?: WorkspaceDiagnostics;
 }) {
   const [mode, setMode] = useState<WorkspaceMode>("ready");
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -121,10 +92,10 @@ export function VaultStewardWorkspace({
   const [errorMessage, setErrorMessage] = useState<string>();
   const [scanLimitations, setScanLimitations] = useState<string[]>([]);
   const [localSuppressionPatterns, setLocalSuppressionPatterns] = useState<string[]>([
-    ...suppressedFindingPatterns
+    ...(diagnostics?.suppressedPatterns ?? [])
   ]);
   const history = loadHistory?.();
-  const reviewerFeedback = loadReviewerFeedback?.() ?? [];
+  const reviewerFeedback = diagnostics?.loadFeedback() ?? [];
   const activeFindings = rankDashboardFindings(
     findings.filter(
       (finding) =>
@@ -288,20 +259,6 @@ export function VaultStewardWorkspace({
     }
   };
 
-  const prepareMaintenanceRepair = async (): Promise<boolean> => {
-    if (!prepareRepairs) return false;
-    try {
-      const nextPrepared = await prepareRepairs();
-      if (!nextPrepared) return false;
-      setPrepared(nextPrepared);
-      setJudgment(undefined);
-      setMode("recommendation");
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
   return (
     <section className="vault-steward" aria-label="Vault Steward workspace">
       <header className="steward-header">
@@ -445,54 +402,19 @@ export function VaultStewardWorkspace({
         </section>
       ) : null}
 
-      <MoreTools>
-        {suppressFindingPattern ? (
-          <FeedbackLearningView
-            records={reviewerFeedback}
-            suppressedPatterns={localSuppressionPatterns}
-            suppressPattern={async (pattern) => {
-              await suppressFindingPattern(pattern);
-              setLocalSuppressionPatterns((current) => [...new Set([...current, pattern])]);
-            }}
-          />
-        ) : null}
-        {checkModelReadiness ? <ModelReadinessView checkReadiness={checkModelReadiness} /> : null}
-        {policyStudio ? <PolicyStudio {...policyStudio} findings={findings} /> : null}
-        {maintenance ? <MaintenanceScheduleView {...maintenance} /> : null}
-        {inspectImpact ? (
-          <MaintenanceView
-            findings={findings}
-            inspectImpact={inspectImpact}
-            {...(openNote ? { openNote } : {})}
-            {...(markNotImportant
-              ? {
-                  dismissFinding: (finding: Finding) => markNotImportant(finding, "false-positive")
-                }
-              : {})}
-            {...(prepareRepairs ? { prepareSupportedRepair: prepareMaintenanceRepair } : {})}
-          />
-        ) : null}
-        {history && loadObservability ? (
-          <ObservabilityView
-            scans={history.scans}
-            loadObservability={loadObservability}
-            {...(judgment ? { selectedFindingId: judgment.id } : {})}
-            {...(deleteScanTrace ? { deleteScanTrace } : {})}
-            {...(deleteAllTraceData ? { deleteAllTraceData } : {})}
-          />
-        ) : null}
-        <PromptRegistryView />
-        {history && loadObservability ? (
-          <QualityDiagnostics
-            scans={history.scans}
-            lifecycle={history.lifecycle}
-            snapshot={loadObservability(history.scans[0]?.id)}
-          />
-        ) : null}
-        {history && loadObservability ? (
-          <AIDebugConsole snapshot={loadObservability(history.scans[0]?.id)} />
-        ) : null}
-      </MoreTools>
+      {diagnostics ? (
+        <DiagnosticsView
+          checkConnection={diagnostics.checkConnection}
+          maintenance={diagnostics.maintenance}
+          feedbackRecords={reviewerFeedback}
+          suppressedPatterns={localSuppressionPatterns}
+          suppressPattern={async (pattern) => {
+            await diagnostics.suppressPattern(pattern);
+            setLocalSuppressionPatterns((current) => [...new Set([...current, pattern])]);
+          }}
+          deleteDiagnosticTraces={diagnostics.deleteDiagnosticTraces}
+        />
+      ) : null}
     </section>
   );
 }
@@ -762,7 +684,7 @@ function JudgmentView({
       <div className="judgment-actions">
         {paths[0] ? (
           <button
-            className="steward-primary"
+            className="judgment-open-note"
             type="button"
             onClick={() => {
               for (const path of paths) void openNote?.(path);
@@ -771,28 +693,31 @@ function JudgmentView({
             {multiple ? "Review both notes" : "Open note"}
           </button>
         ) : null}
-        <label className="dismissal-reason">
-          <span className="sr-only">Dismissal reason</span>
-          <select
-            aria-label="Dismissal reason"
-            value={dismissalReason}
+        <div className="dismissal-panel">
+          <label className="dismissal-reason">
+            <span>Why is this not important?</span>
+            <select
+              aria-label="Dismissal reason"
+              value={dismissalReason}
+              disabled={dismissing}
+              onChange={(event) => setDismissalReason(event.target.value as DismissalReason)}
+            >
+              {DISMISSAL_REASONS.map((reason) => (
+                <option value={reason} key={reason}>
+                  {dismissalReasonLabel(reason)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="steward-primary judgment-dismiss"
+            type="button"
             disabled={dismissing}
-            onChange={(event) => setDismissalReason(event.target.value as DismissalReason)}
+            onClick={() => void onNotImportant(finding, dismissalReason)}
           >
-            {DISMISSAL_REASONS.map((reason) => (
-              <option value={reason} key={reason}>
-                {dismissalReasonLabel(reason)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          disabled={dismissing}
-          onClick={() => void onNotImportant(finding, dismissalReason)}
-        >
-          {dismissing ? "Dismissing..." : "Not important"}
-        </button>
+            {dismissing ? "Dismissing..." : "Not important"}
+          </button>
+        </div>
       </div>
     </section>
   );
@@ -983,7 +908,7 @@ function scanFailureMessage(error: unknown): string {
     return "The active vault could not be read.";
   if (message.includes("database")) return "The local Vault Steward database is unavailable.";
   if (message.includes("active policy"))
-    return "The active policy is invalid. Open Diagnostics to review it.";
+    return "The custom policy file is invalid. Restore or remove .vault-steward/policy.yaml, then check the vault again.";
   return "The vault check could not complete. Try again.";
 }
 

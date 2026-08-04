@@ -130,7 +130,7 @@ export function DiagnosticsView({
             <h3>Automatic checks</h3>
             <p>{maintenanceStatus(maintenance.schedule.enabled, maintenancePaused)}</p>
             <p>
-              Last checked: {formatLocalTime(maintenance.state.lastRunAt, "Not run yet")} · Next: {" "}
+              Last checked: {formatLocalTime(maintenance.state.lastRunAt, "Not run yet")} · Next:{" "}
               {formatLocalTime(maintenance.state.nextRunAt, "Not scheduled")}
             </p>
             {maintenanceError ? (

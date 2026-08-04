@@ -96,6 +96,58 @@ describe("plugin database lifecycle", () => {
     database.close();
   });
 
+  it("persists lineage only for the normalized review queue", async () => {
+    const store = new MemoryBinaryStore();
+    const database = await openPluginDatabase({
+      adapter: store,
+      databasePath: ".obsidian/plugins/vault-steward/vault-steward.sqlite",
+      locateFile: (file) => `node_modules/sql.js/dist/${file}`
+    });
+    const finding = (
+      id: string,
+      locator: string,
+      excerpt: string
+    ): Parameters<typeof database.saveCompletedScan>[0]["findings"][number] => ({
+      schemaVersion: 1,
+      id,
+      scanId: "scan-normalized-lineage",
+      type: "task",
+      severity: "low",
+      evidence: [{ notePath: "Tasks.md", locator, excerpt }],
+      affectedNoteIds: ["Tasks.md"],
+      explanation: "Review this task.",
+      suggestedFixes: [],
+      confidence: 1,
+      status: "open"
+    });
+
+    database.saveCompletedScan({
+      id: "scan-normalized-lineage",
+      vaultFingerprint: "vault",
+      configHash: "config",
+      inputHash: "input",
+      parserVersion: "parser",
+      startedAt: "2026-08-03T12:00:00Z",
+      finishedAt: "2026-08-03T12:00:01Z",
+      files: [],
+      parseProducts: [],
+      findings: [
+        finding("finding-a", "line:1", "same task"),
+        finding("finding-b", "line:1", "same task"),
+        finding("finding-b", "line:2", "another task")
+      ],
+      modelTraces: []
+    });
+
+    expect(database.loadHistory().scans[0]).toMatchObject({
+      id: "scan-normalized-lineage",
+      status: "completed"
+    });
+    expect(database.loadFindings()).toHaveLength(2);
+    expect(database.loadObservability("scan-normalized-lineage").lineage).toHaveLength(2);
+    database.close();
+  });
+
   it("loads findings from only the latest completed scan", async () => {
     const store = new MemoryBinaryStore();
     const database = await openPluginDatabase({

@@ -31,7 +31,7 @@ function feedback(
     findingId: `scan-${index}:finding`,
     proposalId: null,
     verdict: "false-positive",
-    label: "expected-exception",
+    label: "false-positive",
     patternKey,
     createdAt: "2026-08-02T00:00:00.000Z"
   };
@@ -39,10 +39,17 @@ function feedback(
 
 describe("local feedback learning", () => {
   it("only suggests reviewed local suppression after repeated matching feedback", () => {
-    expect(recurringSuppressionCandidates([feedback(1), feedback(2)])).toEqual([]);
-    expect(recurringSuppressionCandidates([feedback(1), feedback(2), feedback(3)])).toEqual([
-      { key: "task:Work/Plan.md", count: 3 }
-    ]);
+    const expectedException = {
+      ...feedback(4),
+      verdict: "needs-review" as const,
+      label: "expected-exception"
+    };
+    expect(recurringSuppressionCandidates([feedback(1), feedback(2), expectedException])).toEqual(
+      []
+    );
+    expect(
+      recurringSuppressionCandidates([feedback(1), feedback(2), feedback(3), expectedException])
+    ).toEqual([{ key: "task:Work/Plan.md", count: 3 }]);
   });
 
   it("uses only local type and affected-note metadata for presentation suppression", () => {

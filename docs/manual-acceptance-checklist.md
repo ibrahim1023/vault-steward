@@ -7,27 +7,27 @@ Obsidian desktop.
 
 ## Run Record
 
-- [ ] New run started
-- [ ] Obsidian and macOS versions recorded
-- [ ] Vault Steward version recorded
-- [ ] Provider and model version recorded
-- [ ] Fresh-install or upgrade path recorded
+- [x] New run started
+- [x] Obsidian and macOS versions recorded
+- [x] Vault Steward version recorded
+- [x] Provider and model version recorded
+- [x] Fresh-install or upgrade path recorded
 
-| Field          | Value |
-| -------------- | ----- |
-| Date           |       |
-| Obsidian       |       |
-| macOS          |       |
-| Vault Steward  |       |
-| Provider/model |       |
-| Install path   |       |
+| Field          | Value                                                                                                              |
+| -------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Date           | 2026-08-03                                                                                                         |
+| Obsidian       | 1.12.7                                                                                                             |
+| macOS          | 26.5.2 (25F84)                                                                                                     |
+| Vault Steward  | 0.1.0, branch `feat/phase-28-faster-batch-review`, commit `a1a8cbe`                                                |
+| Provider/model | HyperFusion `qwen/qwen3-32b`                                                                                       |
+| Install path   | Fresh install in disposable complex acceptance vault: `/Users/ibrahim/Documents/Obsidian/complex-acceptance-vault` |
 
 ## Installation And Setup
 
-- [ ] The package contains `main.js`, `manifest.json`, `styles.css`, and `sql-wasm.wasm`.
-- [ ] Vault Steward enables without an installation or migration error.
-- [ ] The ribbon shield and command-palette entry each open one workspace.
-- [ ] Provider configuration is in Obsidian settings, outside the primary path.
+- [x] The package contains `main.js`, `manifest.json`, `styles.css`, and `sql-wasm.wasm`.
+- [x] Vault Steward enables without an installation or migration error.
+- [x] The ribbon shield and command-palette entry each open one workspace.
+- [x] Provider configuration is in Obsidian settings, outside the primary path.
 - [ ] Ollama accepts only a loopback endpoint.
 - [ ] HyperFusion masks the API key, uses no editable endpoint, and requires the cloud-data acknowledgement.
 - [ ] OpenAI masks the API key and requires the cloud-data acknowledgement.
@@ -35,23 +35,23 @@ Obsidian desktop.
 
 ## Simple Review
 
-- [ ] The ready state has one dominant action: `Check vault`.
-- [ ] The default path does not show health scores, counters, filters, confidence, raw evidence, policy, model, maintenance, or observability controls.
+- [x] The ready state has one dominant action: `Check vault`.
+- [x] The default path does not show health scores, counters, filters, confidence, raw evidence, policy, model, maintenance, or observability controls.
 - [ ] Scanning shows one progress state and preserves the last successful result.
-- [ ] A prepared repair shows `Current`, `After`, and an accurate expected result.
+- [x] A prepared repair shows `Current`, `After`, and an accurate expected result.
 - [ ] The preview identifies the source note, locator, exact current/after value, repair kind, and reference target status where applicable.
 - [ ] Exact rename candidates are labelled `Verified rename`.
-- [ ] Model-ranked candidates are labelled `AI suggestion - target exists`.
-- [ ] `Apply fixes` is the single explicit approval action.
+- [x] Model-ranked candidates are labelled `AI suggestion - target exists`.
+- [x] `Apply fixes` is the single explicit approval action.
 - [ ] Duplicate apply actions are disabled while applying.
-- [ ] Success reports the actual result and exposes `Review next issue`.
-- [ ] `View all issues` is secondary.
+- [x] Success reports the actual result and exposes `Review next issue`.
+- [x] `View all issues` is secondary.
 - [ ] `Settings` and `History` are directly available after the review surface.
 - [ ] `Diagnostics` is collapsed and separate from the primary path.
 
 ## Finding Coverage
 
-- [ ] The broken reference in `Work/Partner Enablement.md` appears.
+- [x] The broken reference in `Work/Partner Enablement.md` appears.
 - [ ] The broken anchor and missing embed in `Research/Customer Interviews.md` appear.
 - [ ] The unsupported reference in `Notes/Working Agreement.md` appears.
 - [ ] Overdue, orphaned, duplicate, abandoned, completion-pending, and malformed task findings appear.
@@ -60,29 +60,29 @@ Obsidian desktop.
 
 ## Repair And Batch Safety
 
-- [ ] The intended Partner Enablement repair changes only the cited wiki link.
+- [x] The intended Partner Enablement repair changes only the cited wiki link.
 - [ ] A metadata-confirmed task completion, bounded task field update, and decision field/rationale preview each show the exact Current -> After patch.
 - [ ] A compatible mixed task/decision/reference batch applies only after one explicit approval and re-indexes successfully.
-- [ ] The expected result matches the validated proposal operations.
-- [ ] No note changes before `Apply fixes`.
-- [ ] One click creates an individual approval record for every selected proposal.
+- [x] The expected result matches the validated proposal operations.
+- [x] No note changes before `Apply fixes`.
+- [x] One click creates an individual approval record for every selected proposal.
 - [ ] Every batch member is preflighted before the first write.
 - [ ] A stale member rejects the entire batch without partial writes.
 - [ ] Altered, missing, conflicting, or unauthorized proposals fail closed.
 - [ ] Same-note operations apply without offset corruption.
-- [ ] A successful apply re-indexes the vault.
-- [ ] The actual result matches the changed notes and refreshed findings.
+- [x] A successful apply re-indexes the vault.
+- [x] The actual result matches the changed notes and refreshed findings.
 - [ ] Runtime write failure rolls back earlier writes or enters recovery-required state.
 
 ## Faster Batch Review And Local Learning
 
-- [ ] Prepare at least two compatible fixes; confirm they are grouped by repair family, source folder, and affected notes while each change remains individually selectable.
-- [ ] Select none and confirm Apply is disabled with a zero-fix expected result; select all and confirm the aggregate result is recalculated.
+- [x] Prepare at least two compatible fixes; confirm they are grouped by repair family, source folder, and affected notes while each change remains individually selectable.
+- [x] Select none and confirm Apply is disabled with a zero-fix expected result; select all and confirm the aggregate result is recalculated.
 - [ ] Exclude one item and confirm Apply count, resolved-finding count, note count, and unchanged-finding count describe only the remaining selected proposals.
 - [ ] Prepare overlapping selected operations in a controlled fixture; confirm the workspace names the conflicting note, disables Apply, and requires one item to be excluded.
 - [ ] Confirm a stale, altered, missing, conflicting, or unauthorized selected member still rejects the whole selected batch before its first write.
 - [ ] Dismiss a non-repairable finding with each reason: false positive, expected exception, duplicate report, and revisit later. Confirm the next issue is immediately available.
-- [ ] Record three matching false-positive dismissals in a disposable test vault, open Diagnostics > Local review feedback, and confirm only then that a reviewed `Suppress from primary review` action appears.
+- [ ] Record three matching false-positive dismissals in a disposable test vault, open Diagnostics > Review preferences, and confirm only then that a reviewed `Suppress from primary review` action appears.
 - [ ] Activate that suppression and confirm it only deprioritizes the matching local finding pattern from the primary path. Confirm the finding remains visible through `View all issues` and that scans, evidence, policy evaluation, and writes are unchanged.
 - [ ] Confirm local review feedback exposes no note body, prompt, model output, API key, or remote telemetry.
 
@@ -98,16 +98,15 @@ Obsidian desktop.
 
 ## Judgment Actions
 
-- [ ] A non-repairable issue shows one plain-language sentence.
-- [ ] It exposes one concrete action such as `Open note`, `Review both notes`, or `Not important`.
-- [ ] The action never creates or applies an unsupported patch.
+- [x] A non-repairable issue shows one plain-language sentence.
+- [x] It exposes one concrete action such as `Open note`, `Review both notes`, or `Not important`.
+- [x] The action never creates or applies an unsupported patch.
 
 ## Change-Aware Maintenance
 
 - [ ] Rename a cited decision or project, run a check, and confirm the affected source note receives a review-only change signal with its exact reference and locator.
 - [ ] Mark a decision as superseded, run a check, and confirm a citing plan says it cites a superseded decision.
-- [ ] Confirm maintenance actions can open the cited note, review related notes, and dismiss the signal, but cannot write a note automatically.
-- [ ] Make one Markdown modification and inspect Diagnostics > Maintenance schedule for `changed notes reused`; rename, delete, create, or an ambiguous event must report `full vault check`.
+- [ ] Confirm maintenance signals remain review-only and cannot write a note automatically.
 - [ ] Enable the optional schedule, wait for one debounced run while Obsidian remains open, then disable it. Confirm there is no run after the plugin or vault is unavailable.
 - [ ] Confirm History shows aggregate recurrence/resolution/dismissal state without note-body telemetry.
 
@@ -115,20 +114,14 @@ Obsidian desktop.
 
 - [ ] `Settings` opens provider configuration without exposing controls in the primary path.
 - [ ] `History` shows scan and lifecycle metadata without note content.
-- [ ] Policy Studio, readiness, maintenance, impact inspection, observability, retention, and stored-data controls are reachable under `Diagnostics`.
+- [ ] Diagnostics contains only Model connection, Automatic checks, Review preferences, and Local diagnostic data.
+- [ ] Model connection reports ready or needs attention without timeout, response-size, prompt, content, or credential details.
+- [ ] Automatic checks show human-readable status and pause/resume without scan-plan terminology.
+- [ ] Review preferences offer suppression only after three explicit matching false-positive dismissals and never show a raw pattern key.
+- [ ] Delete diagnostic traces requires confirmation and leaves notes, findings, approvals, feedback, and History unchanged.
 - [ ] Two unchanged scans do not multiply persistent findings.
 - [ ] History records resolved and recurring findings.
-- [ ] Invalid policy YAML cannot be saved.
 - [ ] Rename/delete impact does not trigger destructive automatic rewrites.
-
-## Policy Templates
-
-- [ ] In Diagnostics > Policy Studio, load each guided template and confirm it changes only the unsaved YAML draft.
-- [ ] Preview and explicitly save a template, then confirm only unambiguous matching notes receive missing-field findings.
-- [ ] Confirm a folder/heading conflict receives no template finding.
-- [ ] Create a rule draft from a matching schema finding; preview it and confirm the active policy remains unchanged until Save policy.
-- [ ] Confirm a prepared template field repair shows exact Current/After text, rejects a stale source, and does not appear when multiple candidate values exist.
-- [ ] Observability excludes note bodies, prompts, API keys, and raw model output by default.
 
 ## Provider Recovery And Privacy
 
@@ -162,11 +155,18 @@ Obsidian desktop.
 
 ## Issues Found
 
-| ID    | Scenario | Expected | Actual | Screenshot / notes | Status |
-| ----- | -------- | -------- | ------ | ------------------ | ------ |
-| UI-01 |          |          |        |                    | Open   |
-| UI-02 |          |          |        |                    | Open   |
-| UI-03 |          |          |        |                    | Open   |
+| ID    | Scenario                                                        | Expected                                                                         | Actual                                                                                                                                                                           | Screenshot / notes                                                                                                                                        | Status                    |
+| ----- | --------------------------------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| UI-01 | HyperFusion `Check vault` on the Phase 28 complex-vault package | Complete the governed scan or show an actionable provider error                  | HyperFusion JSON extraction and normalized-lineage persistence each blocked the first attempts                                                                                   | `Screenshot 2026-08-03 at 16.33.19.png`; fixed build completed scan `scan-62f6a4a9-f272-4350-ae68-f2fbb2e6b620` with 19 findings and 3 prepared proposals | Resolved in manual retest |
+| UI-02 | Scan-to-recommendation progress                                 | Make it clear whether vault scanning or safe-fix preparation is still running    | The 19 persisted issues appeared while the umbrella `Checking vault...` progress continued during bounded repair-ranking calls                                                   | `Screenshot 2026-08-03 at 16.49.13.png`; behavior is safe but the phase transition may be unclear                                                         | UX review                 |
+| UI-03 | Judgment-action layout                                          | Present note navigation and dismissal as one clear, labelled decision flow       | The dismissal-reason select is visually unlabeled and half-width between two competing full-width actions; `Open note` and `Not important` have nearly equal visual weight       | `Screenshot 2026-08-03 at 16.53.16.png`; patched with a labelled dismissal panel and secondary note action                                                | Awaiting manual retest    |
+| UI-04 | Maintenance narrow-pane layout                                  | Group each signal and keep its actions visually attached and consistently sized  | Default bullets, unbounded text, and uneven button wrapping make adjacent maintenance signals run together                                                                       | `Screenshot 2026-08-03 at 16.54.00.png`; patched with signal cards, count badges, action grids, and a separate impact inspector                           | Awaiting manual retest    |
+| FB-01 | Dismissal-reason classification                                 | Only explicit `False positive` feedback counts toward reviewed local suppression | All four dismissal reasons were persisted with the `false-positive` verdict, so exceptions, duplicates, and revisit-later choices incorrectly advanced the suppression threshold | Manual retest recorded `needs-review` / `revisit-later` feedback after a full Obsidian restart                                                            | Resolved in manual retest |
+| UI-05 | HyperFusion provider label                                      | Distinguish release qualification from an active provider-validation operation   | `HyperFusion (cloud, validation in progress)` reads like a request that is still running, although it is a static release-status label                                           | Reported during provider settings retest; the label remains required until HyperFusion's corpus and full manual macOS evidence pass                       | UX review                 |
+
+Manual-test note: the nine completed checkboxes in `Work/Launch Control Room.md` were
+confirmed as intentional user edits. Revisit-later dismissal created no additional
+proposal or plugin-authored note change.
 
 ## Sign-off
 

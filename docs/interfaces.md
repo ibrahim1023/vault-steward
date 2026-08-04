@@ -201,6 +201,11 @@ match exactly.
 
 ## Policy Template Contract
 
-Policy Studio offers five fixed templates: project, decision, task, meeting, and research. Loading a template changes only the unsaved YAML draft; activation still requires parse, zero-write preview, and explicit save.
+Policy-template parsing and validation remain internal contracts. Policy Studio
+authoring is not exposed in the v0.1 workspace.
+
+The internal template set contains project, decision, task, meeting, and
+research. Any future authoring surface must still require parse, zero-write
+preview, and explicit save before activation.
 
 Classification uses only frontmatter `kind`, folder segments, and heading patterns. An explicit known `kind` wins; conflicting or absent bounded signals abstain. Active templates create deterministic missing-field findings. A `TemplateRepairIntent` contains only scan/finding/template/field/candidate IDs. The candidate value must already exist on a same-template note in the immutable snapshot. A repair is prepared only when exactly one safe candidate exists; otherwise it remains review-only. The existing digest-bound preview, approval, preflight, rollback, and re-index path owns application.

@@ -73,9 +73,7 @@ describe("DiagnosticsView", () => {
 
     fireEvent.click(diagnostics.getByRole("button", { name: "Check connection" }));
 
-    await waitFor(() =>
-      expect(diagnostics.getByRole("status")).toHaveTextContent("Model ready")
-    );
+    await waitFor(() => expect(diagnostics.getByRole("status")).toHaveTextContent("Model ready"));
     expect(diagnostics.getByRole("status")).toHaveTextContent("HyperFusion · qwen/qwen3-32b");
     expect(diagnostics.queryByText(/412/)).not.toBeInTheDocument();
   });
