@@ -273,6 +273,32 @@ describe("VaultStewardWorkspace", () => {
     expect(within(recommendation).getByRole("button", { name: "Apply 1 fix" })).toBeEnabled();
   });
 
+  it("switches from scanning to preparation once findings are available", async () => {
+    let finishPreparation: ((value: PreparedReferenceRepair | null) => void) | undefined;
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [finding] })}
+        loadFindings={() => [finding]}
+        prepareRepairs={() =>
+          new Promise<PreparedReferenceRepair | null>((resolve) => {
+            finishPreparation = resolve;
+          })
+        }
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("Preparing safe recommendations")
+    );
+    expect(screen.getByRole("button", { name: "Preparing recommendations..." })).toBeDisabled();
+
+    finishPreparation?.(prepared);
+    expect(await screen.findByRole("region", { name: "Prepared result" })).toBeInTheDocument();
+  });
+
   it("warns before apply when selected fixes overlap", async () => {
     const secondFinding = { ...finding, id: "finding-2" };
     render(

@@ -113,7 +113,7 @@ describe("DiagnosticsView", () => {
     expect(diagnostics.queryByText(/incremental|full vault check/i)).not.toBeInTheDocument();
   });
 
-  it("offers eligible suppression without rendering its raw key", () => {
+  it("collapses eligible suppression patterns without rendering their raw keys", () => {
     const feedbackRecords: ReviewerFeedbackRecord[] = [1, 2, 3].map((index) => ({
       id: `feedback-${index}`,
       findingId: `finding-${index}`,
@@ -126,9 +126,33 @@ describe("DiagnosticsView", () => {
     renderDiagnostics({ feedbackRecords });
     const diagnostics = openDiagnostics();
 
-    expect(diagnostics.getByText("Repeated task issue in Work/Plan.md")).toBeInTheDocument();
+    expect(diagnostics.getByText("1 repeated pattern needs review")).toBeInTheDocument();
+    expect(diagnostics.queryByText("Repeated task issue in Work/Plan.md")).not.toBeVisible();
     expect(diagnostics.queryByText("task:Work/Plan.md")).not.toBeInTheDocument();
+
+    fireEvent.click(diagnostics.getByText("1 repeated pattern needs review"));
+
+    expect(diagnostics.getByText("Repeated task issue in Work/Plan.md")).toBeVisible();
     expect(diagnostics.getByRole("button", { name: "Suppress from primary review" })).toBeEnabled();
+  });
+
+  it("does not count suppressed patterns as needing review", () => {
+    const feedbackRecords: ReviewerFeedbackRecord[] = [1, 2, 3].map((index) => ({
+      id: `feedback-${index}`,
+      findingId: `finding-${index}`,
+      proposalId: null,
+      verdict: "false-positive",
+      label: "false-positive",
+      patternKey: "task:Work/Plan.md",
+      createdAt: "2026-08-03T00:00:00.000Z"
+    }));
+    renderDiagnostics({ feedbackRecords, suppressedPatterns: ["task:Work/Plan.md"] });
+    const diagnostics = openDiagnostics();
+
+    expect(
+      diagnostics.getByText("No repeated false-positive patterns need your review.")
+    ).toBeVisible();
+    expect(diagnostics.queryByText(/repeated pattern.*need review/i)).not.toBeInTheDocument();
   });
 
   it("confirms before deleting all diagnostic traces", async () => {

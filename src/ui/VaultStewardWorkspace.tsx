@@ -32,7 +32,14 @@ import { DuplicateEntityReview } from "./DuplicateEntityReview.js";
 import { rankDashboardFindings } from "./dashboard.js";
 
 type WorkspaceMode =
-  "ready" | "scanning" | "recommendation" | "applying" | "result" | "judgment" | "error";
+  | "ready"
+  | "scanning"
+  | "preparing"
+  | "recommendation"
+  | "applying"
+  | "result"
+  | "judgment"
+  | "error";
 
 type WorkspaceDiagnostics = Omit<
   DiagnosticsViewProps,
@@ -176,6 +183,7 @@ export function VaultStewardWorkspace({
       const nextFindings = loadFindings ? await loadFindings() : result.findings;
       setFindings(nextFindings);
       setScanLimitations(result.limitations ?? []);
+      setMode("preparing");
       await chooseNext(nextFindings);
     } catch (error) {
       setMode("error");
@@ -301,6 +309,20 @@ export function VaultStewardWorkspace({
           </p>
           <button className="steward-primary steward-scan-button" type="button" disabled>
             <span>Checking vault...</span>
+            <span className="scan-progress-track" aria-hidden="true">
+              <span className="scan-progress-indicator" />
+            </span>
+          </button>
+        </section>
+      ) : null}
+
+      {mode === "preparing" ? (
+        <section className="steward-progress" aria-label="Preparing recommendations">
+          <p role="status" aria-live="polite">
+            Preparing safe recommendations from the issues found...
+          </p>
+          <button className="steward-primary steward-scan-button" type="button" disabled>
+            <span>Preparing recommendations...</span>
             <span className="scan-progress-track" aria-hidden="true">
               <span className="scan-progress-indicator" />
             </span>

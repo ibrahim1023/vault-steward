@@ -53,6 +53,7 @@ import { configurationFingerprint } from "./observability/fingerprint.js";
 import { promptRegistryFingerprint } from "./observability/prompt-registry.js";
 import type { TracePreferences } from "./contracts/trace.js";
 import { buildContextualNormalizationFindings } from "./reference/normalization.js";
+
 import { buildDuplicateEntityReview } from "./review/entity-duplicate-review.js";
 import {
   recommendCanonicalEntity as recommendCanonicalEntityWithProvider,
@@ -438,9 +439,10 @@ export default class VaultStewardPlugin extends Plugin {
   async prepareRecommendedRepairBatch() {
     if (!this.database || !this.activeSnapshot)
       throw new Error("Run Check vault before preparing repairs.");
+    const findings = this.loadFindings();
+
     const provider = this.createSelectedModelProvider();
     const writer = new ObsidianVaultWriter(this.app.vault);
-    const findings = this.loadFindings();
     const referencePrepared = await prepareReferenceRepairBatch({
       snapshot: this.activeSnapshot,
       findings,
@@ -793,7 +795,7 @@ class VaultStewardSettingsTab extends PluginSettingTab {
         dropdown
           .addOption("ollama", "Ollama (local)")
           .addOption("llama.cpp", "llama.cpp (local)")
-          .addOption("hyperfusion", "HyperFusion (cloud, validation in progress)")
+          .addOption("hyperfusion", "HyperFusion (cloud, experimental)")
           .addOption("openai", "OpenAI")
           .setValue(this.plugin.settings.modelProvider.kind)
           .onChange(async (kind) => {

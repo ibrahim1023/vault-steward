@@ -686,6 +686,16 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+.diagnostic-pattern-disclosure {
+  margin-top: 4px;
+}
+
+.diagnostic-pattern-disclosure > summary {
+  color: var(--text-accent);
+  cursor: pointer;
+  font-weight: 700;
+}
+
 .diagnostic-patterns {
   display: grid;
   gap: 8px;

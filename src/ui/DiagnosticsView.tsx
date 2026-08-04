@@ -41,7 +41,9 @@ export function DiagnosticsView({
   const [deletionState, setDeletionState] = useState<"idle" | "deleting" | "deleted" | "error">(
     "idle"
   );
-  const candidates = recurringSuppressionCandidates(feedbackRecords);
+  const candidates = recurringSuppressionCandidates(feedbackRecords).filter(
+    (candidate) => !suppressedPatterns.includes(candidate.key)
+  );
 
   const runConnectionCheck = async () => {
     setConnection({ status: "checking" });
@@ -158,31 +160,37 @@ export function DiagnosticsView({
             {candidates.length === 0 ? (
               <p>No repeated false-positive patterns need your review.</p>
             ) : (
-              <ul className="diagnostic-patterns">
-                {candidates.map((candidate) => {
-                  const suppressed = suppressedPatterns.includes(candidate.key);
-                  return (
-                    <li key={candidate.key}>
-                      <div>
-                        <strong>{feedbackPatternLabel(candidate.key)}</strong>
-                        <span>{candidate.count} local false-positive reports</span>
-                      </div>
-                      <button
-                        className="diagnostic-action"
-                        type="button"
-                        disabled={suppressed || suppressingPattern === candidate.key}
-                        onClick={() => void suppress(candidate.key)}
-                      >
-                        {suppressed
-                          ? "Suppressed from primary review"
-                          : suppressingPattern === candidate.key
-                            ? "Updating…"
-                            : "Suppress from primary review"}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+              <details className="diagnostic-pattern-disclosure">
+                <summary>
+                  {candidates.length} repeated{" "}
+                  {candidates.length === 1 ? "pattern needs" : "patterns need"} review
+                </summary>
+                <ul className="diagnostic-patterns">
+                  {candidates.map((candidate) => {
+                    const suppressed = suppressedPatterns.includes(candidate.key);
+                    return (
+                      <li key={candidate.key}>
+                        <div>
+                          <strong>{feedbackPatternLabel(candidate.key)}</strong>
+                          <span>{candidate.count} local false-positive reports</span>
+                        </div>
+                        <button
+                          className="diagnostic-action"
+                          type="button"
+                          disabled={suppressed || suppressingPattern === candidate.key}
+                          onClick={() => void suppress(candidate.key)}
+                        >
+                          {suppressed
+                            ? "Suppressed from primary review"
+                            : suppressingPattern === candidate.key
+                              ? "Updating…"
+                              : "Suppress from primary review"}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
             )}
           </div>
         </section>
