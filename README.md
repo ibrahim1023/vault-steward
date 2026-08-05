@@ -31,18 +31,35 @@ Check vault -> deterministic parser and integrity checks
             -> explicit approved change -> verified result
 ```
 
-The default experience asks for one decision at a time. Select **Check vault**;
-when a safe reference, task, decision, or duplicate-entity consolidation is available, Vault Steward shows the affected
-note, the current and proposed references or exact structured values, and the expected result. The single
-**Apply fixes** action records explicit approval, re-checks every source
-revision, applies only validated changes, and reports the actual result.
-Non-repairable findings receive one recommended action instead of an
-unsupported edit.
+The everyday flow is deliberately simple: choose a provider once in Settings,
+press **Check vault**, review the clearest next recommendation, then approve
+only the changes you want. When a safe reference, task, decision, or
+duplicate-entity consolidation is available, Vault Steward shows the affected
+note and exact **Current** and **After** values.
+It also shows current and proposed references, plus the expected result. The one
+**Apply fixes** action records your approval, re-checks every source revision,
+applies only validated changes, and reports what actually changed.
+Non-repairable findings receive a useful next action rather than a made-up
+edit.
 
 **Settings** and **History** are directly available after the review surface.
-Technical readiness, Policy Studio, maintenance, impact inspection, and
-observability remain collapsed under **Diagnostics**, so they do not crowd the
-everyday review path.
+**Diagnostics** keeps model connection, automatic checks, review preferences,
+and local trace deletion out of the everyday review path.
+
+## Coordinated Review, Not Autonomous Editing
+
+Vault Steward uses several narrowly scoped agents as a review team. They do
+not talk to external tools, write notes, or approve themselves. Deterministic
+code validates every input and output, and the user remains the only approval
+authority.
+
+| Role                              | What it does                                                                                                   | What keeps it safe                                                         |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Scanner and integrity checks      | Parse Markdown, build the vault graph, and find deterministic link, task, schema, policy, and decision issues. | No model or write access.                                                  |
+| Semantic reviewers                | Examine bounded, cited evidence for duplicates, contradictions, staleness, ambiguous tasks, and decisions.     | Evidence is treated as untrusted data; outputs must match typed contracts. |
+| Coordinator                       | Routes eligible evidence to the right reviewer and records only bounded, metadata-safe results.                | Enforces budgets, retries, and snapshot boundaries.                        |
+| Repair guide and canonical ranker | May select from a short list of existing, snapshot-derived targets or abstain.                                 | Cannot invent targets, patch ranges, or operations.                        |
+| Approval and apply guard          | Builds the exact preview, checks revisions and conflicts, then applies selected changes.                       | Runs deterministically and only after **Apply fixes**.                     |
 
 The deterministic core owns parsing, policies, evidence validation, finding
 normalization, persistence, diffs, expected-result calculation, approval, and
@@ -55,7 +72,7 @@ proposal, or apply an edit.
 
 - Runs locally in the Obsidian desktop process with SQLite as the canonical local store.
 - Defaults to loopback-configured Ollama or llama.cpp-compatible local model providers for governed scans.
-- HyperFusion is a cloud provider in validation. It sends bounded selected evidence and prompts to its fixed API only after the user enters an API key and acknowledges the cloud-data warning. OpenAI remains an unvalidated optional path.
+- HyperFusion and OpenAI are optional, experimental cloud providers. Each sends bounded selected evidence and prompts only to its fixed API after the user enters an API key and acknowledges the cloud-data warning.
 - Does not send telemetry, traces, metrics, or model output to a cloud service. Cloud API keys are excluded from traces, diagnostics, fingerprints, and exports.
 - Stores metadata-only traces by default; note bodies, prompts, raw model outputs, absolute paths, URLs, and secrets are excluded.
 - Requires explicit approval and a current source-revision check before every note mutation.
@@ -85,7 +102,20 @@ For manual installation, build the plugin and copy `dist/vault-steward/` into `<
 
 ## Model Providers
 
-Vault Steward requires a configured model provider for its governed semantic-analysis stage. Ollama and llama.cpp stay local. HyperFusion is the prioritized cloud-provider validation path and uses only the fixed `https://api.hyperfusion.io/v1/chat/completions` endpoint; it accepts the OpenAI-compatible assistant content at `choices[0].message.content`. Selecting it requires a model, API key, and explicit acknowledgement that bounded selected vault evidence can leave the device. OpenAI remains experimental and unvalidated. Run the readiness check in the plugin before a scan.
+Vault Steward requires a configured model provider for its governed
+semantic-analysis stage. Run the in-app readiness check after configuring any
+provider and before your first scan.
+
+| Provider    | Where analysis runs                                                 | Setup                                                                                                       |
+| ----------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Ollama      | Your device, through a loopback-only Ollama endpoint.               | Select an installed local model. This is the default path.                                                  |
+| llama.cpp   | Your device, through a loopback-only llama.cpp-compatible endpoint. | Select an installed local model.                                                                            |
+| HyperFusion | Its fixed `https://api.hyperfusion.io/v1/chat/completions` API.     | Enter an API key and explicitly acknowledge that bounded selected evidence leaves the device. Experimental. |
+| OpenAI      | Its fixed `https://api.openai.com/v1/responses` API.                | Enter an API key and explicitly acknowledge that bounded selected evidence leaves the device. Experimental. |
+
+Cloud providers never receive an arbitrary endpoint, telemetry, local traces,
+or automatic permission to edit notes. Both cloud paths use bounded requests;
+OpenAI requests also set `store: false`.
 
 Model behavior varies by hardware, configuration, vault content, and task. This repository does not claim a universal best model. Record local quality and latency measurements using the evaluation reports described in [local model guidance](docs/local-models.md).
 
@@ -105,9 +135,10 @@ Marketplace release validation uses the versioned 26-case Northstar corpus.
 The evaluator runs the actual governed scan: deterministic code owns task,
 reference, decision, and policy findings; providers handle semantic agent
 routes and bounded reference-target ranking.
-Ollama is the local-first release path. HyperFusion has a passing redacted
-synthetic-corpus report, but remains validation-in-progress until its manual
-macOS acceptance pass completes. OpenAI evaluation remains deferred:
+Ollama is the local-first release path. HyperFusion remains experimental while
+its release evidence matures. OpenAI `gpt-4o-mini` currently passes the same
+redacted 26-case corpus and a manual macOS provider check, but remains an
+experimental opt-in provider rather than a broad quality guarantee:
 
 ```bash
 OLLAMA_MODEL=<model> npm run eval:marketplace:ollama
