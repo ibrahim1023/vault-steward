@@ -19,7 +19,7 @@ Obsidian desktop.
 | Obsidian       | 1.12.7                                                                                                             |
 | macOS          | 26.5.2 (25F84)                                                                                                     |
 | Vault Steward  | 0.1.0, branch `feat/phase-28-faster-batch-review`, commit `a1a8cbe`                                                |
-| Provider/model | HyperFusion `qwen/qwen3-32b`                                                                                       |
+| Provider/model | HyperFusion `qwen/qwen3-32b`; OpenAI `gpt-4o-mini` (2026-08-05)                                                    |
 | Install path   | Fresh install in disposable complex acceptance vault: `/Users/ibrahim/Documents/Obsidian/complex-acceptance-vault` |
 
 ## Installation And Setup
@@ -30,7 +30,7 @@ Obsidian desktop.
 - [x] Provider configuration is in Obsidian settings, outside the primary path.
 - [ ] Ollama accepts only a loopback endpoint.
 - [x] HyperFusion masks the API key, uses no editable endpoint, and requires the cloud-data acknowledgement. (2026-08-04: confirmed in the acceptance vault.)
-- [ ] OpenAI masks the API key and requires the cloud-data acknowledgement.
+- [x] OpenAI masks the API key and requires the cloud-data acknowledgement. (2026-08-05: confirmed in the acceptance vault.)
 - [x] Reload and disable/re-enable preserve non-secret settings correctly. (2026-08-04: confirmed in the acceptance vault.)
 
 ## Simple Review
@@ -132,7 +132,7 @@ Obsidian desktop.
 - [ ] Valid acknowledged HyperFusion configuration can complete a scan and exact-preview flow.
 - [ ] Missing OpenAI acknowledgement blocks provider use.
 - [ ] Invalid OpenAI credentials fail without exposing the key.
-- [ ] Valid acknowledged OpenAI configuration can complete a scan.
+- [x] Valid acknowledged OpenAI configuration can complete a scan. (2026-08-05: `gpt-4o-mini` connection check and governed scan completed.)
 - [x] No write occurs after any provider failure. (2026-08-04: confirmed during the Ollama recovery test.)
 
 ## Provider Release Reports
@@ -165,7 +165,7 @@ Obsidian desktop.
 | UI-05 | HyperFusion provider label                                      | Distinguish release qualification from an active provider-validation operation    | `HyperFusion (cloud, validation in progress)` reads like a request that is still running, although it is a static release-status label                                           | Changed to `HyperFusion (cloud, experimental)`; confirmed in manual settings retest.                                                                      | Resolved in manual retest   |
 | UI-06 | Review-preferences suppression summary                          | The “patterns need review” count reflects only unsuppressed patterns              | After suppressing a pattern from primary review, the summary still reads “8 repeated patterns need review” because it includes suppressed patterns                               | Suppressed patterns are now excluded from the summary; confirmed in manual retest.                                                                        | Resolved in manual retest   |
 | UI-07 | Rescan after provider change                                    | Let the user start a new vault check while an existing judgment or result is open | After switching providers, an active judgment screen has no visible `Check vault` or `Check vault again` action; closing and reopening the workspace is required                 | Reported during the 2026-08-04 Ollama recovery test; defer implementation until the current manual test is complete                                       | Open                        |
-| UI-08 | OpenAI connection readiness                                     | Recognize a successful OpenAI Responses API readiness response                    | The adapter expected a non-standard top-level `output_text` property instead of `output[].content[].text`, then reported the valid response as unavailable                       | Documented raw-response fixture now passes; live OpenAI retest pending.                                                                                   | Fixed, pending live retest  |
+| UI-08 | OpenAI connection readiness                                     | Recognize a successful OpenAI Responses API readiness response                    | The adapter expected a non-standard top-level `output_text` property instead of `output[].content[].text`, then reported the valid response as unavailable                       | Documented raw-response fixture and live `gpt-4o-mini` retest passed on 2026-08-05.                                                                       | Resolved in manual retest   |
 
 Manual-test note: the nine completed checkboxes in `Work/Launch Control Room.md` were
 confirmed as intentional user edits. Revisit-later dismissal created no additional
