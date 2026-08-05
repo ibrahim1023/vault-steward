@@ -375,6 +375,7 @@ export function VaultStewardWorkspace({
           {...(openNote ? { openNote } : {})}
           dismissing={dismissing}
           onNotImportant={dismissJudgment}
+          onCheckVault={() => void checkVault()}
           {...(loadDuplicateEntityReview
             ? { duplicateReview: loadDuplicateEntityReview(judgment) }
             : {})}
@@ -669,6 +670,7 @@ function JudgmentView({
   openNote,
   dismissing,
   onNotImportant,
+  onCheckVault,
   duplicateReview,
   recommendCanonicalEntity,
   prepareConsolidation
@@ -677,6 +679,7 @@ function JudgmentView({
   openNote?: (path: string) => void | Promise<void>;
   dismissing: boolean;
   onNotImportant: (finding: Finding, reason: DismissalReason) => Promise<void>;
+  onCheckVault: () => void;
   duplicateReview?: DuplicateEntityReviewData | null;
   recommendCanonicalEntity?: () => Promise<EntityCanonicalRecommendation>;
   prepareConsolidation?: (candidateId: string) => Promise<boolean>;
@@ -740,6 +743,9 @@ function JudgmentView({
             {dismissing ? "Dismissing..." : "Not important"}
           </button>
         </div>
+        <button className="judgment-check-again" type="button" onClick={onCheckVault}>
+          Check vault again
+        </button>
       </div>
     </section>
   );

@@ -125,6 +125,10 @@ remain required before any submission-ready claim.
   acknowledgement blocking and invalid-credential handling were also verified: no key
   text was exposed, and the connection recovered after the valid acknowledged key was
   restored.
+- UI-07 now exposes a secondary `Check vault again` action from an open judgment,
+  so a provider change can start a fresh governed scan without reopening the
+  workspace or changing the current finding. Automated coverage passes; manual
+  retest remains required.
 - Phase 27 regression coverage now includes folder-classified template repairs and empty
   frontmatter blocks, plus malformed or expanded repair-intent rejection. HyperFusion's
   deterministic boundary tests and redacted `qwen/qwen3-32b` Northstar corpus report pass;
