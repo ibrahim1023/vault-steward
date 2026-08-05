@@ -14,7 +14,7 @@ submission and must not be used to claim marketplace availability.
 
 ## Product Evidence
 
-- [ ] Phase 19 macOS manual acceptance is signed off.
+- [x] Current macOS manual acceptance is signed off. (2026-08-05.)
 - [x] Northstar Ollama report passes with `qwen3:8b`.
 - [x] Northstar OpenAI report passes with explicit acknowledgement. (2026-08-05: `gpt-4o-mini`.)
 - [x] `npm run eval:marketplace:gate` passes against one corpus fingerprint. (2026-08-05.)

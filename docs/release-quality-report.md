@@ -93,11 +93,12 @@ passed. OpenAI remains experimental.
 
 ## Manual macOS Evidence
 
-The following remain pending in `docs/manual-acceptance-checklist.md`:
+Manual acceptance is signed off in `docs/manual-acceptance-checklist.md` as of
+2026-08-05. The remaining release evidence is:
 
-- the remaining unchecked cases in the manual acceptance checklist;
 - release screenshots, demonstration, and package/version/tag evidence;
-- a release-owner review after the final completion gate.
+- a release-owner review after the final completion gate;
+- completion of the full source security review.
 
 ## Release Thresholds
 

@@ -136,6 +136,10 @@ remain required before any submission-ready claim.
   and the packaged-plugin install smoke. Live marketplace-provider reports stay
   protected release checks because they require an explicit cloud acknowledgement
   and credentials.
+- The complete macOS manual acceptance matrix, including HyperFusion safety
+  recovery, batch safeguards, accessibility, and the final judgment-layout
+  retest, was signed off by the release tester on 2026-08-05. Release promotion
+  still awaits the full source security review and marketplace materials.
 - Phase 27 regression coverage now includes folder-classified template repairs and empty
   frontmatter blocks, plus malformed or expanded repair-intent rejection. HyperFusion's
   deterministic boundary tests and redacted `qwen/qwen3-32b` Northstar corpus report pass;
