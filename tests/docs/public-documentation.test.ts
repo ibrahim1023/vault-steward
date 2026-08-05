@@ -81,7 +81,7 @@ describe("public documentation", () => {
     expect(compatibility).toContain("limited to macOS");
     expect(compatibility).toContain("HyperFusion has a passing redacted synthetic-corpus report");
     expect(compatibility).toContain("OpenAI is experimental");
-    expect(troubleshooting).toContain("HyperFusion remains validation-in-progress");
+    expect(troubleshooting).toContain("HyperFusion is experimental");
     expect(privacy).toContain("HyperFusion and OpenAI are optional, explicit cloud providers");
   });
 });

@@ -96,8 +96,9 @@ remain required before any submission-ready claim.
   Provider-neutral contracts, redacted Ollama/OpenAI reports, unsafe-remediation
   rejection, and a combined same-fingerprint gate are implemented. The release
   runner now executes the real governed scan and bounded repair recommender
-  instead of asking a model to classify deterministic findings. `gemma3:12b`
-  passes the Ollama report; the OpenAI report remains pending.
+  instead of asking a model to classify deterministic findings. `qwen3:8b` and
+  `gpt-4o-mini` each pass their recorded Northstar reports; both cloud providers
+  remain experimental opt-in paths.
 
 ## Important Decisions
 
@@ -129,6 +130,12 @@ remain required before any submission-ready claim.
   so a provider change can start a fresh governed scan without reopening the
   workspace or changing the current finding. Automated coverage and a manual
   OpenAI-to-HyperFusion retest passed on 2026-08-05.
+- The 2026-08-05 release audit corrected the complex-acceptance fixture count
+  after two intentional stale-batch exercise notes were added. CI now runs the
+  full Vitest coverage suite, acceptance tests, full deterministic evaluations,
+  and the packaged-plugin install smoke. Live marketplace-provider reports stay
+  protected release checks because they require an explicit cloud acknowledgement
+  and credentials.
 - Phase 27 regression coverage now includes folder-classified template repairs and empty
   frontmatter blocks, plus malformed or expanded repair-intent rejection. HyperFusion's
   deterministic boundary tests and redacted `qwen/qwen3-32b` Northstar corpus report pass;

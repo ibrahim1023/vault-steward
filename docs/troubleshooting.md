@@ -4,9 +4,9 @@
 
 Confirm that Ollama or the compatible local endpoint is running, configured as a loopback address, and has the selected model available. Run the plugin readiness check. A governed scan remains incomplete until the required local semantic stage completes.
 
-For HyperFusion, select `HyperFusion` in Vault Steward settings, enter a valid API key, choose the configured model, and enable the cloud-data acknowledgement. The provider uses only its fixed API origin and sends bounded selected evidence for each semantic request. HyperFusion remains validation-in-progress until its manual macOS acceptance is complete.
+For HyperFusion, select `HyperFusion` in Vault Steward settings, enter a valid API key, choose the configured model, and enable the cloud-data acknowledgement. The provider uses only its fixed API origin and sends bounded selected evidence for each semantic request. HyperFusion is experimental.
 
-For OpenAI, select `OpenAI` in Vault Steward settings, enter a valid API key, choose a JSON-capable model, and enable the cloud-data acknowledgement. OpenAI is experimental and unvalidated. API keys are stored locally in Obsidian plugin data and are never included in Vault Steward traces or diagnostics. Do not paste a key into a note, policy file, log, or issue report.
+For OpenAI, select `OpenAI` in Vault Steward settings, enter a valid API key, choose a JSON-capable model, and enable the cloud-data acknowledgement. OpenAI is experimental. API keys are stored locally in Obsidian plugin data and are never included in Vault Steward traces or diagnostics. Do not paste a key into a note, policy file, log, or issue report.
 
 ## Database Or Migration Failure
 

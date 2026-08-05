@@ -13,7 +13,7 @@
   conflicting, missing, or unauthorized. Runtime write failures use rollback
   and may require explicit recovery.
 - Multi-vault operation, sync conflict resolution, encrypted-vault support, and future-extension agents are out of scope for the MVP.
-- Marketplace readiness is not a release claim until the local-first Ollama
-  evidence and final macOS acceptance pass. HyperFusion has a passing redacted
-  synthetic-corpus report but remains validation-in-progress pending manual
-  macOS acceptance. OpenAI remains experimental and unvalidated.
+- Marketplace readiness is not a release claim until final macOS acceptance and
+  submission evidence are complete. Ollama `qwen3:8b` and OpenAI `gpt-4o-mini`
+  have passing redacted Northstar reports; HyperFusion also has a passing
+  redacted report. Both cloud providers remain experimental opt-in paths.
