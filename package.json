@@ -18,6 +18,7 @@
     "test:integration": "vitest run tests/integration --passWithNoTests",
     "test:e2e": "vitest run tests/e2e",
     "test:acceptance": "vitest run tests/acceptance",
+    "test:coverage": "vitest run --coverage",
     "eval:smoke": "tsx scripts/run-evals.ts --suite reference-integrity",
     "eval:full": "tsx scripts/run-evals.ts --all",
     "eval:synthetic": "tsx scripts/run-synthetic-scale-eval.ts",

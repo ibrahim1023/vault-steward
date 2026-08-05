@@ -590,6 +590,34 @@ describe("VaultStewardWorkspace", () => {
     expect(screen.queryByRole("button", { name: /apply/i })).not.toBeInTheDocument();
   });
 
+  it("starts a fresh check from an open judgment after the provider changes", async () => {
+    const taskFinding = {
+      ...finding,
+      id: "provider-switch-judgment",
+      type: "task" as const,
+      explanation: "This task needs a review decision."
+    };
+    const scan = vi
+      .fn<() => Promise<{ scanId: string; findings: Finding[] }>>()
+      .mockResolvedValueOnce({ scanId: "scan-before-provider-switch", findings: [taskFinding] })
+      .mockResolvedValueOnce({ scanId: "scan-after-provider-switch", findings: [] });
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={scan}
+        prepareRepairs={async () => null}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+    expect(await screen.findByText(taskFinding.explanation)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Check vault again" }));
+
+    expect(await screen.findByText("Your vault looks clear")).toBeInTheDocument();
+    expect(scan).toHaveBeenCalledTimes(2);
+  });
+
   it("advances through multiple locally dismissed judgment findings", async () => {
     const firstTask = {
       ...finding,

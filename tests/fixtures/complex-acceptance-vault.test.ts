@@ -15,7 +15,7 @@ describe("complex acceptance vault", () => {
     const references = checkReferenceIntegrity(scan);
     const controlRoom = files.find((file) => file.path === "Work/Launch Control Room.md");
 
-    expect(files).toHaveLength(23);
+    expect(files).toHaveLength(25);
     expect(references.filter((finding) => finding.type === "broken-reference")).toHaveLength(5);
     expect(references.filter((finding) => finding.type === "invalid-reference")).toHaveLength(1);
     expect(files.map((file) => file.path)).toEqual(

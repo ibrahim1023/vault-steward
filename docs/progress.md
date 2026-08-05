@@ -82,7 +82,7 @@ remain required before any submission-ready claim.
 
 - Security hardening on 2026-07-20 rejects local-provider redirects, bounds provider configuration and response reads, binds approval/apply to validated persisted proposal digests, and enforces vault-reader/scanner resource and canonical-path limits.
 - Phase 17 adds an explicit OpenAI provider option beside the default loopback Ollama/llama.cpp providers. OpenAI requests use a fixed API origin, bounded JSON-mode Responses API calls with `store: false`, a local API key, and a required cloud-data acknowledgement; keys remain excluded from traces, fingerprints, diagnostics, and portable exports.
-- Phase 18 migrates the OpenAI adapter to the current Responses API request and response contract: `input`, `instructions`, JSON mode under `text.format`, `max_output_tokens`, `store: false`, and aggregate `output_text` parsing.
+- Phase 18 migrates the OpenAI adapter to the current Responses API request and response contract: `input`, `instructions`, JSON mode under `text.format`, `max_output_tokens`, `store: false`, and `output_text` parsing from response messages.
 - The approved Phase 19 revision replaces the dashboard with
   `ready -> scanning -> recommendation -> applying -> result`, exact
   Current/After previews, deterministic expected outcomes, bounded AI target
@@ -96,8 +96,9 @@ remain required before any submission-ready claim.
   Provider-neutral contracts, redacted Ollama/OpenAI reports, unsafe-remediation
   rejection, and a combined same-fingerprint gate are implemented. The release
   runner now executes the real governed scan and bounded repair recommender
-  instead of asking a model to classify deterministic findings. `gemma3:12b`
-  passes the Ollama report; the OpenAI report remains pending.
+  instead of asking a model to classify deterministic findings. `qwen3:8b` and
+  `gpt-4o-mini` each pass their recorded Northstar reports; both cloud providers
+  remain experimental opt-in paths.
 
 ## Important Decisions
 
@@ -115,6 +116,30 @@ remain required before any submission-ready claim.
   controls are model connection, automatic checks, reviewed local suppression, and
   confirmed local trace deletion. Policy, maintenance, observability, evaluation, and
   trace-storage systems remain internal safeguards and release tooling.
+- Phase 29 corrects the raw Responses API adapter to read only `output_text` message
+  content from the documented response `output` array and makes the synthetic readiness
+  input explicitly JSON-mode compatible. It also omits unrelated heading/block anchors
+  before model selection, so a model cannot propose a weak anchor substitution. This
+  preserves the fixed-origin, JSON-only, no-tools, `store: false` OpenAI boundary; the
+  live `gpt-4o-mini` Northstar report now passes with no unsafe remediation, and its
+  manual Obsidian readiness check plus governed scan completed on 2026-08-05. Manual
+  acknowledgement blocking and invalid-credential handling were also verified: no key
+  text was exposed, and the connection recovered after the valid acknowledged key was
+  restored.
+- UI-07 now exposes a secondary `Check vault again` action from an open judgment,
+  so a provider change can start a fresh governed scan without reopening the
+  workspace or changing the current finding. Automated coverage and a manual
+  OpenAI-to-HyperFusion retest passed on 2026-08-05.
+- The 2026-08-05 release audit corrected the complex-acceptance fixture count
+  after two intentional stale-batch exercise notes were added. CI now runs the
+  full Vitest coverage suite, acceptance tests, full deterministic evaluations,
+  and the packaged-plugin install smoke. Live marketplace-provider reports stay
+  protected release checks because they require an explicit cloud acknowledgement
+  and credentials.
+- The complete macOS manual acceptance matrix, including HyperFusion safety
+  recovery, batch safeguards, accessibility, and the final judgment-layout
+  retest, was signed off by the release tester on 2026-08-05. Release promotion
+  still awaits the full source security review and marketplace materials.
 - Phase 27 regression coverage now includes folder-classified template repairs and empty
   frontmatter blocks, plus malformed or expanded repair-intent rejection. HyperFusion's
   deterministic boundary tests and redacted `qwen/qwen3-32b` Northstar corpus report pass;

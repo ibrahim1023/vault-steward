@@ -389,8 +389,26 @@ function outputFor(config: LocalProviderConfig, value: unknown): string | null {
 
 function openAIOutput(value: unknown): string | null {
   if (!value || typeof value !== "object") return null;
-  const outputText = (value as { output_text?: unknown }).output_text;
-  return typeof outputText === "string" ? outputText : null;
+  const record = value as { output_text?: unknown; output?: unknown };
+  if (typeof record.output_text === "string") return record.output_text;
+  if (!Array.isArray(record.output)) return null;
+
+  const outputText = record.output.flatMap((item) => {
+    if (!item || typeof item !== "object" || (item as { type?: unknown }).type !== "message") {
+      return [];
+    }
+    const content = (item as { content?: unknown }).content;
+    if (!Array.isArray(content)) return [];
+    return content.flatMap((part) =>
+      part &&
+      typeof part === "object" &&
+      (part as { type?: unknown }).type === "output_text" &&
+      typeof (part as { text?: unknown }).text === "string"
+        ? [(part as { text: string }).text]
+        : []
+    );
+  });
+  return outputText.length > 0 ? outputText.join("") : null;
 }
 
 function hyperFusionOutput(value: unknown): string | null {

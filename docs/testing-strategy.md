@@ -99,12 +99,16 @@ dated review rationale in the release quality report.
 
 ## Planned CI Stages
 
-1. formatting, lint, types
-2. unit and schema/contract tests
+1. formatting, lint, and types
+2. unit, schema/contract, fixture, and acceptance tests, plus coverage measurement
 3. integration and migration tests
-4. deterministic eval smoke checks
-5. security/dependency checks
+4. deterministic smoke and full evaluation checks
+5. package/install smoke and security/dependency checks
 6. build verification
+
+Live marketplace-provider evaluations remain protected release checks because
+they require an explicitly configured provider and acknowledgement; CI never
+stores provider credentials.
 
 Long model-dependent evals, performance/load checks, adversarial suites, and
 provider corpus runs execute locally or on a protected release runner.

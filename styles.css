@@ -203,6 +203,10 @@
   width: 100%;
 }
 
+.judgment-check-again {
+  justify-self: start;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

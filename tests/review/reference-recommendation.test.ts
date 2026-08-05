@@ -98,17 +98,34 @@ describe("bounded reference repair recommendations", () => {
     expect(selectCandidate).not.toHaveBeenCalled();
   });
 
-  it("builds bounded candidates from anchors that exist in the target note", () => {
+  it("does not offer unrelated anchors for model selection", () => {
     const anchoredSnapshot = {
       ...scanVaultFiles([
-        { path: "Home.md", content: "[[Guides/Current Guide#Missing Heading]]" },
+        { path: "Home.md", content: "[[Guides/Current Guide#Unresolved Workflow]]" },
+        { path: "Guides/Current Guide.md", content: "# Current Guide\n\n## Open Questions" }
+      ]),
+      id: "scan-1"
+    };
+
+    expect(
+      buildReferenceRepairCandidates({
+        finding: finding("scan-1", "[[Guides/Current Guide#Unresolved Workflow]]"),
+        snapshot: anchoredSnapshot
+      })
+    ).toEqual([]);
+  });
+
+  it("builds bounded candidates from related anchors that exist in the target note", () => {
+    const anchoredSnapshot = {
+      ...scanVaultFiles([
+        { path: "Home.md", content: "[[Guides/Current Guide#Current Overview]]" },
         { path: "Guides/Current Guide.md", content: "# Current Guide" }
       ]),
       id: "scan-1"
     };
     expect(
       buildReferenceRepairCandidates({
-        finding: finding("scan-1", "[[Guides/Current Guide#Missing Heading]]"),
+        finding: finding("scan-1", "[[Guides/Current Guide#Current Overview]]"),
         snapshot: anchoredSnapshot
       })
     ).toEqual([
@@ -124,7 +141,7 @@ describe("bounded reference repair recommendations", () => {
   it("builds heading and block intents only from a selected bounded candidate", async () => {
     const anchoredSnapshot = {
       ...scanVaultFiles([
-        { path: "Home.md", content: "[[Guides/Guide#Missing]]" },
+        { path: "Home.md", content: "[[Guides/Guide#Plan Details]]" },
         {
           path: "Guides/Guide.md",
           content: "# Project Plan\n\nMilestone details ^plan-block"
@@ -132,7 +149,7 @@ describe("bounded reference repair recommendations", () => {
       ]),
       id: "scan-1"
     };
-    const anchoredFinding = finding("scan-1", "[[Guides/Guide#Missing]]");
+    const anchoredFinding = finding("scan-1", "[[Guides/Guide#Plan Details]]");
     const candidates = buildReferenceRepairCandidates({
       finding: anchoredFinding,
       snapshot: anchoredSnapshot
@@ -173,13 +190,13 @@ describe("bounded reference repair recommendations", () => {
     const headings = Array.from({ length: 24 }, (_, index) => `# Section ${index}`).join("\n");
     const anchoredSnapshot = {
       ...scanVaultFiles([
-        { path: "Home.md", content: "[[Target#Missing]]" },
+        { path: "Home.md", content: "[[Target#Section]]" },
         { path: "Target.md", content: `# Duplicate\n# Duplicate\n${headings}` }
       ]),
       id: "scan-1"
     };
     const candidates = buildReferenceRepairCandidates({
-      finding: finding("scan-1", "[[Target#Missing]]"),
+      finding: finding("scan-1", "[[Target#Section]]"),
       snapshot: anchoredSnapshot
     });
 

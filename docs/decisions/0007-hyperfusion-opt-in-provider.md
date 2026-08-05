@@ -26,7 +26,7 @@ not configurable.
 
 ## Consequences
 
-HyperFusion is labelled validation-in-progress until its bounded corpus and
-manual macOS evidence pass. A provider result remains subject to the same typed
+HyperFusion is labelled experimental while its bounded corpus and manual macOS
+evidence mature. A provider result remains subject to the same typed
 validation, evidence checks, exact preview, and explicit-approval workflow as
 local providers. It cannot authorize or perform vault writes.

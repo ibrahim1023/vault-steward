@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
+import {
+  createOpenAIProvider,
+  OPENAI_API_BASE_URL
+} from "../../src/model-provider/local-provider.js";
 import { checkModelReadiness } from "../../src/model-provider/readiness.js";
 
 describe("model readiness", () => {
@@ -46,6 +50,45 @@ describe("model readiness", () => {
     await expect(checkModelReadiness(provider)).resolves.toMatchObject({
       available: false,
       failureCode: "provider-unavailable"
+    });
+  });
+
+  it("uses JSON-mode-compatible input for an OpenAI readiness check", async () => {
+    const provider = createOpenAIProvider(
+      {
+        kind: "openai",
+        endpoint: OPENAI_API_BASE_URL,
+        model: "gpt-4o-mini",
+        apiKey: "sk-test-key",
+        timeoutMs: 40,
+        maxResponseBytes: 200
+      },
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        const request = JSON.parse(String(init?.body)) as { input: string };
+        return request.input.toLowerCase().includes("json")
+          ? new Response(
+              JSON.stringify({
+                status: "completed",
+                output: [
+                  {
+                    type: "message",
+                    status: "completed",
+                    role: "assistant",
+                    content: [{ type: "output_text", text: '{"ready":true}', annotations: [] }]
+                  }
+                ]
+              })
+            )
+          : new Response(JSON.stringify({ error: { message: "JSON input required" } }), {
+              status: 400
+            });
+      })
+    );
+
+    await expect(checkModelReadiness(provider)).resolves.toMatchObject({
+      available: true,
+      structuredOutput: true,
+      provider: "openai"
     });
   });
 });
