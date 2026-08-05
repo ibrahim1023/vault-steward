@@ -11,7 +11,8 @@ API without broadening Vault Steward's cloud-data boundary.
 2. Send bounded evidence through `input` and fixed JSON-only instructions.
 3. Request JSON mode using `text.format`, cap `max_output_tokens`, and retain
    `store: false`.
-4. Parse only the aggregate `output_text` response field.
+4. Parse only `output_text` content from completed response messages; do not
+   interpret tool calls, reasoning items, or other response data.
 5. Update hermetic tests and documentation; do not call the live API in CI.
 
 ## Non-Goals

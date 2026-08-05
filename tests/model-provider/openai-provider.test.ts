@@ -47,6 +47,34 @@ describe("OpenAI model provider", () => {
     });
   });
 
+  it("reads JSON from a completed Responses API message", async () => {
+    const provider = createOpenAIProvider(
+      config,
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            id: "resp_test",
+            object: "response",
+            status: "completed",
+            output: [
+              {
+                id: "msg_test",
+                type: "message",
+                status: "completed",
+                role: "assistant",
+                content: [{ type: "output_text", text: '{"ready":true}', annotations: [] }]
+              }
+            ]
+          })
+        )
+      )
+    );
+
+    await expect(
+      provider.generate({ prompt: "check", maxOutputTokens: 32 })
+    ).resolves.toMatchObject({ text: '{"ready":true}', provider: "openai" });
+  });
+
   it("rejects blank keys, non-OpenAI origins, malformed responses, and oversized bodies", async () => {
     expect(() => createOpenAIProvider({ ...config, apiKey: "" })).toThrow("configuration");
     expect(() =>

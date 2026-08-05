@@ -82,7 +82,7 @@ remain required before any submission-ready claim.
 
 - Security hardening on 2026-07-20 rejects local-provider redirects, bounds provider configuration and response reads, binds approval/apply to validated persisted proposal digests, and enforces vault-reader/scanner resource and canonical-path limits.
 - Phase 17 adds an explicit OpenAI provider option beside the default loopback Ollama/llama.cpp providers. OpenAI requests use a fixed API origin, bounded JSON-mode Responses API calls with `store: false`, a local API key, and a required cloud-data acknowledgement; keys remain excluded from traces, fingerprints, diagnostics, and portable exports.
-- Phase 18 migrates the OpenAI adapter to the current Responses API request and response contract: `input`, `instructions`, JSON mode under `text.format`, `max_output_tokens`, `store: false`, and aggregate `output_text` parsing.
+- Phase 18 migrates the OpenAI adapter to the current Responses API request and response contract: `input`, `instructions`, JSON mode under `text.format`, `max_output_tokens`, `store: false`, and `output_text` parsing from response messages.
 - The approved Phase 19 revision replaces the dashboard with
   `ready -> scanning -> recommendation -> applying -> result`, exact
   Current/After previews, deterministic expected outcomes, bounded AI target
@@ -115,6 +115,10 @@ remain required before any submission-ready claim.
   controls are model connection, automatic checks, reviewed local suppression, and
   confirmed local trace deletion. Policy, maintenance, observability, evaluation, and
   trace-storage systems remain internal safeguards and release tooling.
+- Phase 29 corrects the raw Responses API adapter to read only `output_text` message
+  content from the documented response `output` array. This preserves the fixed-origin,
+  JSON-only, no-tools, `store: false` OpenAI boundary while allowing a successful live
+  connection check to be recognized.
 - Phase 27 regression coverage now includes folder-classified template repairs and empty
   frontmatter blocks, plus malformed or expanded repair-intent rejection. HyperFusion's
   deterministic boundary tests and redacted `qwen/qwen3-32b` Northstar corpus report pass;
