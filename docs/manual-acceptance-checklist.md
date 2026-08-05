@@ -130,8 +130,8 @@ Obsidian desktop.
 - [ ] Missing HyperFusion acknowledgement blocks provider use.
 - [ ] Invalid HyperFusion credentials fail without exposing the key.
 - [ ] Valid acknowledged HyperFusion configuration can complete a scan and exact-preview flow.
-- [ ] Missing OpenAI acknowledgement blocks provider use.
-- [ ] Invalid OpenAI credentials fail without exposing the key.
+- [x] Missing OpenAI acknowledgement blocks provider use. (2026-08-05: confirmed in the acceptance vault.)
+- [x] Invalid OpenAI credentials fail without exposing the key. (2026-08-05: confirmed; restoring the valid acknowledged key recovered the connection.)
 - [x] Valid acknowledged OpenAI configuration can complete a scan. (2026-08-05: `gpt-4o-mini` connection check and governed scan completed.)
 - [x] No write occurs after any provider failure. (2026-08-04: confirmed during the Ollama recovery test.)
 

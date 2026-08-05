@@ -121,7 +121,10 @@ remain required before any submission-ready claim.
   before model selection, so a model cannot propose a weak anchor substitution. This
   preserves the fixed-origin, JSON-only, no-tools, `store: false` OpenAI boundary; the
   live `gpt-4o-mini` Northstar report now passes with no unsafe remediation, and its
-  manual Obsidian readiness check plus governed scan completed on 2026-08-05.
+  manual Obsidian readiness check plus governed scan completed on 2026-08-05. Manual
+  acknowledgement blocking and invalid-credential handling were also verified: no key
+  text was exposed, and the connection recovered after the valid acknowledged key was
+  restored.
 - Phase 27 regression coverage now includes folder-classified template repairs and empty
   frontmatter blocks, plus malformed or expanded repair-intent rejection. HyperFusion's
   deterministic boundary tests and redacted `qwen/qwen3-32b` Northstar corpus report pass;
