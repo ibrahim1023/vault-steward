@@ -116,9 +116,11 @@ remain required before any submission-ready claim.
   confirmed local trace deletion. Policy, maintenance, observability, evaluation, and
   trace-storage systems remain internal safeguards and release tooling.
 - Phase 29 corrects the raw Responses API adapter to read only `output_text` message
-  content from the documented response `output` array. This preserves the fixed-origin,
-  JSON-only, no-tools, `store: false` OpenAI boundary while allowing a successful live
-  connection check to be recognized.
+  content from the documented response `output` array and makes the synthetic readiness
+  input explicitly JSON-mode compatible. It also omits unrelated heading/block anchors
+  before model selection, so a model cannot propose a weak anchor substitution. This
+  preserves the fixed-origin, JSON-only, no-tools, `store: false` OpenAI boundary; the
+  live `gpt-4o-mini` Northstar report now passes with no unsafe remediation.
 - Phase 27 regression coverage now includes folder-classified template repairs and empty
   frontmatter blocks, plus malformed or expanded repair-intent rejection. HyperFusion's
   deterministic boundary tests and redacted `qwen/qwen3-32b` Northstar corpus report pass;

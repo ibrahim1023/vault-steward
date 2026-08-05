@@ -231,6 +231,7 @@ function buildAnchorCandidates(
   }
   return candidates
     .filter((candidate) => counts.get(`${candidate.kind}:${candidate.normalized}`) === 1)
+    .filter((candidate) => tokenOverlap(missingAnchor, candidate.normalized) > 0)
     .map((anchor) => ({
       candidate: {
         id: `anchor:${anchor.kind}:${path}:${encodeURIComponent(anchor.value)}`,

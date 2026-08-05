@@ -303,7 +303,7 @@ describe("prepared reference repair orchestration", () => {
   it("prepares an anchor repair with exact target metadata", async () => {
     const snapshot = {
       ...scanVaultFiles([
-        { path: "Home.md", content: "[[Target#Missing]]", revision: "revision" },
+        { path: "Home.md", content: "[[Target#Project Overview]]", revision: "revision" },
         { path: "Target.md", content: "# Project Plan\n" }
       ]),
       id: "scan-1"
@@ -314,7 +314,7 @@ describe("prepared reference repair orchestration", () => {
         {
           notePath: "Home.md",
           locator: "line:1",
-          excerpt: "[[Target#Missing]]"
+          excerpt: "[[Target#Project Overview]]"
         }
       ]
     };
@@ -324,7 +324,7 @@ describe("prepared reference repair orchestration", () => {
         snapshot,
         findings: [finding],
         readSource: async () => ({
-          content: "[[Target#Missing]]",
+          content: "[[Target#Project Overview]]",
           revision: "revision"
         }),
         selectCandidate: async (request) => ({

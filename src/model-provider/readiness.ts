@@ -20,7 +20,7 @@ export async function checkModelReadiness(provider: LocalProvider): Promise<Mode
   };
   try {
     const response = await provider.generate({
-      prompt: 'Synthetic readiness check. Reply with exactly {"ready":true}.',
+      prompt: 'Synthetic readiness check. Reply with exactly this JSON object: {"ready":true}.',
       maxOutputTokens: 32
     });
     return isReadyJson(response.text)

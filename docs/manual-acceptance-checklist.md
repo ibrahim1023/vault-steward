@@ -137,12 +137,12 @@ Obsidian desktop.
 
 ## Provider Release Reports
 
-- [ ] `evals/reports/northstar-ollama.json` passes all release thresholds.
+- [x] `evals/reports/northstar-ollama.json` passes all release thresholds. (2026-08-05: `qwen3:8b`, 26/26 cases, no incomplete scans or unsafe remediations.)
 - [ ] `evals/reports/northstar-hyperfusion.json` passes all provider-validation thresholds before HyperFusion is described as supported.
-- [ ] `evals/reports/northstar-openai.json` passes all release thresholds.
-- [ ] Both reports use the same committed corpus fingerprint.
-- [ ] `npm run eval:marketplace:gate` passes.
-- [ ] No report contains an API key, vault excerpt, prompt, raw output, or absolute vault path.
+- [x] `evals/reports/northstar-openai.json` passes all release thresholds. (2026-08-05: `gpt-4o-mini`, 26/26 cases, no incomplete scans or unsafe remediations.)
+- [x] Both reports use the same committed corpus fingerprint. (2026-08-05: `d693cc1…81552a0`.)
+- [x] `npm run eval:marketplace:gate` passes. (2026-08-05: Ollama and OpenAI reports passed.)
+- [x] No report contains an API key, vault excerpt, prompt, raw output, or absolute vault path. (2026-08-05: inspected `northstar-openai.json`.)
 
 ## Accessibility And Layout
 
