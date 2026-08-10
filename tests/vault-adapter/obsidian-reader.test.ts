@@ -116,6 +116,28 @@ describe("ObsidianVaultReader", () => {
     ).toThrow("processing limits");
   });
 
+  it("rejects an oversized Markdown file from metadata before reading it", async () => {
+    let reads = 0;
+    const vault = new FakeVault(
+      [{ path: "Large.md", extension: "md", stat: { size: 101 } }],
+      new Map()
+    );
+    vault.read = async () => {
+      reads += 1;
+      return "x";
+    };
+    await expect(
+      new ObsidianVaultReader(vault, {
+        maxFiles: 2,
+        maxFileBytes: 100,
+        maxTotalBytes: 100,
+        maxHeadingsPerFile: 10,
+        maxReferencesPerFile: 10
+      }).listFiles()
+    ).rejects.toThrow("processing limits");
+    expect(reads).toBe(0);
+  });
+
   it("tracks changed and renamed files until the scanner consumes the invalidation set", () => {
     const vault = new FakeVault(
       [{ path: "Home.md", extension: "md" }],

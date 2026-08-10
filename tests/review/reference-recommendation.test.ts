@@ -15,7 +15,7 @@ function finding(scanId = "scan-1", excerpt = "[[Missing Guide]]"): Finding {
     scanId,
     type: "broken-reference",
     severity: "medium",
-    evidence: [{ notePath: "Home.md", locator: "line:1", excerpt }],
+    evidence: [{ notePath: "Home.md", locator: "line:1:column:1", excerpt }],
     affectedNoteIds: ["Home.md"],
     explanation: "The target is missing.",
     suggestedFixes: [],

@@ -6,6 +6,7 @@ import {
   type TaskRepairIntent
 } from "../contracts/task-decision-repair.js";
 import type { Proposal } from "../contracts/proposal.js";
+import { exactEvidenceStart } from "./evidence-range.js";
 import { parseTask } from "../tasks/check.js";
 
 export type RepairCandidate = { id: string; value: string };
@@ -31,9 +32,17 @@ export function proposeTaskRepair(
   )
     return unavailable();
 
+  const excerptStart = exactEvidenceStart(source.content, evidence.locator, evidence.excerpt);
+  if (excerptStart === null) return unavailable();
   const task = parseTask(evidence.excerpt, lineNumber(evidence.locator));
   if (!task || task.id !== parsedIntent.value.taskId) return unavailable();
-  const operation = taskOperation(source, evidence.excerpt, task, parsedIntent.value, candidates);
+  const operation = taskOperation(
+    evidence.excerpt,
+    excerptStart,
+    task,
+    parsedIntent.value,
+    candidates
+  );
   if (!operation) return unavailable();
   return proposal(finding, source, operation.expected, operation.replacement, operation.start);
 }
@@ -59,6 +68,8 @@ export function proposeDecisionRepair(
     return unavailable();
 
   const intent = parsedIntent.value;
+  if (exactEvidenceStart(source.content, evidence.locator, evidence.excerpt) === null)
+    return unavailable();
   let field: "project" | "relatedDecision" | "rationale";
   let value: string;
   if (intent.kind === "set-rationale") {
@@ -78,8 +89,8 @@ export function proposeDecisionRepair(
 }
 
 function taskOperation(
-  source: RepairProposalSource,
   excerpt: string,
+  excerptStart: number,
   task: ReturnType<typeof parseTask> & {},
   intent: TaskRepairIntent,
   candidates: readonly RepairCandidate[]
@@ -121,8 +132,6 @@ function taskOperation(
       replacement = `^${candidate}`;
       break;
   }
-  const excerptStart = source.content.indexOf(excerpt);
-  if (excerptStart < 0) return null;
   if (!expected) {
     const suffix = excerpt.match(/\s+\^[\w-]+\s*$/)?.[0] ?? "";
     const insertion = excerptStart + excerpt.length - suffix.length;
@@ -182,7 +191,7 @@ function proposal(
 }
 
 function lineNumber(locator: string): number {
-  const value = /^line:(\d+)$/.exec(locator)?.[1];
+  const value = /^line:(\d+)(?::column:\d+)?$/.exec(locator)?.[1];
   return value ? Number(value) : 1;
 }
 

@@ -14,7 +14,7 @@ const taskFinding = {
   evidence: [
     {
       notePath: "Work.md",
-      locator: "line:2",
+      locator: "line:2:column:1",
       excerpt: "- [ ] Ship owner:ada project:atlas due:2026-07-01 abandoned:true ^ship"
     }
   ],
@@ -78,6 +78,7 @@ describe("task and decision deterministic proposals", () => {
       evidence: [
         {
           ...taskFinding.evidence[0]!,
+          locator: "line:1:column:1",
           excerpt: "- [ ] Ship owner:ada project:atlas status:done ^ship"
         }
       ]
@@ -109,7 +110,7 @@ describe("task and decision deterministic proposals", () => {
     const source = {
       path: "Work.md",
       revision: "revision-1",
-      content: taskFinding.evidence[0]!.excerpt
+      content: `# Work\n${taskFinding.evidence[0]!.excerpt}`
     };
     const cases = [
       {
@@ -205,7 +206,7 @@ describe("task and decision deterministic proposals", () => {
       id: "decision-finding",
       type: "decision" as const,
       evidence: [
-        { notePath: "Decisions/ADR-1.md", locator: "frontmatter:kind", excerpt: "decision" }
+        { notePath: "Decisions/ADR-1.md", locator: "line:2:column:7", excerpt: "decision" }
       ]
     };
     const source = {
@@ -250,7 +251,7 @@ describe("task and decision deterministic proposals", () => {
       id: "decision-finding",
       type: "decision" as const,
       evidence: [
-        { notePath: "Decisions/ADR-1.md", locator: "frontmatter:kind", excerpt: "decision" }
+        { notePath: "Decisions/ADR-1.md", locator: "line:2:column:7", excerpt: "decision" }
       ]
     };
     const source = {

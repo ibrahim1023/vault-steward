@@ -17,7 +17,7 @@ describe("plugin settings", () => {
         vaultLabel: "Personal notes",
         autoScanOnLoad: true,
         modelProvider: DEFAULT_PLUGIN_SETTINGS.modelProvider,
-        cloudModelConsent: false,
+        cloudModelConsents: {},
         maintenanceSchedule: DEFAULT_PLUGIN_SETTINGS.maintenanceSchedule,
         suppressedFindingPatterns: []
       }
@@ -51,11 +51,12 @@ describe("plugin settings", () => {
     });
   });
 
-  it("accepts only the fixed OpenAI origin and keeps cloud consent explicit", () => {
+  it("keeps acknowledgements provider-specific and drops legacy shared consent", () => {
     const settings = parsePluginSettings({
       vaultLabel: "Notes",
       autoScanOnLoad: false,
       cloudModelConsent: true,
+      cloudModelConsents: { openai: true },
       modelProvider: {
         kind: "openai",
         endpoint: "https://api.openai.com/v1",
@@ -66,28 +67,28 @@ describe("plugin settings", () => {
       }
     });
     expect(settings.modelProvider).toMatchObject({ kind: "openai", model: "gpt-4o-mini" });
-    expect(settings.cloudModelConsent).toBe(true);
+    expect(settings.cloudModelConsents).toEqual({ openai: true });
 
     expect(
       parsePluginSettings({
         vaultLabel: "Notes",
         autoScanOnLoad: false,
-        cloudModelConsent: true,
+        cloudModelConsents: { openai: true },
         modelProvider: { ...settings.modelProvider, endpoint: "https://example.com/v1" }
       })
     ).toMatchObject({
       vaultLabel: "Notes",
       autoScanOnLoad: false,
-      cloudModelConsent: true,
+      cloudModelConsents: { openai: true },
       modelProvider: DEFAULT_PLUGIN_SETTINGS.modelProvider
     });
   });
 
-  it("accepts only the fixed HyperFusion origin and keeps cloud consent explicit", () => {
+  it("accepts only the fixed HyperFusion origin with its own acknowledgement", () => {
     const settings = parsePluginSettings({
       vaultLabel: "Notes",
       autoScanOnLoad: false,
-      cloudModelConsent: true,
+      cloudModelConsents: { hyperfusion: true },
       modelProvider: {
         kind: "hyperfusion",
         endpoint: HYPERFUSION_API_BASE_URL,
@@ -101,19 +102,19 @@ describe("plugin settings", () => {
       kind: "hyperfusion",
       model: "qwen/qwen3-32b"
     });
-    expect(settings.cloudModelConsent).toBe(true);
+    expect(settings.cloudModelConsents).toEqual({ hyperfusion: true });
 
     expect(
       parsePluginSettings({
         vaultLabel: "Notes",
         autoScanOnLoad: false,
-        cloudModelConsent: true,
+        cloudModelConsents: { hyperfusion: true },
         modelProvider: { ...settings.modelProvider, endpoint: "https://example.com/v1" }
       })
     ).toMatchObject({
       vaultLabel: "Notes",
       autoScanOnLoad: false,
-      cloudModelConsent: true,
+      cloudModelConsents: { hyperfusion: true },
       modelProvider: DEFAULT_PLUGIN_SETTINGS.modelProvider
     });
   });
@@ -134,7 +135,7 @@ describe("plugin settings", () => {
     expect(settings).toMatchObject({
       vaultLabel: DEFAULT_PLUGIN_SETTINGS.vaultLabel,
       autoScanOnLoad: false,
-      cloudModelConsent: true,
+      cloudModelConsents: {},
       modelProvider: { kind: "hyperfusion", model: "qwen/qwen3-32b" }
     });
   });

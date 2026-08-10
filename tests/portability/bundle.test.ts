@@ -18,7 +18,7 @@ describe("portable bundle cloud settings", () =>
     const bundle = createPortableBundle({
       settings: {
         ...DEFAULT_PLUGIN_SETTINGS,
-        cloudModelConsent: true,
+        cloudModelConsents: { openai: true },
         modelProvider: {
           kind: "openai",
           endpoint: "https://api.openai.com/v1",

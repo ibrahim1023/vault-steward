@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-
 import { createRedactedDiagnostic } from "../../src/diagnostics/redaction.js";
 import { assembleEvidenceContext } from "../../src/model-provider/context.js";
 import { createLocalProvider } from "../../src/model-provider/local-provider.js";
@@ -8,6 +7,46 @@ import { checkReferenceIntegrity } from "../../src/reference/check.js";
 import { scanVaultFiles } from "../../src/scanner/scan.js";
 
 describe("security hardening", () => {
+  it("rejects language-engine frontmatter before gray-matter can execute it", () => {
+    expect(() =>
+      scanVaultFiles([
+        { path: "Unsafe.md", content: "---js\nmodule.exports = { unsafe: true }\n---\n# Note" }
+      ])
+    ).toThrow("frontmatter must use a YAML delimiter");
+  });
+
+  it("enforces YAML safety limits with Windows-style frontmatter delimiters", () => {
+    expect(() =>
+      scanVaultFiles([
+        {
+          path: "Unsafe.md",
+          content: "---\r\nshared: &shared\r\n  owner: security\r\nrules: *shared\r\n---\r\n# Note"
+        }
+      ])
+    ).toThrow("frontmatter exceeds safe parser limits");
+    expect(() =>
+      scanVaultFiles([
+        {
+          path: "Unsafe-flow.md",
+          content: "---\naliases: [ &shared note, *shared ]\n---\n# Note"
+        }
+      ])
+    ).toThrow("frontmatter exceeds safe parser limits");
+  });
+
+  it("parses only a YAML mapping and keeps the body after CRLF frontmatter", () => {
+    expect(
+      scanVaultFiles([
+        {
+          path: "Safe.md",
+          content: "---\r\nkind: project\r\nowner: Ada\r\n---\r\n# Safe note"
+        }
+      ]).notes[0]
+    ).toMatchObject({
+      frontmatter: { kind: "project", owner: "Ada" },
+      content: "# Safe note"
+    });
+  });
   it("rejects traversal and malicious local embeds before they can resolve", () => {
     const findings = checkReferenceIntegrity(
       scanVaultFiles([

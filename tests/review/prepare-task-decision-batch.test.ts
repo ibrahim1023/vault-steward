@@ -30,7 +30,7 @@ describe("prepared task and decision repair batch", () => {
       evidence: [
         {
           notePath: "Work.md",
-          locator: "line:1",
+          locator: "line:1:column:1",
           excerpt: "- [ ] Ship owner:ada project:Projects/Northstar.md due:2026-07-01 ^ship"
         }
       ],
@@ -94,7 +94,7 @@ describe("prepared task and decision repair batch", () => {
       type: "decision",
       severity: "low",
       evidence: [
-        { notePath: "Decisions/ADR-1.md", locator: "frontmatter:kind", excerpt: "decision" }
+        { notePath: "Decisions/ADR-1.md", locator: "line:2:column:7", excerpt: "decision" }
       ],
       affectedNoteIds: ["Decisions/ADR-1.md"],
       explanation: "Decision Decisions/ADR-1.md has missing project target.",
@@ -152,7 +152,7 @@ describe("prepared task and decision repair batch", () => {
       scanId: "scan-fixed",
       type: "task",
       severity: "low",
-      evidence: [{ notePath: "Work.md", locator: "line:2", excerpt: duplicate }],
+      evidence: [{ notePath: "Work.md", locator: "line:2:column:1", excerpt: duplicate }],
       affectedNoteIds: ["Work.md"],
       explanation: "Task ship is duplicated.",
       suggestedFixes: [],

@@ -1,5 +1,6 @@
 import type { Finding } from "../contracts/index.js";
 import type { Proposal } from "../contracts/proposal.js";
+import { exactEvidenceStart } from "./evidence-range.js";
 import {
   parseReferenceRepairIntent,
   type ReferenceRepairIntent
@@ -49,8 +50,8 @@ export function proposeReferenceRepair(
   );
   if (!replacement)
     return { applicable: false, reason: "The reference replacement is unsafe or ambiguous." };
-  const start = source.content.indexOf(evidence.excerpt);
-  if (start < 0)
+  const start = exactEvidenceStart(source.content, evidence.locator, evidence.excerpt);
+  if (start === null)
     return { applicable: false, reason: "The snapshot evidence is no longer present." };
   return {
     applicable: true,

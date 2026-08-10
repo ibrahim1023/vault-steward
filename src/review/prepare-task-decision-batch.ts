@@ -160,7 +160,7 @@ function nextDuplicateIdCandidate(snapshot: ScanSnapshot, taskId: string): Repai
 }
 
 function lineNumber(locator: string): number {
-  const value = /^line:(\d+)$/.exec(locator)?.[1];
+  const value = /^line:(\d+)(?::column:\d+)?$/.exec(locator)?.[1];
   return value ? Number(value) : 1;
 }
 

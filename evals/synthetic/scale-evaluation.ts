@@ -43,7 +43,9 @@ export function evaluateSyntheticScale(generated: GeneratedSyntheticVault): Synt
       })
       .filter(Boolean)
   );
-  const truePositives = [...actual].filter((item) => expected.has(item)).length;
+  const truePositives = [...actual].filter(
+    (item) => expected.has(item) || expected.has(item.replace(/:column:\d+$/, ""))
+  ).length;
   const precision = actual.size === 0 ? (expected.size === 0 ? 1 : 0) : truePositives / actual.size;
   const recall = expected.size === 0 ? 1 : truePositives / expected.size;
   return {

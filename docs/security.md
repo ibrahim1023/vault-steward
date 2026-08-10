@@ -28,3 +28,11 @@ The initial product inherits the local Obsidian user session and has no remote a
 No cloud API, telemetry, remote storage, shell execution, or broad filesystem scanning may be introduced without a material ADR and explicit product-scope change. The approved exceptions are the fixed-origin, user-authorized OpenAI provider in [ADR 0006](decisions/0006-openai-opt-in-provider.md) and HyperFusion provider in [ADR 0007](decisions/0007-hyperfusion-opt-in-provider.md). Security-relevant failures must be surfaced to the user without leaking note content in logs.
 
 The privacy acceptance suite statically rejects runtime shell, telemetry, cloud-storage, and arbitrary remote provider capabilities. Local provider endpoints remain loopback-only; cloud configurations are pinned to their provider-specific API origins before any request is made.
+
+## Phase 30 Hardening
+
+New scan evidence records an exact one-based line and column. Repair planning rejects legacy line-only evidence rather than selecting the first matching text. At the write boundary, the Obsidian adapter uses per-file processing to re-check the current content before changing it.
+
+Markdown file metadata is checked before reading content, aggregate scan limits are enforced incrementally, and frontmatter/policy parsing rejects oversized, deeply nested, alias/merge-based, malformed, or language-engine YAML input. Frontmatter is parsed only as a YAML mapping; language-qualified `---js` delimiters are rejected and the vulnerable `gray-matter` parser is not shipped.
+
+Cloud-data acknowledgement is stored per provider. An acknowledgement for OpenAI cannot authorize HyperFusion, and legacy shared consent is intentionally discarded on settings migration. Structured model recovery uses a bounded linear JSON extraction pass; malformed model output remains fail-closed.

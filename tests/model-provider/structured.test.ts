@@ -89,6 +89,17 @@ describe("structured local output", () => {
     );
     expect(result).toMatchObject({ ok: false, error: "structured-output-invalid" });
   });
+  it("bounds malformed JSON recovery while retaining ordinary wrapped JSON", async () => {
+    const malformed = "{".repeat(20_000);
+    const startedAt = performance.now();
+    const result = await generateStructured(
+      [provider([malformed, 'prefix {"label":"ok"} suffix'])],
+      { prompt: "x", maxOutputTokens: 10 },
+      validate
+    );
+    expect(result).toMatchObject({ ok: true, value: { label: "ok" } });
+    expect(performance.now() - startedAt).toBeLessThan(500);
+  });
   it("falls back, rejects wrong schemas, and leaves failures typed", async () => {
     const result = await generateStructured(
       [provider(['{"wrong":true}', '{"wrong":true}']), provider(['{"label":"fallback"}'])],

@@ -1,7 +1,7 @@
 import { parseDocument } from "yaml";
 import { isPolicyTemplateId, type PolicyTemplateId } from "./templates.js";
 
-const MAX_POLICY_BYTES = 32_768;
+export const MAX_POLICY_BYTES = 32_768;
 const POLICY_FIELDS = new Set(["id", "version", "enabled", "templates", "rules"]);
 const RULE_FIELDS = new Set(["id", "fact", "operator", "value", "severity"]);
 const OPERATORS = new Set(["required", "equals", "not_equals", "forbidden"]);
@@ -26,9 +26,10 @@ export type Policy = {
 export type PolicyParseResult = { ok: true; value: Policy } | { ok: false; diagnostics: string[] };
 
 export function parsePolicy(source: string): PolicyParseResult {
-  if (new TextEncoder().encode(source).byteLength > MAX_POLICY_BYTES) {
-    return { ok: false, diagnostics: [`policy exceeds the ${MAX_POLICY_BYTES}-byte limit`] };
-  }
+  const sizeError = policySizeDiagnostic(source);
+  if (sizeError) return { ok: false, diagnostics: [sizeError] };
+  const safetyError = yamlSafetyDiagnostic(source);
+  if (safetyError) return { ok: false, diagnostics: [safetyError] };
 
   const document = parseDocument(source, { uniqueKeys: true });
   if (document.errors.length > 0) {
@@ -43,6 +44,23 @@ export function parsePolicy(source: string): PolicyParseResult {
   if (!isRecord(value)) return invalid("policy must be a mapping");
   const diagnostics = [...unknownFields(value, POLICY_FIELDS, "policy"), ...validatePolicy(value)];
   return diagnostics.length > 0 ? { ok: false, diagnostics } : { ok: true, value: toPolicy(value) };
+}
+
+export function policySizeDiagnostic(source: string): string | null {
+  return new TextEncoder().encode(source).byteLength > MAX_POLICY_BYTES
+    ? `policy exceeds the ${MAX_POLICY_BYTES}-byte limit`
+    : null;
+}
+
+function yamlSafetyDiagnostic(source: string): string | null {
+  if (/(^|\n)\s*(?:<<\s*:|[^#\n]+:\s*[*&])/.test(source))
+    return "policy aliases and merge keys are not supported";
+  let maxDepth = 0;
+  for (const line of source.split("\n")) {
+    if (!/\S/.test(line)) continue;
+    maxDepth = Math.max(maxDepth, Math.floor(line.match(/^\s*/)![0].length / 2) + 1);
+  }
+  return maxDepth > 64 ? "policy nesting exceeds the 64-level limit" : null;
 }
 
 function validatePolicy(value: Record<string, unknown>): string[] {

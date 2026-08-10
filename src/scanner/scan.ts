@@ -1,8 +1,8 @@
-import matter from "gray-matter";
 import { randomUUID } from "node:crypto";
 import { unified } from "unified";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
+import { parseDocument } from "yaml";
 
 import type { VaultFile } from "../vault-adapter/types.js";
 import { assertScanLimits, DEFAULT_SCAN_LIMITS, type ScanLimits } from "./limits.js";
@@ -54,7 +54,7 @@ export function scanVaultFiles(
 }
 
 function scanFile(file: VaultFile, index: number, limits: ScanLimits): ScannedNote {
-  const parsed = matter(file.content);
+  const parsed = parseSafeFrontmatter(file.content);
   const tree = unified().use(remarkParse).use(remarkGfm).parse(parsed.content);
   const headings = tree.children.flatMap((node) => {
     if (node.type !== "heading") return [];
@@ -72,11 +72,48 @@ function scanFile(file: VaultFile, index: number, limits: ScanLimits): ScannedNo
   return {
     path: normalizeVaultPath(file.path),
     content: parsed.content,
-    frontmatter: parsed.data as Record<string, unknown>,
+    frontmatter: parsed.data,
     revision: file.revision ?? `memory-${index}`,
     headings,
     blockIds,
     references
+  };
+}
+
+function parseSafeFrontmatter(content: string): {
+  data: Record<string, unknown>;
+  content: string;
+} {
+  if (/^---[^\r\n]*[^\r\n-][^\r\n]*\r?\n/.test(content))
+    throw new Error("frontmatter must use a YAML delimiter without a language engine");
+  const opening = /^---\r?\n/.exec(content);
+  if (!opening) return { data: {}, content };
+  const afterOpening = content.slice(opening[0].length);
+  const closing = /(?:^|\r?\n)---(?:\r?\n|$)/.exec(afterOpening);
+  if (!closing) return { data: {}, content };
+  const header = afterOpening.slice(0, closing.index);
+  if (header.length > 32_768 || /(^|\n)\s*(?:<<\s*:|[^#\n]+:\s*[*&])/.test(header))
+    throw new Error("frontmatter exceeds safe parser limits");
+  let depth = 0;
+  for (const line of header.split("\n")) {
+    if (/\S/.test(line)) depth = Math.max(depth, Math.floor(line.match(/^\s*/)![0].length / 2) + 1);
+    if (depth > 64) throw new Error("frontmatter exceeds safe parser limits");
+  }
+  const document = parseDocument(header, { uniqueKeys: true });
+  if (document.errors.length > 0) throw new Error("frontmatter is invalid YAML");
+  let value: unknown;
+  try {
+    value = document.toJS({ maxAliasCount: 0 });
+  } catch {
+    throw new Error("frontmatter exceeds safe parser limits");
+  }
+  if (value === null)
+    return { data: {}, content: afterOpening.slice(closing.index + closing[0].length) };
+  if (Array.isArray(value) || typeof value !== "object")
+    throw new Error("frontmatter must be a YAML mapping");
+  return {
+    data: value as Record<string, unknown>,
+    content: afterOpening.slice(closing.index + closing[0].length)
   };
 }
 
@@ -128,7 +165,10 @@ function extractReferences(content: string): ParsedReference[] {
 }
 
 function lineLocator(content: string, offset: number): string {
-  return `line:${content.slice(0, offset).split("\n").length}`;
+  const before = content.slice(0, offset);
+  const line = before.split("\n").length;
+  const column = offset - before.lastIndexOf("\n");
+  return `line:${line}:column:${column}`;
 }
 
 export function normalizeVaultPath(path: string): string {

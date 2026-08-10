@@ -84,6 +84,26 @@ describe("review workflow", () => {
     await expect(workflow.apply(proposal, "t2")).resolves.toEqual({ ok: false, reason: "stale" });
     expect(writes).toBe(0);
   });
+  it("fails closed when a note changes between preflight and the write boundary", async () => {
+    const repo = await fixture();
+    let content = "See x";
+    const workflow = new ReviewWorkflow(repo, {
+      read: async () => ({ content, revision: "r" }),
+      write: async () => {
+        throw new Error("fallback write must not run");
+      },
+      writeIfCurrent: async () => {
+        content = "Changed after preflight";
+        return false;
+      }
+    });
+    workflow.act(proposal, "approved", "t");
+    await expect(workflow.apply(proposal, "t2")).resolves.toEqual({
+      ok: false,
+      reason: "write-failed"
+    });
+    expect(content).toBe("Changed after preflight");
+  });
 
   it("rejects a proposal whose persisted digest no longer matches the approved patch", async () => {
     const repo = await fixture();

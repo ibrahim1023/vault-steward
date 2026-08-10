@@ -14,16 +14,18 @@ export function gradeExpectedFindings(
   expected: readonly GradedFinding[],
   actual: readonly GradedFinding[]
 ) {
-  const expectedKeys = new Set(expected.map(key));
-  const matches = actual.filter((finding) => expectedKeys.has(key(finding)));
+  const matches = actual.filter((finding) =>
+    expected.some((item) => findingMatches(item, finding))
+  );
   const truePositive = matches.length;
   const falsePositive = actual.length - truePositive;
   const falseNegative = expected.length - truePositive;
   const severityMatches = matches.filter(
-    (finding) => expected.find((item) => key(item) === key(finding))?.severity === finding.severity
+    (finding) =>
+      expected.find((item) => findingMatches(item, finding))?.severity === finding.severity
   ).length;
   const safeFixMatches = matches.filter(
-    (finding) => expected.find((item) => key(item) === key(finding))?.safeFix === finding.safeFix
+    (finding) => expected.find((item) => findingMatches(item, finding))?.safeFix === finding.safeFix
   ).length;
   return {
     precision: ratio(truePositive, actual.length),
@@ -35,7 +37,8 @@ export function gradeExpectedFindings(
     sourceRangeAccuracy: ratio(
       matches.filter((finding) =>
         expected.some(
-          (item) => item.notePath === finding.notePath && item.locator === finding.locator
+          (item) =>
+            item.notePath === finding.notePath && locatorMatches(item.locator, finding.locator)
         )
       ).length,
       actual.length
@@ -55,9 +58,20 @@ export function gradeExpectedFindings(
   };
 }
 
-function key(finding: Pick<GradedFinding, "type" | "notePath" | "locator">): string {
-  return `${finding.type}:${finding.notePath}:${finding.locator}`;
+function locatorMatches(expected: string, actual: string): boolean {
+  return (
+    expected === actual || (/^line:\d+$/.test(expected) && actual.startsWith(`${expected}:column:`))
+  );
 }
+
+function findingMatches(expected: GradedFinding, actual: GradedFinding): boolean {
+  return (
+    expected.type === actual.type &&
+    expected.notePath === actual.notePath &&
+    locatorMatches(expected.locator, actual.locator)
+  );
+}
+
 function ratio(numerator: number, denominator: number): number | null {
   return denominator === 0 ? null : numerator / denominator;
 }

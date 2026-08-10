@@ -38,9 +38,11 @@ export function gradeReferenceIntegrity(
     matched += actual.filter((finding) =>
       testCase.expected.some(
         (expected) =>
-          expected.type === finding.type &&
-          expected.notePath === finding.notePath &&
-          expected.locator === finding.locator
+          (expected.type === finding.type &&
+            expected.notePath === finding.notePath &&
+            expected.locator === finding.locator) ||
+          (/^line:\d+$/.test(expected.locator) &&
+            finding.locator.startsWith(`${expected.locator}:column:`))
       )
     ).length;
   }

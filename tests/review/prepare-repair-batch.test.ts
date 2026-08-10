@@ -17,7 +17,7 @@ function brokenFinding(scanId: string): Finding {
     scanId,
     type: "broken-reference",
     severity: "medium",
-    evidence: [{ notePath: "Home.md", locator: "line:1", excerpt: "[[Old Guide]]" }],
+    evidence: [{ notePath: "Home.md", locator: "line:1:column:5", excerpt: "[[Old Guide]]" }],
     affectedNoteIds: ["Home.md"],
     explanation: "The reference target is missing.",
     suggestedFixes: [],
@@ -68,7 +68,7 @@ describe("prepared reference repair orchestration", () => {
           proposalId: "proposal-a",
           findingId: "finding-a",
           sourcePath: "Work.md",
-          locator: "line:1",
+          locator: "line:1:column:5",
           currentReference: "a",
           replacementReference: "b",
           repairFamily: "task" as const,
@@ -208,7 +208,7 @@ describe("prepared reference repair orchestration", () => {
         {
           findingId: "finding-1",
           sourcePath: "Home.md",
-          locator: "line:1",
+          locator: "line:1:column:5",
           currentReference: "[[Old Guide]]",
           replacementReference: "[[Guides/New Guide]]",
           targetPath: "Guides/New Guide.md",
@@ -270,7 +270,7 @@ describe("prepared reference repair orchestration", () => {
       evidence: [
         {
           notePath: "Work/Home.md",
-          locator: "line:1",
+          locator: "line:1:column:1",
           excerpt: "[Guide](Old%20Guide.md)"
         }
       ],
@@ -313,7 +313,7 @@ describe("prepared reference repair orchestration", () => {
       evidence: [
         {
           notePath: "Home.md",
-          locator: "line:1",
+          locator: "line:1:column:1",
           excerpt: "[[Target#Project Overview]]"
         }
       ]
