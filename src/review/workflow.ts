@@ -95,21 +95,18 @@ export class ReviewWorkflow {
       this.repository.updateProposalStatus(proposal.id, "apply-failed");
       return { ok: false, reason: "write-failed" };
     }
-    const written: Array<{ path: string; content: string }> = [];
+    const written: Array<{ path: string; before: string; after: string }> = [];
     try {
       for (const write of writes) {
         if (!(await this.writeIfCurrent(write))) throw new Error("stale write boundary");
-        written.push({ path: write.path, content: write.before });
+        written.push({ path: write.path, before: write.before, after: write.content });
       }
     } catch {
-      for (const write of [...written].reverse()) {
-        try {
-          await this.vault.write(write.path, write.content);
-        } catch {
-          // The persisted recovery-required state directs the user to re-index after a failed rollback.
-        }
-      }
-      this.repository.updateProposalStatus(proposal.id, "apply-failed");
+      const rollbackFailed = await this.rollbackWrites(written);
+      this.repository.updateProposalStatus(
+        proposal.id,
+        rollbackFailed ? "recovery-required" : "apply-failed"
+      );
       return { ok: false, reason: "write-failed" };
     }
     this.repository.updateProposalStatus(proposal.id, "applied");
@@ -225,21 +222,14 @@ export class ReviewWorkflow {
     }
     this.updateBatchStatus(proposals, "applying");
 
-    const written: Array<{ path: string; content: string }> = [];
+    const written: Array<{ path: string; before: string; after: string }> = [];
     try {
       for (const write of writes) {
         if (!(await this.writeIfCurrent(write))) throw new Error("stale write boundary");
-        written.push({ path: write.path, content: write.before });
+        written.push({ path: write.path, before: write.before, after: write.content });
       }
     } catch {
-      let rollbackFailed = false;
-      for (const write of [...written].reverse()) {
-        try {
-          await this.vault.write(write.path, write.content);
-        } catch {
-          rollbackFailed = true;
-        }
-      }
+      const rollbackFailed = await this.rollbackWrites(written);
       this.updateBatchStatus(proposals, rollbackFailed ? "recovery-required" : "apply-failed");
       return batchFailure(
         rollbackFailed ? "recovery-required" : "write-failed",
@@ -303,6 +293,22 @@ export class ReviewWorkflow {
       return this.vault.writeIfCurrent(write.path, write.before, write.content);
     await this.vault.write(write.path, write.content);
     return true;
+  }
+
+  private async rollbackWrites(
+    writes: ReadonlyArray<{ path: string; before: string; after: string }>
+  ): Promise<boolean> {
+    if (!this.vault.writeIfCurrent) return writes.length > 0;
+    let rollbackFailed = false;
+    for (const write of [...writes].reverse()) {
+      try {
+        if (!(await this.vault.writeIfCurrent(write.path, write.after, write.before)))
+          rollbackFailed = true;
+      } catch {
+        rollbackFailed = true;
+      }
+    }
+    return rollbackFailed;
   }
 }
 

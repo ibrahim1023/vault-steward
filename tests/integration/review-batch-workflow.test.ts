@@ -209,4 +209,38 @@ describe("prepared repair batch workflow", () => {
     expect(repository.getProposalStatus("proposal-1")).toBe("recovery-required");
     expect(repository.getProposalStatus("proposal-2")).toBe("recovery-required");
   });
+
+  it("preserves a concurrent edit when recovery cannot prove it owns the current content", async () => {
+    const proposals = [
+      proposal("proposal-1", "finding-1", "A.md", 0, "a", "A"),
+      proposal("proposal-2", "finding-2", "B.md", 0, "b", "B")
+    ];
+    const repository = await fixture(proposals);
+    const contents = new Map([
+      ["A.md", "a"],
+      ["B.md", "b"]
+    ]);
+    let forwardWrites = 0;
+    const workflow = new ReviewWorkflow(repository, {
+      read: async (path) => ({ content: contents.get(path) ?? "", revision: "revision" }),
+      write: async (path, next) => {
+        contents.set(path, next);
+      },
+      writeIfCurrent: async (path, before, next) => {
+        if (contents.get(path) !== before) return false;
+        if (path === "B.md" && forwardWrites > 0) return false;
+        contents.set(path, next);
+        forwardWrites += 1;
+        if (path === "A.md") contents.set(path, "concurrent edit");
+        return true;
+      }
+    });
+
+    await expect(workflow.approveAndApplyBatch(proposals, "acted-at")).resolves.toMatchObject({
+      ok: false,
+      reason: "recovery-required"
+    });
+    expect(contents.get("A.md")).toBe("concurrent edit");
+    expect(repository.getProposalStatus("proposal-1")).toBe("recovery-required");
+  });
 });
