@@ -69,6 +69,13 @@ body is merged, deleted, or implicitly changed. Evaluation reports measure
 canonical-selection precision, recall, abstention quality, evidence validity,
 incorrect-canonical rate, and safe-repair validity.
 
+Phase 30 extends the security gate with exact line-and-column evidence,
+legacy-locator rejection, duplicate-occurrence protection, write-boundary race
+rejection, pre-read and aggregate scan limits, bounded YAML and policy parsing,
+provider-specific consent migration, and bounded linear structured-JSON
+recovery. It also proves that an unchecked `status:done` task prepares the
+deterministic `- [ ]` to `- [x]` repair even when no provider is available.
+
 ## Marketplace Release Corpus
 
 `evals/release/northstar-v1.json` is the versioned product/project-management

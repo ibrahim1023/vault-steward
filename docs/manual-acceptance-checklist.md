@@ -15,10 +15,10 @@ Obsidian desktop.
 
 | Field          | Value                                                                                                              |
 | -------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Date           | 2026-08-03                                                                                                         |
+| Date           | 2026-08-12                                                                                                         |
 | Obsidian       | 1.12.7                                                                                                             |
 | macOS          | 26.5.2 (25F84)                                                                                                     |
-| Vault Steward  | 0.1.0, branch `feat/phase-28-faster-batch-review`, commit `a1a8cbe`                                                |
+| Vault Steward  | 0.1.0, `development`, commit `bdd770f`                                                                             |
 | Provider/model | HyperFusion `qwen/qwen3-32b`; OpenAI `gpt-4o-mini` (2026-08-05)                                                    |
 | Install path   | Fresh install in disposable complex acceptance vault: `/Users/ibrahim/Documents/Obsidian/complex-acceptance-vault` |
 
@@ -153,6 +153,19 @@ Obsidian desktop.
 - [x] Light and dark themes preserve contrast and non-color status meaning. (2026-08-04: confirmed in the acceptance vault.)
 - [x] No text, button, or input overlaps or clips. (2026-08-04: confirmed in the acceptance vault.)
 
+## Phase 30 Security Follow-up
+
+- [x] Switching between OpenAI and HyperFusion requires the acknowledgement for
+      the currently selected cloud provider; one provider's acknowledgement does
+      not authorize the other. (2026-08-12: confirmed in the acceptance vault.)
+- [x] A preview with exact duplicate task/reference text changes only the
+      cited occurrence and rejects a stale source before any write.
+      (2026-08-12: confirmed in the acceptance vault.)
+- [x] An unchecked task with explicit `status:done` shows a bounded task repair
+      from `- [ ]` to `- [x]`, applies only after approval, and clears the
+      completion-pending finding after recheck. (2026-08-12: confirmed in the
+      acceptance vault.)
+
 ## Issues Found
 
 | ID    | Scenario                                                        | Expected                                                                          | Actual                                                                                                                                                                           | Screenshot / notes                                                                                                                                                                                                                                  | Status                      |
@@ -177,4 +190,5 @@ proposal or plugin-authored note change.
 - [x] No data loss or unintended write observed. (2026-08-05: confirmed by the release tester.)
 - [x] No blocking install, scan, repair, provider-recovery, or accessibility issue remains. (2026-08-05: confirmed by the release tester.)
 - [x] The primary path stayed simpler than Settings, History, and Diagnostics. (2026-08-05: confirmed by the release tester.)
-- [ ] Current branch is ready to promote to `development` after security and release-material gates complete.
+- [x] Phase 30 completion repair retest passed and `development` was promoted.
+      (2026-08-12: `bdd770f`.)

@@ -71,6 +71,30 @@ Implemented: the reader and scanner now enforce file-count, per-file and total
 byte, heading, reference, duplicate-path, and canonical-path limits before
 unbounded parsing work proceeds.
 
+## Phase 30 Disposition
+
+Phase 30 completed the following remediation and regression coverage on
+2026-08-12:
+
+- Repair construction requires exact one-based line-and-column evidence and
+  rejects legacy locators; identical earlier text cannot redirect a repair.
+- The write adapter re-checks source content inside Obsidian per-file processing
+  immediately before the write, and batches retain fail-closed rollback/recovery
+  behaviour.
+- Metadata and aggregate limits are enforced before Markdown reads; frontmatter
+  and policy YAML reject excessive bytes, depth, aliases/merges, and malformed
+  structures. The dynamically confirmed `gray-matter` language-engine path was
+  removed from production dependencies.
+- Cloud acknowledgement is provider-specific and is deliberately reset during
+  legacy settings migration.
+- Structured model-output recovery is linear and bounded; malformed output
+  remains a failed recommendation.
+
+The external deep-security scan service could not generate a replacement report
+because its saved inventory is invalid. This is an unavailable external report,
+not a passing scan; the repository's local source review, regression suite, and
+production dependency audit are recorded in `docs/progress.md`.
+
 ## Test Backlog
 
 Tick items only after a test fails against the unsafe behaviour where practical,

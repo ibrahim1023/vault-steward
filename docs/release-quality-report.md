@@ -2,11 +2,11 @@
 
 ## Decision
 
-**No-go.** The release candidate is not ready for Community Plugins submission.
-The deterministic Northstar corpus, provider reports, and safety gates pass,
-but final manual sign-off, release materials, and submission evidence remain
-incomplete. HyperFusion and OpenAI are experimental opt-in providers, not
-marketplace support claims.
+**No-go for Community Plugins submission; development promotion complete.**
+The deterministic Northstar corpus, provider reports, Phase 30 source-security
+hardening, full automated gate, and macOS manual sign-off pass. Submission
+materials and release-owner evidence remain incomplete. HyperFusion and OpenAI
+are experimental opt-in providers, not marketplace support claims.
 
 ## Scope
 
@@ -19,15 +19,16 @@ marketplace support claims.
 
 ## Automated Evidence
 
-| Evidence                                     | Status  | Record                                                 |
-| -------------------------------------------- | ------- | ------------------------------------------------------ |
-| Corpus contract and source-range validation  | Passing | `tests/evals/release-corpus.test.ts`                   |
-| Provider grading and unsafe-repair rejection | Passing | `tests/evals/release-provider.test.ts`                 |
-| Ollama live corpus report                    | Passing | `qwen3:8b`, 2026-08-05                                 |
-| HyperFusion live corpus report               | Passing | `qwen/qwen3-32b`, 2026-08-03                           |
-| OpenAI live corpus report                    | Passing | `gpt-4o-mini`, 2026-08-05                              |
-| Marketplace gate                             | Passing | Ollama and OpenAI, same corpus fingerprint, 2026-08-05 |
-| Full repository completion gate              | Passing | 2026-08-05 command record                              |
+| Evidence                                     | Status  | Record                                                                                      |
+| -------------------------------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| Corpus contract and source-range validation  | Passing | `tests/evals/release-corpus.test.ts`                                                        |
+| Provider grading and unsafe-repair rejection | Passing | `tests/evals/release-provider.test.ts`                                                      |
+| Ollama live corpus report                    | Passing | `qwen3:8b`, 2026-08-05                                                                      |
+| HyperFusion live corpus report               | Passing | `qwen/qwen3-32b`, 2026-08-03                                                                |
+| OpenAI live corpus report                    | Passing | `gpt-4o-mini`, 2026-08-05                                                                   |
+| Marketplace gate                             | Passing | Ollama and OpenAI, same corpus fingerprint, 2026-08-05                                      |
+| Full repository completion gate              | Passing | 402 tests plus integration/E2E/acceptance/evals/package/audit, 2026-08-12                   |
+| Phase 30 local source-security review        | Passing | Exact-evidence, write-boundary, parsing, consent, and JSON-recovery regressions, 2026-08-12 |
 
 Provider reports must include precision, recall, F1, evidence validity,
 unsupported-finding rate, safe-repair validity, median and p95 latency, retries,
@@ -94,11 +95,15 @@ passed. OpenAI remains experimental.
 ## Manual macOS Evidence
 
 Manual acceptance is signed off in `docs/manual-acceptance-checklist.md` as of
-2026-08-05. The remaining release evidence is:
+2026-08-12. The remaining release evidence is:
 
 - release screenshots, demonstration, and package/version/tag evidence;
-- a release-owner review after the final completion gate;
-- completion of the full source security review.
+- a release-owner review after the final completion gate.
+
+The local source-security review is complete. The external deep-security scan
+service could not issue a replacement report because its saved inventory is
+invalid; this unavailable external report must not be represented as passing
+evidence.
 
 ## Release Thresholds
 

@@ -7,18 +7,22 @@ submission and must not be used to claim marketplace availability.
 
 - [ ] Repository is public and has a clear license.
 - [ ] `manifest.json`, package version, release tag, and changelog agree.
-- [x] `npm run test:plugin-install` passes from the Phase 19 worktree.
+- [x] `npm run test:plugin-install` passes from `development` after Phase 30.
+      (2026-08-12.)
 - [x] Release artifact contains `main.js`, `manifest.json`, `styles.css`,
       `sql-wasm.wasm`, and `release-manifest.json`.
 - [ ] Upgrade and uninstall guidance is current.
 
 ## Product Evidence
 
-- [x] Current macOS manual acceptance is signed off. (2026-08-05.)
+- [x] Current macOS manual acceptance, including Phase 30 security follow-up,
+      is signed off. (2026-08-12.)
 - [x] Northstar Ollama report passes with `qwen3:8b`.
 - [x] Northstar OpenAI report passes with explicit acknowledgement. (2026-08-05: `gpt-4o-mini`.)
 - [x] `npm run eval:marketplace:gate` passes against one corpus fingerprint. (2026-08-05.)
 - [x] Full automated completion gate and production dependency audit pass.
+      (2026-08-12: 402 tests; integration, E2E, acceptance, evaluations, and
+      package-install smoke passed; production audit found 0 vulnerabilities.)
 - [ ] Release quality report records a **go** decision.
 
 ## Marketplace Materials

@@ -36,3 +36,14 @@ New scan evidence records an exact one-based line and column. Repair planning re
 Markdown file metadata is checked before reading content, aggregate scan limits are enforced incrementally, and frontmatter/policy parsing rejects oversized, deeply nested, alias/merge-based, malformed, or language-engine YAML input. Frontmatter is parsed only as a YAML mapping; language-qualified `---js` delimiters are rejected and the vulnerable `gray-matter` parser is not shipped.
 
 Cloud-data acknowledgement is stored per provider. An acknowledgement for OpenAI cannot authorize HyperFusion, and legacy shared consent is intentionally discarded on settings migration. Structured model recovery uses a bounded linear JSON extraction pass; malformed model output remains fail-closed.
+
+An unchecked task explicitly marked `status:done` is a deterministic repair
+case: it produces one exact checkbox operation and does not require a model
+selection. This avoids making a safe repair depend on a provider response while
+retaining the same evidence, preview, approval, stale-check, rollback, and
+post-write re-index controls.
+
+Phase 30 completed its local source-security review and regression gate on
+2026-08-12. The external deep-security scan service could not create a new
+report because its saved scan inventory is invalid; that unavailable report is
+not represented as a passing external scan.

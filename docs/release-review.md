@@ -10,13 +10,12 @@ Completed on 2026-07-16: ribbon and command-palette launch, governed scanning, m
 
 ## Decision
 
-**Development promotion, not release acceptance.** The package and deterministic
-safety controls are approved to advance `development` so Phase 20 work can
-continue. Broader distribution remains blocked until the revised simple
-AI-guided Phase 19 flow passes manual macOS acceptance, OpenAI has a passing
-release-corpus report, and the combined provider gate passes. Its automated
-gate passed on 2026-07-29; the earlier dashboard workbench is not the release
-candidate.
+**Development promotion complete, not release acceptance.** Phase 30 security
+hardening was promoted to `development` at `bdd770f` on 2026-08-12 after the
+full automated gate and macOS acceptance retest passed. Broader distribution
+remains blocked on the submission materials and release-owner review listed in
+the Community Plugins checklist. HyperFusion and OpenAI remain experimental
+opt-in providers.
 
 ## Reviewed Controls
 
@@ -42,9 +41,10 @@ candidate.
 
 ## Remaining Limitations
 
-- The revised prepared-batch UI and bounded recommender have automated coverage
-  but remain unaccepted in Obsidian desktop.
-- Model quality gates need calibration on representative local fixtures before wider distribution.
-- The committed corpus and regression harness pass deterministic tests, and
-  `gemma3:12b` passes the Ollama report; the acknowledged OpenAI report and
-  combined provider gate remain pending.
+- Current macOS screenshots, a short demonstration, release tag/version
+  evidence, and release-owner review remain required before submission.
+- The external deep-security scan service has an invalid saved inventory, so a
+  replacement third-party report is unavailable; local source review and
+  regression gates are complete.
+- Both cloud providers remain experimental opt-in paths despite their passing
+  redacted validation reports.

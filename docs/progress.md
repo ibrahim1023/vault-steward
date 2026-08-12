@@ -140,6 +140,18 @@ remain required before any submission-ready claim.
   frontmatter is now parsed only as bounded YAML. Automated regression coverage covers duplicate evidence, write
   boundary changes, pre-read size rejection, policy nesting/aliases, provider
   consent migration, and malformed structured output.
+- Phase 30 completed on 2026-08-12 and was promoted to `development` at
+  `bdd770f`. The final completion repair is deterministic: an unchecked task
+  explicitly marked `status:done` prepares only the bounded `[ ]` to `[x]`
+  change and no longer depends on model output. The full gate passed on the
+  promoted commit: 402 tests with coverage, integration, end-to-end and
+  acceptance suites, deterministic/full evaluations, package-install smoke,
+  and a zero-vulnerability production dependency audit. The macOS acceptance
+  retest also covered provider-specific consent, exact preview/stale safety,
+  and the deterministic completion repair. The external deep-security scan
+  service could not issue a replacement report because its saved inventory is
+  invalid; this tooling limitation is recorded separately and does not replace
+  the completed local source review and regression gate.
 - The 2026-08-05 release audit corrected the complex-acceptance fixture count
   after two intentional stale-batch exercise notes were added. CI now runs the
   full Vitest coverage suite, acceptance tests, full deterministic evaluations,
@@ -147,9 +159,10 @@ remain required before any submission-ready claim.
   protected release checks because they require an explicit cloud acknowledgement
   and credentials.
 - The complete macOS manual acceptance matrix, including HyperFusion safety
-  recovery, batch safeguards, accessibility, and the final judgment-layout
-  retest, was signed off by the release tester on 2026-08-05. Release promotion
-  still awaits the full source security review and marketplace materials.
+  recovery, batch safeguards, accessibility, provider-specific acknowledgement,
+  and deterministic completion repair, was signed off by the release tester on
+  2026-08-12. Phase 30 is promoted; marketplace materials remain a separate
+  release-submission task.
 - Phase 27 regression coverage now includes folder-classified template repairs and empty
   frontmatter blocks, plus malformed or expanded repair-intent rejection. HyperFusion's
   deterministic boundary tests and redacted `qwen/qwen3-32b` Northstar corpus report pass;
