@@ -45,7 +45,7 @@ describe("fixture replay evaluation", () => {
       findings: [
         {
           findingKey: "broken-reference",
-          evidence: { notePath: "Home.md", locator: "line:1" },
+          evidence: { notePath: "Home.md", locator: "line:1:column:1" },
           severity: "medium",
           validation: {
             supported: true,

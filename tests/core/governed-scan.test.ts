@@ -42,6 +42,18 @@ describe("snapshot-derived governed scan", () => {
     ]);
   });
 
+  it("emits exact evidence locators for governed task findings", async () => {
+    const result = await runGovernedScan(
+      [{ path: "Tasks.md", content: "- [ ] Launch due:2025-01-01 ^launch" }],
+      [provider],
+      "2026-07-14T00:00:00Z"
+    );
+
+    expect(result.findings.find((finding) => finding.type === "task")?.evidence[0]).toMatchObject({
+      locator: "line:1:column:1"
+    });
+  });
+
   it("derives configured schema and policy findings from the same snapshot", async () => {
     const result = await runGovernedScan(
       [{ path: "Project.md", content: "---\nkind: project\nstatus: archived\n---\nProject" }],

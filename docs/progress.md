@@ -130,6 +130,16 @@ remain required before any submission-ready claim.
   so a provider change can start a fresh governed scan without reopening the
   workspace or changing the current finding. Automated coverage and a manual
   OpenAI-to-HyperFusion retest passed on 2026-08-05.
+- Phase 30 security hardening binds repair proposals to exact scanner line/column
+  evidence and rejects legacy locators, revalidates content through Obsidian's
+  per-file write processing, rejects oversized files before read, bounds policy
+  and frontmatter YAML, separates OpenAI and HyperFusion acknowledgements, and
+  replaces quadratic structured-JSON recovery with a linear bounded pass. The
+  deferred `gray-matter` candidate was dynamically confirmed in the packaged
+  runtime (`---js` executes `module.exports`), so that dependency was removed;
+  frontmatter is now parsed only as bounded YAML. Automated regression coverage covers duplicate evidence, write
+  boundary changes, pre-read size rejection, policy nesting/aliases, provider
+  consent migration, and malformed structured output.
 - The 2026-08-05 release audit corrected the complex-acceptance fixture count
   after two intentional stale-batch exercise notes were added. CI now runs the
   full Vitest coverage suite, acceptance tests, full deterministic evaluations,

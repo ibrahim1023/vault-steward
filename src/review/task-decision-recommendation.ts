@@ -43,6 +43,19 @@ export async function recommendTaskDecisionRepair(input: {
 }): Promise<TaskDecisionRepairRecommendation> {
   const request = buildSelectionRequest(input.finding, input.snapshot);
   if (!request) return abstain(input.finding.id, "The finding has no supported bounded repair.");
+  if (isDeterministicCompletionRequest(request)) {
+    return {
+      status: "ai-suggested",
+      findingId: input.finding.id,
+      intent: {
+        schemaVersion: 1,
+        kind: "mark-complete",
+        scanId: request.scanId,
+        findingId: request.findingId,
+        taskId: request.taskId
+      }
+    };
+  }
   let output: unknown;
   try {
     output = await input.selectIntent(request);
@@ -81,6 +94,17 @@ export async function selectTaskDecisionRepairWithProviders(
   );
   if (!result.ok) throw new Error("Task or decision repair selection did not complete.");
   return result.value;
+}
+
+function isDeterministicCompletionRequest(
+  request: TaskDecisionSelectionRequest
+): request is TaskDecisionSelectionRequest & { taskId: string } {
+  return (
+    typeof request.taskId === "string" &&
+    request.allowedKinds.length === 1 &&
+    request.allowedKinds[0] === "mark-complete" &&
+    request.candidates.length === 0
+  );
 }
 
 function buildSelectionRequest(
@@ -256,7 +280,7 @@ function nextDuplicateId(snapshot: ScanSnapshot, taskId: string): string | null 
 }
 
 function lineNumber(locator: string): number {
-  const value = /^line:(\d+)$/.exec(locator)?.[1];
+  const value = /^line:(\d+)(?::column:\d+)?$/.exec(locator)?.[1];
   return value ? Number(value) : 1;
 }
 

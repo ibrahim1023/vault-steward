@@ -140,6 +140,36 @@ describe("task and decision repair recommendation", () => {
     expect(result).toMatchObject({ status: "ai-suggested", intent: { kind: "mark-complete" } });
   });
 
+  it("prepares the deterministic completion repair without asking the provider", async () => {
+    const completionFinding: Finding = {
+      ...finding,
+      explanation: "Task ship is completion-pending.",
+      evidence: [
+        {
+          notePath: "Work.md",
+          locator: "line:1:column:1",
+          excerpt: "- [ ] Ship project:atlas status:done ^ship"
+        }
+      ]
+    };
+    const snapshot = {
+      ...scanVaultFiles([
+        { path: "Work.md", content: completionFinding.evidence[0]!.excerpt, revision: "work" }
+      ]),
+      id: "scan-fixed"
+    };
+
+    const result = await recommendTaskDecisionRepair({
+      finding: completionFinding,
+      snapshot,
+      selectIntent: async () => {
+        throw new Error("provider must not be called for a deterministic completion repair");
+      }
+    });
+
+    expect(result).toMatchObject({ status: "ai-suggested", intent: { kind: "mark-complete" } });
+  });
+
   it("allows a decision relation repair only from existing snapshot notes", async () => {
     const decisionFinding: Finding = {
       ...finding,

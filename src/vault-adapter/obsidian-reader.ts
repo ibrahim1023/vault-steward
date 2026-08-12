@@ -8,6 +8,7 @@ import { assertScanLimits, DEFAULT_SCAN_LIMITS, type ScanLimits } from "../scann
 export type VaultFileHandle = {
   path: string;
   extension: string;
+  stat?: { size: number };
 };
 
 export type VaultEventRef = unknown;
@@ -21,6 +22,7 @@ export type VaultEventSource = {
 
 export type WritableVaultEventSource = VaultEventSource & {
   modify(file: VaultFileHandle, content: string): Promise<void>;
+  process?(file: VaultFileHandle, fn: (content: string) => string): Promise<string>;
 };
 
 export class ObsidianVaultReader implements VaultReader {
@@ -41,12 +43,19 @@ export class ObsidianVaultReader implements VaultReader {
     if (handles.length > this.limits.maxFiles)
       throw new Error("vault exceeds configured processing limits");
     const paths = new Set<string>();
+    let totalBytes = 0;
 
     for (const file of handles) {
       throwIfAborted(signal);
       const path = normalizeAndValidatePath(file.path);
       if (paths.has(path)) throw new Error("Vault path is ambiguous.");
       paths.add(path);
+      const size = file.extension === "md" ? file.stat?.size : 0;
+      if (size !== undefined) {
+        if (size > this.limits.maxFileBytes || totalBytes + size > this.limits.maxTotalBytes)
+          throw new Error("vault exceeds configured processing limits");
+        totalBytes += size;
+      }
       const content = file.extension === "md" ? await this.vault.read(file) : "";
       throwIfAborted(signal);
       files.push({ path, content, revision: revisionFor(path, content) });
@@ -114,6 +123,23 @@ export class ObsidianVaultWriter implements WritableVault {
 
   async write(path: string, content: string): Promise<void> {
     await this.vault.modify(this.findMarkdownFile(path), content);
+  }
+
+  async writeIfCurrent(path: string, before: string, content: string): Promise<boolean> {
+    const file = this.findMarkdownFile(path);
+    if (!this.vault.process) {
+      const current = await this.vault.read(file);
+      if (current !== before) return false;
+      await this.vault.modify(file, content);
+      return true;
+    }
+    let applied = false;
+    await this.vault.process(file, (current) => {
+      if (current !== before) return current;
+      applied = true;
+      return content;
+    });
+    return applied;
   }
 
   private findMarkdownFile(path: string): VaultFileHandle {

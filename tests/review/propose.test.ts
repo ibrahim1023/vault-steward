@@ -10,7 +10,7 @@ const finding = {
   scanId: "s",
   type: "broken-reference" as const,
   severity: "medium" as const,
-  evidence: [{ notePath: "Home.md", locator: "line:1", excerpt: "[[Missing]]" }],
+  evidence: [{ notePath: "Home.md", locator: "line:1:column:5", excerpt: "[[Missing]]" }],
   affectedNoteIds: ["Home.md"],
   explanation: "Missing",
   suggestedFixes: [],
@@ -19,6 +19,26 @@ const finding = {
 };
 
 describe("deterministic proposals", () => {
+  it("rejects legacy and ambiguous-looking evidence instead of selecting the first match", () => {
+    const duplicate = { path: "Home.md", revision: "hash", content: "[[Missing]]\n[[Missing]]" };
+    expect(
+      proposeFix(
+        { ...finding, evidence: [{ ...finding.evidence[0]!, locator: "line:1" }] },
+        duplicate,
+        "Target"
+      )
+    ).toMatchObject({ applicable: false });
+    expect(
+      proposeFix(
+        { ...finding, evidence: [{ ...finding.evidence[0]!, locator: "line:2:column:1" }] },
+        duplicate,
+        "Target"
+      )
+    ).toMatchObject({
+      applicable: true,
+      proposal: { operations: [{ start: "[[Missing]]\n".length }] }
+    });
+  });
   it("creates a revision-bound reference replacement without mutating the source", () => {
     const source = { path: "Home.md", revision: "hash", content: "See [[Missing]]." };
     const result = proposeFix(finding, source, "Target");
@@ -55,7 +75,7 @@ describe("deterministic proposals", () => {
       evidence: [
         {
           notePath: "Home.md",
-          locator: "line:1",
+          locator: "line:1:column:5",
           excerpt: "[[Missing#Plan|project plan]]"
         }
       ]
@@ -89,7 +109,7 @@ describe("deterministic proposals", () => {
       evidence: [
         {
           notePath: "Home.md",
-          locator: "line:1",
+          locator: "line:1:column:5",
           excerpt: "![[Missing#Plan|embedded plan]]"
         }
       ]
@@ -124,7 +144,7 @@ describe("deterministic proposals", () => {
       evidence: [
         {
           notePath: "Work/Home.md",
-          locator: "line:1",
+          locator: "line:1:column:1",
           excerpt: "[Read the guide](Missing.md#plan)"
         }
       ]
@@ -159,7 +179,7 @@ describe("deterministic proposals", () => {
       evidence: [
         {
           notePath: "Work/Home.md",
-          locator: "line:1",
+          locator: "line:1:column:1",
           excerpt: "![Guide](../Missing.md#plan)"
         }
       ]
@@ -210,7 +230,7 @@ describe("deterministic proposals", () => {
     ({ excerpt, replacement }) => {
       const anchored = {
         ...finding,
-        evidence: [{ notePath: "Home.md", locator: "line:1", excerpt }]
+        evidence: [{ notePath: "Home.md", locator: "line:1:column:1", excerpt }]
       };
       expect(
         proposeReferenceRepair(
@@ -241,7 +261,7 @@ describe("deterministic proposals", () => {
     const excerpt = "[[Target#Missing]]";
     expect(
       proposeReferenceRepair(
-        { ...finding, evidence: [{ notePath: "Home.md", locator: "line:1", excerpt }] },
+        { ...finding, evidence: [{ notePath: "Home.md", locator: "line:1:column:1", excerpt }] },
         { path: "Home.md", revision: "hash", content: excerpt },
         {
           schemaVersion: 1,
@@ -268,7 +288,9 @@ describe("deterministic proposals", () => {
   it("rejects external and malformed Markdown replacement targets", () => {
     const markdown = {
       ...finding,
-      evidence: [{ notePath: "Home.md", locator: "line:1", excerpt: "[Guide](Missing.md)" }]
+      evidence: [
+        { notePath: "Home.md", locator: "line:1:column:1", excerpt: "[Guide](Missing.md)" }
+      ]
     };
     const source = { path: "Home.md", revision: "hash", content: "[Guide](Missing.md)" };
 
@@ -305,7 +327,7 @@ describe("deterministic proposals", () => {
         evidence: [
           {
             notePath: source.path,
-            locator: "line:14",
+            locator: "line:19:column:30",
             excerpt: "[[Guides/Partner Migration Checklist]]"
           }
         ]

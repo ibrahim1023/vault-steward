@@ -35,7 +35,6 @@
     "security:check": "npm audit --omit=dev --audit-level=moderate"
   },
   "dependencies": {
-    "gray-matter": "^4.0.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "remark-gfm": "^4.0.1",

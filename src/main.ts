@@ -33,7 +33,7 @@ import { getPluginDatabasePath } from "./storage/sqlite-runtime.js";
 import { VaultStewardWorkspace } from "./ui/VaultStewardWorkspace.js";
 import { scanVaultFiles, type ScannedNote, type ScanSnapshot } from "./scanner/scan.js";
 import { DEFAULT_POLICY_DRAFT, POLICY_STUDIO_PATH } from "./policy/studio.js";
-import { parsePolicy } from "./policy/parse.js";
+import { MAX_POLICY_BYTES, parsePolicy } from "./policy/parse.js";
 import { explainFinding, type FindingExplanation } from "./agents/finding-explanation.js";
 import { checkModelReadiness } from "./model-provider/readiness.js";
 import type { Finding } from "./contracts/index.js";
@@ -536,6 +536,9 @@ export default class VaultStewardPlugin extends Plugin {
 
   async loadPolicyDraft(): Promise<string> {
     try {
+      const stat = await this.app.vault.adapter.stat(POLICY_STUDIO_PATH);
+      if (stat && stat.size > MAX_POLICY_BYTES)
+        throw new Error("Policy file exceeds the configured size limit.");
       return await this.app.vault.adapter.read(POLICY_STUDIO_PATH);
     } catch {
       return DEFAULT_POLICY_DRAFT;
@@ -646,7 +649,10 @@ export default class VaultStewardPlugin extends Plugin {
   }
 
   private createSelectedModelProvider() {
-    if (isCloudProvider(this.settings.modelProvider.kind) && !this.settings.cloudModelConsent) {
+    if (
+      isCloudProvider(this.settings.modelProvider.kind) &&
+      !this.settings.cloudModelConsents[this.settings.modelProvider.kind]
+    ) {
       throw new Error(
         `${cloudProviderLabel(this.settings.modelProvider.kind)} access requires acknowledgement that selected vault evidence is sent to ${cloudProviderLabel(this.settings.modelProvider.kind)}.`
       );
@@ -887,9 +893,15 @@ class VaultStewardSettingsTab extends PluginSettingTab {
         )
         .addToggle((toggle) =>
           toggle
-            .setValue(this.plugin.settings.cloudModelConsent)
-            .onChange(async (cloudModelConsent) => {
-              await this.plugin.saveSettings({ ...this.plugin.settings, cloudModelConsent });
+            .setValue(Boolean(this.plugin.settings.cloudModelConsents[configuredProvider.kind]))
+            .onChange(async (acknowledged) => {
+              await this.plugin.saveSettings({
+                ...this.plugin.settings,
+                cloudModelConsents: {
+                  ...this.plugin.settings.cloudModelConsents,
+                  [configuredProvider.kind]: acknowledged
+                }
+              });
             })
         );
     }

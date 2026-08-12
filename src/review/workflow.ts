@@ -4,6 +4,7 @@ import type { VaultStewardRepository } from "../storage/repositories.js";
 export type WritableVault = {
   read(path: string): Promise<{ content: string; revision: string }>;
   write(path: string, content: string): Promise<void>;
+  writeIfCurrent?(path: string, before: string, content: string): Promise<boolean>;
 };
 export type ReviewAction = "approved" | "dismissed" | "deferred";
 export type BatchApplyFailureReason =
@@ -97,7 +98,7 @@ export class ReviewWorkflow {
     const written: Array<{ path: string; content: string }> = [];
     try {
       for (const write of writes) {
-        await this.vault.write(write.path, write.content);
+        if (!(await this.writeIfCurrent(write))) throw new Error("stale write boundary");
         written.push({ path: write.path, content: write.before });
       }
     } catch {
@@ -227,7 +228,7 @@ export class ReviewWorkflow {
     const written: Array<{ path: string; content: string }> = [];
     try {
       for (const write of writes) {
-        await this.vault.write(write.path, write.content);
+        if (!(await this.writeIfCurrent(write))) throw new Error("stale write boundary");
         written.push({ path: write.path, content: write.before });
       }
     } catch {
@@ -291,6 +292,17 @@ export class ReviewWorkflow {
 
   private updateBatchStatus(proposals: readonly Proposal[], status: string): void {
     for (const proposal of proposals) this.repository.updateProposalStatus(proposal.id, status);
+  }
+
+  private async writeIfCurrent(write: {
+    path: string;
+    before: string;
+    content: string;
+  }): Promise<boolean> {
+    if (this.vault.writeIfCurrent)
+      return this.vault.writeIfCurrent(write.path, write.before, write.content);
+    await this.vault.write(write.path, write.content);
+    return true;
   }
 }
 

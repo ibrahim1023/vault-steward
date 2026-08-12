@@ -31,4 +31,13 @@ describe("shared evaluation metrics", () => {
       schemaValidity: null
     });
   });
+
+  it("counts duplicate actual findings as false positives only once per expected finding", () => {
+    expect(gradeExpectedFindings([finding], [finding, finding])).toMatchObject({
+      precision: 0.5,
+      recall: 1,
+      falsePositives: 1,
+      falseNegatives: 0
+    });
+  });
 });

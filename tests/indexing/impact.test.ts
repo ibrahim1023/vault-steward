@@ -17,14 +17,14 @@ describe("change impact analysis", () => {
       {
         sourcePath: "Home.md",
         sourceRevision: "memory-0",
-        locator: "line:1",
+        locator: "line:1:column:1",
         currentReference: "[[Target]]",
         replacement: "[[Renamed]]"
       },
       {
         sourcePath: "Home.md",
         sourceRevision: "memory-0",
-        locator: "line:2",
+        locator: "line:2:column:1",
         currentReference: "[Target](Target.md)",
         replacement: "[Target](Renamed.md)"
       }
@@ -63,7 +63,7 @@ describe("change impact analysis", () => {
         {
           sourcePath: "Task.md",
           sourceRevision: "memory-0",
-          locator: "line:1",
+          locator: "line:1:column:1",
           currentReference: "[[Target#Plan|the plan]]",
           replacement: "[[Renamed#Plan|the plan]]"
         }
@@ -89,14 +89,14 @@ describe("change impact analysis", () => {
       {
         sourcePath: "Work/Home.md",
         sourceRevision: "memory-0",
-        locator: "line:1",
+        locator: "line:1:column:1",
         currentReference: "![[Target#Plan|preview]]",
         replacement: "![[Guides/Renamed Guide#Plan|preview]]"
       },
       {
         sourcePath: "Work/Home.md",
         sourceRevision: "memory-0",
-        locator: "line:2",
+        locator: "line:2:column:1",
         currentReference: "![Diagram](../Target.md#plan)",
         replacement: "![Diagram](../Guides/Renamed%20Guide.md#plan)"
       }

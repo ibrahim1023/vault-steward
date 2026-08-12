@@ -6,6 +6,7 @@ import {
   type TaskRepairIntent
 } from "../contracts/task-decision-repair.js";
 import type { Proposal } from "../contracts/proposal.js";
+import { exactEvidenceStart } from "./evidence-range.js";
 import { parseTask } from "../tasks/check.js";
 
 export type RepairCandidate = { id: string; value: string };
@@ -31,9 +32,17 @@ export function proposeTaskRepair(
   )
     return unavailable();
 
+  const excerptStart = exactEvidenceStart(source.content, evidence.locator, evidence.excerpt);
+  if (excerptStart === null) return unavailable();
   const task = parseTask(evidence.excerpt, lineNumber(evidence.locator));
   if (!task || task.id !== parsedIntent.value.taskId) return unavailable();
-  const operation = taskOperation(source, evidence.excerpt, task, parsedIntent.value, candidates);
+  const operation = taskOperation(
+    evidence.excerpt,
+    excerptStart,
+    task,
+    parsedIntent.value,
+    candidates
+  );
   if (!operation) return unavailable();
   return proposal(finding, source, operation.expected, operation.replacement, operation.start);
 }
@@ -59,6 +68,8 @@ export function proposeDecisionRepair(
     return unavailable();
 
   const intent = parsedIntent.value;
+  if (exactEvidenceStart(source.content, evidence.locator, evidence.excerpt) === null)
+    return unavailable();
   let field: "project" | "relatedDecision" | "rationale";
   let value: string;
   if (intent.kind === "set-rationale") {
@@ -78,8 +89,8 @@ export function proposeDecisionRepair(
 }
 
 function taskOperation(
-  source: RepairProposalSource,
   excerpt: string,
+  excerptStart: number,
   task: ReturnType<typeof parseTask> & {},
   intent: TaskRepairIntent,
   candidates: readonly RepairCandidate[]
@@ -121,8 +132,6 @@ function taskOperation(
       replacement = `^${candidate}`;
       break;
   }
-  const excerptStart = source.content.indexOf(excerpt);
-  if (excerptStart < 0) return null;
   if (!expected) {
     const suffix = excerpt.match(/\s+\^[\w-]+\s*$/)?.[0] ?? "";
     const insertion = excerptStart + excerpt.length - suffix.length;
@@ -137,18 +146,20 @@ function frontmatterOperation(
   field: "project" | "relatedDecision" | "rationale",
   value: string
 ): { start: number; expected: string; replacement: string } | null {
-  const opening = content.startsWith("---\n") ? 0 : -1;
-  if (opening !== 0) return null;
-  const closing = content.indexOf("\n---\n", 4);
-  if (closing < 0) return null;
-  const header = content.slice(4, closing);
-  const linePattern = new RegExp(`^${field}:.*$`, "m");
+  const opening = /^---\r?\n/.exec(content);
+  if (!opening) return null;
+  const afterOpening = content.slice(opening[0].length);
+  const closing = /(?:^|\r?\n)---(?:\r?\n|$)/.exec(afterOpening);
+  if (!closing) return null;
+  const header = afterOpening.slice(0, closing.index);
+  const linePattern = new RegExp(`^${field}:[^\r\n]*`, "m");
   const match = linePattern.exec(header);
   const rendered = `${field}: ${JSON.stringify(value)}`;
   if (match) {
-    return { start: 4 + match.index, expected: match[0], replacement: rendered };
+    return { start: opening[0].length + match.index, expected: match[0], replacement: rendered };
   }
-  return { start: 0, expected: "---\n", replacement: `---\n${rendered}\n` };
+  const newline = opening[0].endsWith("\r\n") ? "\r\n" : "\n";
+  return { start: 0, expected: opening[0], replacement: `${opening[0]}${rendered}${newline}` };
 }
 
 function proposal(
@@ -182,7 +193,7 @@ function proposal(
 }
 
 function lineNumber(locator: string): number {
-  const value = /^line:(\d+)$/.exec(locator)?.[1];
+  const value = /^line:(\d+)(?::column:\d+)?$/.exec(locator)?.[1];
   return value ? Number(value) : 1;
 }
 

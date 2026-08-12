@@ -15,7 +15,7 @@ export type PluginSettings = {
   vaultLabel: string;
   autoScanOnLoad: boolean;
   modelProvider: ModelProviderConfig;
-  cloudModelConsent: boolean;
+  cloudModelConsents: Partial<Record<"openai" | "hyperfusion", boolean>>;
   maintenanceSchedule: MaintenanceSchedule;
   suppressedFindingPatterns: string[];
 };
@@ -23,7 +23,7 @@ export type PluginSettings = {
 export const DEFAULT_PLUGIN_SETTINGS: PluginSettings = {
   vaultLabel: "Current vault",
   autoScanOnLoad: false,
-  cloudModelConsent: false,
+  cloudModelConsents: {},
   suppressedFindingPatterns: [],
   maintenanceSchedule: DEFAULT_MAINTENANCE_SCHEDULE,
   modelProvider: {
@@ -47,21 +47,29 @@ export function parsePluginSettings(value: unknown): PluginSettings {
   const modelProvider = isValidProviderConfig(candidate.modelProvider)
     ? candidate.modelProvider
     : DEFAULT_PLUGIN_SETTINGS.modelProvider;
-  const cloudModelConsent =
-    typeof candidate.cloudModelConsent === "boolean"
-      ? candidate.cloudModelConsent
-      : DEFAULT_PLUGIN_SETTINGS.cloudModelConsent;
+  // Deliberately do not migrate the former shared acknowledgement: a consent
+  // for one remote provider must never authorize another provider.
+  const cloudModelConsents = validCloudModelConsents(candidate.cloudModelConsents);
   const maintenanceSchedule = candidate.maintenanceSchedule ?? DEFAULT_MAINTENANCE_SCHEDULE;
   const suppressedFindingPatterns = validSuppressionPatterns(candidate.suppressedFindingPatterns);
   return {
     vaultLabel,
     autoScanOnLoad,
     modelProvider,
-    cloudModelConsent,
+    cloudModelConsents,
     suppressedFindingPatterns,
     maintenanceSchedule: isValidMaintenanceSchedule(maintenanceSchedule)
       ? maintenanceSchedule
       : DEFAULT_MAINTENANCE_SCHEDULE
+  };
+}
+
+function validCloudModelConsents(value: unknown): PluginSettings["cloudModelConsents"] {
+  if (value === null || typeof value !== "object") return {};
+  const candidate = value as Record<string, unknown>;
+  return {
+    ...(candidate.openai === true ? { openai: true } : {}),
+    ...(candidate.hyperfusion === true ? { hyperfusion: true } : {})
   };
 }
 

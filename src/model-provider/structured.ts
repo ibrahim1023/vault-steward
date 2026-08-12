@@ -78,30 +78,46 @@ function parseJson(text: string): unknown {
 }
 
 function parseFirstJsonValue(text: string): unknown {
-  candidate: for (let start = 0; start < text.length; start++) {
-    if (text[start] !== "{" && text[start] !== "[") continue;
-    let depth = 1;
-    let quote = false;
-    let escaped = false;
-    for (let index = start + 1; index < text.length; index++) {
-      const character = text[index];
-      if (quote) {
-        if (escaped) escaped = false;
-        else if (character === "\\") escaped = true;
-        else if (character === '"') quote = false;
-        continue;
+  let start = -1;
+  const stack: string[] = [];
+  let quote = false;
+  let escaped = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index]!;
+    if (start < 0) {
+      if (character === "{" || character === "[") {
+        start = index;
+        stack.push(character);
       }
-      if (character === '"') {
-        quote = true;
-        continue;
-      }
-      if (character === "{" || character === "[") depth += 1;
-      if (character === "}" || character === "]") depth -= 1;
-      if (depth !== 0) continue;
-      const value = parseJson(text.slice(start, index + 1));
-      if (value !== null) return value;
-      continue candidate;
+      continue;
     }
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === '"') quote = false;
+      continue;
+    }
+    if (character === '"') {
+      quote = true;
+      continue;
+    }
+    if (character === "{" || character === "[") {
+      stack.push(character);
+      continue;
+    }
+    if (character !== "}" && character !== "]") continue;
+    const opening = stack.pop();
+    if ((character === "}" && opening !== "{") || (character === "]" && opening !== "[")) {
+      start = -1;
+      stack.length = 0;
+      quote = false;
+      escaped = false;
+      continue;
+    }
+    if (stack.length > 0) continue;
+    const value = parseJson(text.slice(start, index + 1));
+    if (value !== null) return value;
+    start = -1;
   }
   return null;
 }

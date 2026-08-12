@@ -3,7 +3,7 @@
     "id": "conflict",
     "type": "contradiction",
     "notePath": "Status.md",
-    "locator": "line:2",
+    "locator": "line:2:column:1",
     "severity": "medium",
     "safeFix": "not-applicable"
   }

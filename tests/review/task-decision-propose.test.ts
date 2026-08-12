@@ -14,7 +14,7 @@ const taskFinding = {
   evidence: [
     {
       notePath: "Work.md",
-      locator: "line:2",
+      locator: "line:2:column:1",
       excerpt: "- [ ] Ship owner:ada project:atlas due:2026-07-01 abandoned:true ^ship"
     }
   ],
@@ -78,6 +78,7 @@ describe("task and decision deterministic proposals", () => {
       evidence: [
         {
           ...taskFinding.evidence[0]!,
+          locator: "line:1:column:1",
           excerpt: "- [ ] Ship owner:ada project:atlas status:done ^ship"
         }
       ]
@@ -109,7 +110,7 @@ describe("task and decision deterministic proposals", () => {
     const source = {
       path: "Work.md",
       revision: "revision-1",
-      content: taskFinding.evidence[0]!.excerpt
+      content: `# Work\n${taskFinding.evidence[0]!.excerpt}`
     };
     const cases = [
       {
@@ -205,7 +206,7 @@ describe("task and decision deterministic proposals", () => {
       id: "decision-finding",
       type: "decision" as const,
       evidence: [
-        { notePath: "Decisions/ADR-1.md", locator: "frontmatter:kind", excerpt: "decision" }
+        { notePath: "Decisions/ADR-1.md", locator: "line:2:column:7", excerpt: "decision" }
       ]
     };
     const source = {
@@ -244,13 +245,46 @@ describe("task and decision deterministic proposals", () => {
     });
   });
 
+  it("prepares a decision frontmatter repair for CRLF frontmatter", () => {
+    const finding = {
+      ...taskFinding,
+      id: "decision-crlf",
+      type: "decision" as const,
+      evidence: [
+        { notePath: "Decisions/ADR-1.md", locator: "line:2:column:7", excerpt: "decision" }
+      ]
+    };
+    const source = {
+      path: "Decisions/ADR-1.md",
+      revision: "revision-1",
+      content: "---\r\nkind: decision\r\n---\r\n# Decision\r\n"
+    };
+
+    expect(
+      proposeDecisionRepair(
+        finding,
+        source,
+        {
+          schemaVersion: 1,
+          kind: "link-project",
+          scanId: "scan-1",
+          findingId: "decision-crlf",
+          decisionId: "Decisions/ADR-1.md",
+          candidateId: "project-1"
+        },
+        [{ id: "project-1", value: "Projects/Atlas.md" }],
+        []
+      )
+    ).toMatchObject({ applicable: true });
+  });
+
   it("rejects uncited rationale and decision candidates that were not supplied", () => {
     const finding = {
       ...taskFinding,
       id: "decision-finding",
       type: "decision" as const,
       evidence: [
-        { notePath: "Decisions/ADR-1.md", locator: "frontmatter:kind", excerpt: "decision" }
+        { notePath: "Decisions/ADR-1.md", locator: "line:2:column:7", excerpt: "decision" }
       ]
     };
     const source = {
