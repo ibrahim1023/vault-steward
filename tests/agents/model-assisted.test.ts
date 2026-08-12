@@ -8,9 +8,9 @@ import {
   runStalenessAgent,
   validateEntityCandidates
 } from "../../src/agents/model-assisted.js";
-import type { LocalProvider } from "../../src/model-provider/local-provider.js";
+import type { ModelProvider } from "../../src/model-provider/local-provider.js";
 
-function provider(response: string): LocalProvider {
+function provider(response: string): ModelProvider {
   return {
     config: {
       kind: "ollama",

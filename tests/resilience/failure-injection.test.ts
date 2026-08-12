@@ -5,7 +5,7 @@ import { generateStructured } from "../../src/model-provider/structured.js";
 import { planIncrementalScan } from "../../src/indexing/plan.js";
 import {
   createLocalProvider,
-  type LocalProvider
+  type ModelProvider
 } from "../../src/model-provider/local-provider.js";
 import { ReviewWorkflow } from "../../src/review/workflow.js";
 import { applyMigrations } from "../../src/storage/migrations.js";
@@ -123,7 +123,7 @@ describe("failure injection", () => {
     await expect(provider.generate({ prompt: "x", maxOutputTokens: 1 })).rejects.toThrow(
       "timed out"
     );
-    const malformed: LocalProvider = {
+    const malformed: ModelProvider = {
       ...provider,
       generate: async () => ({ text: "not-json", model: "local", provider: "ollama", latencyMs: 1 })
     };

@@ -1,4 +1,4 @@
-import type { LocalGenerationRequest, LocalProvider } from "./local-provider.js";
+import type { LocalGenerationRequest, ModelProvider } from "./local-provider.js";
 
 export type ModelTrace = {
   provider: string;
@@ -12,7 +12,7 @@ export type StructuredResult<T> =
   | { ok: false; error: "structured-output-invalid" | "provider-unavailable"; trace: ModelTrace[] };
 
 export async function generateStructured<T>(
-  providers: readonly LocalProvider[],
+  providers: readonly ModelProvider[],
   request: LocalGenerationRequest,
   validate: (value: unknown) => value is T
 ): Promise<StructuredResult<T>> {

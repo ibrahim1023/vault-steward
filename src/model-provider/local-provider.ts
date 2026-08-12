@@ -44,8 +44,6 @@ export type ModelProvider = {
   readonly capabilities: readonly string[];
   generate(request: LocalGenerationRequest): Promise<LocalGeneration>;
 };
-// Retained as an alias while existing agent contracts are migrated to the broader name.
-export type LocalProvider = ModelProvider;
 export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
 export const MAX_PROVIDER_TIMEOUT_MS = 10 * 60 * 1_000;
@@ -57,7 +55,7 @@ export const HYPERFUSION_API_BASE_URL = "https://api.hyperfusion.io/v1";
 export function createLocalProvider(
   config: LocalProviderConfig,
   fetcher: FetchLike = fetch
-): LocalProvider {
+): ModelProvider {
   validateConfig(config);
   return {
     config,
@@ -149,9 +147,9 @@ export function createModelProvider(
 }
 
 export function selectProvider(
-  providers: readonly LocalProvider[],
+  providers: readonly ModelProvider[],
   capability: string
-): LocalProvider | null {
+): ModelProvider | null {
   return providers.find((provider) => provider.capabilities.includes(capability)) ?? null;
 }
 

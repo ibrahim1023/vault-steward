@@ -1,5 +1,5 @@
 import type { Finding } from "../contracts/index.js";
-import type { LocalProvider } from "../model-provider/local-provider.js";
+import type { ModelProvider } from "../model-provider/local-provider.js";
 
 const MAX_EVIDENCE_ITEMS = 4;
 const MAX_EXCERPT_CHARACTERS = 600;
@@ -28,7 +28,7 @@ export function buildFindingExplanationPrompt(finding: Finding): string {
 }
 
 export async function explainFinding(
-  provider: LocalProvider,
+  provider: ModelProvider,
   finding: Finding
 ): Promise<FindingExplanation> {
   try {

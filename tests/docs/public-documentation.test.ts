@@ -25,8 +25,7 @@ describe("public documentation", () => {
     const readme = readFileSync(resolve(root, "README.md"), "utf8");
 
     expect(readme).toContain("## Privacy And Safety");
-    expect(readme).toContain("## Field Engineering Foundations");
-    expect(readme).toContain("not a claim of");
+    expect(readme).not.toContain("## Field Engineering Foundations");
     expect(readme).toContain("## How It Works");
     expect(readme).toContain("Check vault");
     expect(readme).toContain("current and proposed references");

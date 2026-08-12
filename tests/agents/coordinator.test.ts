@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { AgentResultCache, LocalAgentCoordinator } from "../../src/agents/coordinator.js";
-import type { LocalProvider } from "../../src/model-provider/local-provider.js";
+import type { ModelProvider } from "../../src/model-provider/local-provider.js";
 
-const provider: LocalProvider = {
+const provider: ModelProvider = {
   config: {
     kind: "ollama",
     endpoint: "http://localhost:11434",
@@ -61,7 +61,7 @@ describe("local-agent coordinator", () => {
 
   it("reuses only an exact declared model context across scan IDs", async () => {
     let calls = 0;
-    const countingProvider: LocalProvider = {
+    const countingProvider: ModelProvider = {
       ...provider,
       generate: async () => {
         calls += 1;

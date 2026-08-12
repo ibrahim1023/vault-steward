@@ -3,7 +3,7 @@ import type { AgentEvidence } from "../agents/model-assisted.js";
 import type { Finding } from "../contracts/index.js";
 import { checkDecisions, indexDecision } from "../decisions/index.js";
 import { normalizeFinding } from "../findings/normalize.js";
-import type { LocalProvider } from "../model-provider/local-provider.js";
+import type { ModelProvider } from "../model-provider/local-provider.js";
 import type { ModelTrace } from "../model-provider/structured.js";
 import { evaluatePolicies, extractPolicyFacts } from "../policy/evaluate.js";
 import type { Policy } from "../policy/parse.js";
@@ -32,7 +32,7 @@ export type GovernedScanOptions = {
 
 export async function runGovernedScan(
   files: readonly VaultFile[],
-  providers: readonly LocalProvider[],
+  providers: readonly ModelProvider[],
   now: string,
   options: GovernedScanOptions = {}
 ): Promise<GovernedScanResult> {

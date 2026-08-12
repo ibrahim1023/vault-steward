@@ -8,20 +8,6 @@ Vault Steward audits Markdown knowledge bases for broken references, schema prob
 
 Vault Steward is for people and teams who keep durable project knowledge in an Obsidian vault and need to find maintenance problems before they become misleading or expensive. It is not a chat-with-your-vault tool: its primary job is integrity, governance, and evidence-backed review.
 
-## Field Engineering Foundations
-
-Vault Steward supports an FDE-style product-validation loop: encode one real
-customer workflow as a versioned fixture, label expected findings and
-non-findings, run the same workflow across provider profiles, inspect evidence
-and execution lineage, and turn field failures into regression gates.
-
-The repository already includes realistic workflow fixtures, deterministic and
-model-quality evals, local traces, finding lineage, replay metadata, explicit
-approval records, provider comparison reports, and release-quality checks.
-These are foundations for fast customer-specific validation, not a claim of
-completed multi-customer pilots, a policy-pack catalog, or a published FDE case
-study.
-
 ## How It Works
 
 ```text
@@ -156,9 +142,10 @@ Reproducible synthetic and fixture benchmark instructions are in
 [BENCHMARKS.md](BENCHMARKS.md). Benchmark results remain local and describe only
 the recorded model, configuration, fixture, and hardware conditions.
 
-Fixture replay writes a redacted local record to `evals/reports/replay.json`. Controlled comparisons accept the same fixture manifest with exactly one changed configuration value: model, prompt, threshold, retrieval, policy, or agent. Live scans retain metadata rather than historical source by default, so they report replay eligibility instead of reconstructing old notes.
-
-Generated scale evaluation currently measures the deterministic reference family against exact synthetic ground truth. Retrieval metrics, policy coverage, model comparisons, and calibration describe recorded conditions only; they do not select a model or alter product behavior. See [evaluation methodology](EVALS.md) and [observability and retained data](OBSERVABILITY.md).
+Fixture replay, scale evaluation, retrieval metrics, policy coverage, and model
+comparisons are local engineering tools. They never select a model or authorize
+an edit. See [evaluation methodology](EVALS.md) and [observability and retained
+data](OBSERVABILITY.md).
 
 ## Limitations
 

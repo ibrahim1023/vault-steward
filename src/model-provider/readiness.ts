@@ -1,4 +1,4 @@
-import type { LocalProvider } from "./local-provider.js";
+import type { ModelProvider } from "./local-provider.js";
 
 export type ModelReadiness = {
   available: boolean;
@@ -11,7 +11,7 @@ export type ModelReadiness = {
   failureCode?: "provider-unavailable" | "structured-output-invalid";
 };
 
-export async function checkModelReadiness(provider: LocalProvider): Promise<ModelReadiness> {
+export async function checkModelReadiness(provider: ModelProvider): Promise<ModelReadiness> {
   const base = {
     provider: provider.config.kind,
     model: provider.config.model,

@@ -1,4 +1,4 @@
-import type { LocalProvider } from "../model-provider/local-provider.js";
+import type { ModelProvider } from "../model-provider/local-provider.js";
 
 export type LiveModelEvaluation = {
   available: boolean;
@@ -13,7 +13,7 @@ export type LiveModelEvaluation = {
 };
 
 export async function runLiveModelEvaluation(input: {
-  provider: LocalProvider | null;
+  provider: ModelProvider | null;
 }): Promise<LiveModelEvaluation> {
   if (!input.provider)
     return {

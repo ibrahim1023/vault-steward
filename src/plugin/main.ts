@@ -4,7 +4,7 @@ import {
   type CoordinatorResult
 } from "../agents/coordinator.js";
 import { runGovernedScan, type GovernedScanResult } from "../core/governed-scan.js";
-import type { LocalProvider } from "../model-provider/local-provider.js";
+import type { ModelProvider } from "../model-provider/local-provider.js";
 import { checkReferenceIntegrity } from "../reference/check.js";
 import { scanVaultFiles, type ScanSnapshot } from "../scanner/scan.js";
 import type { Policy } from "../policy/parse.js";
@@ -29,7 +29,7 @@ export function createReferenceIntegritySession(): {
 }
 
 export function createGovernedIntegritySession(
-  providers: readonly LocalProvider[],
+  providers: readonly ModelProvider[],
   cache?: AgentResultCache
 ): {
   scan(

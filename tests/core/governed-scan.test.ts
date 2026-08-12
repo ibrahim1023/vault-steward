@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { runGovernedScan } from "../../src/core/governed-scan.js";
-import type { LocalProvider } from "../../src/model-provider/local-provider.js";
+import type { ModelProvider } from "../../src/model-provider/local-provider.js";
 
-const provider: LocalProvider = {
+const provider: ModelProvider = {
   config: {
     kind: "ollama",
     endpoint: "http://127.0.0.1:11434",
@@ -117,7 +117,7 @@ describe("snapshot-derived governed scan", () => {
   });
 
   it("keeps deterministic integrity checks available when model output is malformed", async () => {
-    const malformedProvider: LocalProvider = {
+    const malformedProvider: ModelProvider = {
       ...provider,
       generate: async () => ({
         text: "this is not JSON",

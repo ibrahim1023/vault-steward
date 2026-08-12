@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { LocalProvider } from "../model-provider/local-provider.js";
+import type { ModelProvider } from "../model-provider/local-provider.js";
 import type { ModelTrace } from "../model-provider/structured.js";
 import {
   prepareContradictionPropositions,
@@ -71,7 +71,7 @@ export class AgentResultCache {
 
 export class LocalAgentCoordinator {
   constructor(
-    private readonly providers: readonly LocalProvider[],
+    private readonly providers: readonly ModelProvider[],
     private readonly cache: AgentResultCache = new AgentResultCache()
   ) {}
 
@@ -213,7 +213,7 @@ function dedupeCandidates(candidates: readonly unknown[]): unknown[] {
   });
 }
 
-function providerScopedContext(providers: readonly LocalProvider[], context: unknown): unknown {
+function providerScopedContext(providers: readonly ModelProvider[], context: unknown): unknown {
   return {
     providers: providers.map((provider) => ({
       kind: provider.config.kind,

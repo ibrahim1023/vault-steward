@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { generateStructured } from "../../src/model-provider/structured.js";
-import type { LocalProvider } from "../../src/model-provider/local-provider.js";
+import type { ModelProvider } from "../../src/model-provider/local-provider.js";
 
-const provider = (responses: string[], prompts?: string[]): LocalProvider => ({
+const provider = (responses: string[], prompts?: string[]): ModelProvider => ({
   config: {
     kind: "ollama",
     endpoint: "http://localhost:1",
@@ -52,7 +52,7 @@ describe("structured local output", () => {
         provider: "ollama" as const,
         latencyMs: 2
       });
-    const source: LocalProvider = {
+    const source: ModelProvider = {
       ...provider([]),
       generate
     };
@@ -64,7 +64,7 @@ describe("structured local output", () => {
     expect(generate.mock.calls[1]?.[0].prompt).toBe("x");
   });
   it("keeps repeated provider failures typed and fail-closed", async () => {
-    const source: LocalProvider = {
+    const source: ModelProvider = {
       ...provider([]),
       generate: vi.fn().mockRejectedValue(new Error("unavailable"))
     };
