@@ -146,18 +146,20 @@ function frontmatterOperation(
   field: "project" | "relatedDecision" | "rationale",
   value: string
 ): { start: number; expected: string; replacement: string } | null {
-  const opening = content.startsWith("---\n") ? 0 : -1;
-  if (opening !== 0) return null;
-  const closing = content.indexOf("\n---\n", 4);
-  if (closing < 0) return null;
-  const header = content.slice(4, closing);
-  const linePattern = new RegExp(`^${field}:.*$`, "m");
+  const opening = /^---\r?\n/.exec(content);
+  if (!opening) return null;
+  const afterOpening = content.slice(opening[0].length);
+  const closing = /(?:^|\r?\n)---(?:\r?\n|$)/.exec(afterOpening);
+  if (!closing) return null;
+  const header = afterOpening.slice(0, closing.index);
+  const linePattern = new RegExp(`^${field}:[^\r\n]*`, "m");
   const match = linePattern.exec(header);
   const rendered = `${field}: ${JSON.stringify(value)}`;
   if (match) {
-    return { start: 4 + match.index, expected: match[0], replacement: rendered };
+    return { start: opening[0].length + match.index, expected: match[0], replacement: rendered };
   }
-  return { start: 0, expected: "---\n", replacement: `---\n${rendered}\n` };
+  const newline = opening[0].endsWith("\r\n") ? "\r\n" : "\n";
+  return { start: 0, expected: opening[0], replacement: `${opening[0]}${rendered}${newline}` };
 }
 
 function proposal(

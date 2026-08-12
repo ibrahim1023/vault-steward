@@ -14,18 +14,15 @@ export function gradeExpectedFindings(
   expected: readonly GradedFinding[],
   actual: readonly GradedFinding[]
 ) {
-  const matches = actual.filter((finding) =>
-    expected.some((item) => findingMatches(item, finding))
-  );
+  const matches = matchFindings(expected, actual);
   const truePositive = matches.length;
   const falsePositive = actual.length - truePositive;
   const falseNegative = expected.length - truePositive;
   const severityMatches = matches.filter(
-    (finding) =>
-      expected.find((item) => findingMatches(item, finding))?.severity === finding.severity
+    ({ expected, actual }) => expected.severity === actual.severity
   ).length;
   const safeFixMatches = matches.filter(
-    (finding) => expected.find((item) => findingMatches(item, finding))?.safeFix === finding.safeFix
+    ({ expected, actual }) => expected.safeFix === actual.safeFix
   ).length;
   return {
     precision: ratio(truePositive, actual.length),
@@ -35,11 +32,9 @@ export function gradeExpectedFindings(
     falseNegatives: falseNegative,
     evidenceSourceAccuracy: ratio(matches.length, actual.length),
     sourceRangeAccuracy: ratio(
-      matches.filter((finding) =>
-        expected.some(
-          (item) =>
-            item.notePath === finding.notePath && locatorMatches(item.locator, finding.locator)
-        )
+      matches.filter(
+        ({ expected, actual }) =>
+          expected.notePath === actual.notePath && expected.locator === actual.locator
       ).length,
       actual.length
     ),
@@ -58,18 +53,29 @@ export function gradeExpectedFindings(
   };
 }
 
-function locatorMatches(expected: string, actual: string): boolean {
-  return (
-    expected === actual || (/^line:\d+$/.test(expected) && actual.startsWith(`${expected}:column:`))
-  );
-}
-
 function findingMatches(expected: GradedFinding, actual: GradedFinding): boolean {
   return (
     expected.type === actual.type &&
     expected.notePath === actual.notePath &&
-    locatorMatches(expected.locator, actual.locator)
+    expected.locator === actual.locator
   );
+}
+
+function matchFindings(
+  expected: readonly GradedFinding[],
+  actual: readonly GradedFinding[]
+): Array<{ expected: GradedFinding; actual: GradedFinding }> {
+  const remainingExpected = new Set(expected.keys());
+  const matches: Array<{ expected: GradedFinding; actual: GradedFinding }> = [];
+  for (const candidate of actual) {
+    const matchIndex = [...remainingExpected].find((index) =>
+      findingMatches(expected[index]!, candidate)
+    );
+    if (matchIndex === undefined) continue;
+    remainingExpected.delete(matchIndex);
+    matches.push({ expected: expected[matchIndex]!, actual: candidate });
+  }
+  return matches;
 }
 
 function ratio(numerator: number, denominator: number): number | null {

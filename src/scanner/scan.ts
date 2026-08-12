@@ -92,7 +92,10 @@ function parseSafeFrontmatter(content: string): {
   const closing = /(?:^|\r?\n)---(?:\r?\n|$)/.exec(afterOpening);
   if (!closing) return { data: {}, content };
   const header = afterOpening.slice(0, closing.index);
-  if (header.length > 32_768 || /(^|\n)\s*(?:<<\s*:|[^#\n]+:\s*[*&])/.test(header))
+  if (
+    new TextEncoder().encode(header).byteLength > 32_768 ||
+    /(^|\n)\s*(?:<<\s*:|[^#\n]+:\s*[*&])/.test(header)
+  )
     throw new Error("frontmatter exceeds safe parser limits");
   let depth = 0;
   for (const line of header.split("\n")) {

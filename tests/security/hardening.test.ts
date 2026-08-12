@@ -47,6 +47,13 @@ describe("security hardening", () => {
       content: "# Safe note"
     });
   });
+
+  it("measures frontmatter limits in UTF-8 bytes", () => {
+    const largeUtf8Value = "😀".repeat(9_000);
+    expect(() =>
+      scanVaultFiles([{ path: "Large.md", content: `---\ntitle: ${largeUtf8Value}\n---\n# Note` }])
+    ).toThrow("frontmatter exceeds safe parser limits");
+  });
   it("rejects traversal and malicious local embeds before they can resolve", () => {
     const findings = checkReferenceIntegrity(
       scanVaultFiles([

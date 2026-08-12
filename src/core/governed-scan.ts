@@ -312,13 +312,13 @@ function normalized(
 }
 
 function toEvidence(note: ScanSnapshot["notes"][number]): AgentEvidence {
-  return { notePath: note.path, locator: "line:1", excerpt: note.content.slice(0, 2_000) };
+  return { notePath: note.path, locator: "line:1:column:1", excerpt: note.content.slice(0, 2_000) };
 }
 
 function lineEvidence(notePath: string, content: string, line: number): AgentEvidence {
   return {
     notePath,
-    locator: `line:${line}`,
+    locator: `line:${line}:column:1`,
     excerpt: content.split("\n")[line - 1] ?? ""
   };
 }

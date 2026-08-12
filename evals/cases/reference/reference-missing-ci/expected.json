@@ -3,7 +3,7 @@
     "id": "missing-link",
     "type": "broken-reference",
     "notePath": "Home.md",
-    "locator": "line:1",
+    "locator": "line:1:column:1",
     "severity": "medium",
     "safeFix": "applicable"
   }
