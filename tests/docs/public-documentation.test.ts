@@ -15,6 +15,7 @@ const requiredPublicDocs = [
   "docs/local-models.md",
   "docs/troubleshooting.md",
   "docs/release-compatibility.md",
+  "docs/release-readiness.md",
   "docs/northstar-release-workflow.md",
   "docs/release-quality-report.md",
   "docs/community-plugin-submission-checklist.md"
@@ -82,5 +83,19 @@ describe("public documentation", () => {
     expect(compatibility).toContain("OpenAI is experimental");
     expect(troubleshooting).toContain("HyperFusion is experimental");
     expect(privacy).toContain("HyperFusion and OpenAI are optional, explicit cloud providers");
+  });
+
+  it("keeps release readiness and security status current", () => {
+    const readiness = readFileSync(resolve(root, "docs/release-readiness.md"), "utf8");
+    const security = readFileSync(resolve(root, "docs/security.md"), "utf8");
+    const compatibility = readFileSync(resolve(root, "docs/release-compatibility.md"), "utf8");
+    const upgrade = readFileSync(resolve(root, "docs/upgrade-notes.md"), "utf8");
+
+    expect(readiness).toContain("Release owner sign-off");
+    expect(readiness).toContain("Upstream submission is a separate owner action");
+    expect(security).toContain("completed deep-security scan");
+    expect(security).not.toContain("could not create a new report");
+    expect(compatibility).toContain("HyperFusion and OpenAI are experimental");
+    expect(upgrade).not.toContain("Policy Studio stores");
   });
 });
