@@ -176,15 +176,13 @@ remain required before any submission-ready claim.
 
 ## Risks
 
-- The result-first flow has automated coverage, but it has not yet completed the
-  required Obsidian desktop, narrow-pane, light/dark theme, keyboard, VoiceOver,
-  Ollama, and OpenAI manual acceptance matrix. The code may advance
-  `development` for Phase 20 work, but it remains unsuitable for release until
-  that evidence is recorded.
-- Agent quality thresholds are initial calibration targets and need representative local-vault review before a broader release.
-- The marketplace corpus harness and live Ollama report are passing, but they do
-  not substitute for the pending OpenAI execution or manual Obsidian
-  acceptance.
+- The current macOS manual acceptance matrix, including the supported provider
+  paths, is complete. Windows and Linux remain unvalidated and must not be
+  presented as supported until equivalent desktop evidence is recorded.
+- Agent quality thresholds are initial calibration targets and need
+  representative local-vault review before a broader release.
+- Current screenshots, a scan-to-approval demonstration, final release-quality
+  sign-off, and any upstream submission remain separate release-owner actions.
 
 ## Verification Status
 
