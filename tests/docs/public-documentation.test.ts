@@ -82,4 +82,22 @@ describe("public documentation", () => {
     expect(compatibility).toContain("HyperFusion and OpenAI are experimental");
     expect(upgrade).not.toContain("Policy Studio stores");
   });
+
+  it("keeps release records free of local paths and obsolete manual-release gates", () => {
+    const manualAcceptance = readFileSync(
+      resolve(root, "docs/manual-acceptance-checklist.md"),
+      "utf8"
+    );
+    const progress = readFileSync(resolve(root, "docs/progress.md"), "utf8");
+
+    expect(manualAcceptance).not.toMatch(/\/(?:Users|home)\//);
+    expect(progress).toContain("Release-owner preparation is the current work.");
+    expect(progress).toMatch(
+      /current macOS manual\s+acceptance matrix and Phase 30 release evidence/
+    );
+    expect(progress).not.toContain("cumulative manual Obsidian acceptance pass remains deferred");
+    expect(progress).not.toContain(
+      "deferred Phase 19 manual desktop matrix and Phases 21-22 release evidence"
+    );
+  });
 });

@@ -2,11 +2,12 @@
 
 ## Current Phase
 
-Phase 28 faster batch review and local learning has completed automated
-implementation and verification on its dedicated feature branch. The
-cumulative manual Obsidian acceptance pass remains deferred. This parallel
-feature work does not alter the deferred Phase 19 manual acceptance or Phases
-21-22 release gates; those remain required before a submission-ready claim.
+Phase 30 security hardening and the complete macOS manual/provider acceptance
+matrix were completed and promoted to `development` on 2026-08-12. The current
+work is release-owner preparation: collect the remaining screenshots,
+demonstration, repository/version materials, and final release-quality
+decision. Upstream submission remains a separate owner action; this status does
+not claim marketplace availability.
 
 ## Completed Work
 
@@ -68,17 +69,17 @@ feature work does not alter the deferred Phase 19 manual acceptance or Phases
 
 ## Current Work
 
-Phase 25 automated work provides a snapshot-bound, side-by-side duplicate-entity
-review with the two cited notes, their titles, aliases, bounded backlink counts,
-shared aliases, non-sensitive conflicting metadata, and exact cited overlap. A
-model can rank only those two existing notes or abstain; users explicitly select
-the canonical note. Deterministic planning can then prepare link normalization
-and transfer aliases exclusive to the duplicate, with exact previews and normal
-batch safety. It cannot merge notes, select a canonical note automatically,
-delete content, or rewrite substantive note bodies. Focused manual Obsidian
-acceptance remains open.
-The deferred Phase 19 manual desktop matrix and Phases 21-22 release evidence
-remain required before any submission-ready claim.
+Release-owner preparation is the current work. The remaining actions are to
+confirm the public repository, license, version, tag, and changelog; prepare
+current macOS screenshots and a scan-to-approval demonstration; and record the
+final release-quality decision. Upstream submission is intentionally separate
+from this work.
+
+Phase 25's snapshot-bound duplicate-entity review remains implemented: it
+shows only the two cited notes and bounded evidence, requires the user to
+select a canonical note, and prepares only previewed link and alias changes.
+Its earlier manual-acceptance deferral is historical; the current macOS manual
+acceptance matrix and Phase 30 release evidence are recorded below as complete.
 
 - Security hardening on 2026-07-20 rejects local-provider redirects, bounds provider configuration and response reads, binds approval/apply to validated persisted proposal digests, and enforces vault-reader/scanner resource and canonical-path limits.
 - Phase 17 adds an explicit OpenAI provider option beside the default loopback Ollama/llama.cpp providers. OpenAI requests use a fixed API origin, bounded JSON-mode Responses API calls with `store: false`, a local API key, and a required cloud-data acknowledgement; keys remain excluded from traces, fingerprints, diagnostics, and portable exports.

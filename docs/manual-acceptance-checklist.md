@@ -13,14 +13,14 @@ Obsidian desktop.
 - [x] Provider and model version recorded
 - [x] Fresh-install or upgrade path recorded
 
-| Field          | Value                                                                                                              |
-| -------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Date           | 2026-08-12                                                                                                         |
-| Obsidian       | 1.12.7                                                                                                             |
-| macOS          | 26.5.2 (25F84)                                                                                                     |
-| Vault Steward  | 0.1.0, `development`, commit `bdd770f`                                                                             |
-| Provider/model | HyperFusion `qwen/qwen3-32b`; OpenAI `gpt-4o-mini` (2026-08-05)                                                    |
-| Install path   | Fresh install in disposable complex acceptance vault: `/Users/ibrahim/Documents/Obsidian/complex-acceptance-vault` |
+| Field          | Value                                                                        |
+| -------------- | ---------------------------------------------------------------------------- |
+| Date           | 2026-08-12                                                                   |
+| Obsidian       | 1.12.7                                                                       |
+| macOS          | 26.5.2 (25F84)                                                               |
+| Vault Steward  | 0.1.0, `development`, commit `bdd770f`                                       |
+| Provider/model | HyperFusion `qwen/qwen3-32b`; OpenAI `gpt-4o-mini` (2026-08-05)              |
+| Install path   | Fresh install in a disposable complex acceptance vault (local path redacted) |
 
 ## Installation And Setup
 

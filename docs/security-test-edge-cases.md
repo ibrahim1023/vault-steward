@@ -96,10 +96,19 @@ regression coverage protecting both paths. The repository's local source review,
 regression suite, and production dependency audit are recorded in
 `docs/progress.md`.
 
-## Test Backlog
+## Historical, Deferred Test Ideas (Non-release-blocking)
 
-Tick items only after a test fails against the unsafe behaviour where practical,
-then passes with the required fail-closed behaviour.
+This is a retained set of additional adversarial test ideas from the original
+security review. The P0/P1/P2 labels record their historical priority, not a
+current release-blocker classification. The completed deep-security scan and
+its remediations are recorded above; these unchecked ideas are not evidence
+that the documented coverage is incomplete or that a known unsafe behaviour
+remains.
+
+When a follow-up is selected, add it only after a deterministic reproduction
+fails against the unsafe behaviour where practical, then passes with the
+required fail-closed behaviour. Do not mark an item complete based solely on
+this document.
 
 ### Provider And Network Boundary
 
@@ -196,8 +205,8 @@ then passes with the required fail-closed behaviour.
 | Policy, settings, and bundles      | `tests/policy/parse.test.ts`, `tests/plugin/settings.test.ts`, and `tests/portability/bundle.test.ts` |
 | Persistence, trace, and UI         | `tests/storage/*.test.ts`, `tests/contracts/trace.test.ts`, and `tests/ui/*.test.tsx`                 |
 
-## Release Gate
+## Follow-up Prioritization
 
-The P0 cases should be implemented and passing before any public beta or
-marketplace submission. Resource-limit cases must use deterministic bounded
-fixtures, not multi-gigabyte payloads.
+These deferred ideas are not release-owner or upstream-submission gates.
+Resource-limit follow-ups must use deterministic bounded fixtures, not
+multi-gigabyte payloads.
