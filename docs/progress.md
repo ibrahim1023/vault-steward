@@ -165,8 +165,9 @@ remain required before any submission-ready claim.
   release-submission task.
 - Phase 27 regression coverage now includes folder-classified template repairs and empty
   frontmatter blocks, plus malformed or expanded repair-intent rejection. HyperFusion's
-  deterministic boundary tests and redacted `qwen/qwen3-32b` Northstar corpus report pass;
-  its manual macOS provider acceptance remains open.
+  deterministic boundary tests and redacted `qwen/qwen3-32b` Northstar corpus report pass.
+  Its current macOS manual/provider acceptance is complete; HyperFusion remains an
+  experimental, opt-in provider.
 
 - Obsidian plugin with local TypeScript core.
 - SQLite is canonical; LanceDB is optional and derived.

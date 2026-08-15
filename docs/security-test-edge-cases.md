@@ -90,10 +90,11 @@ Phase 30 completed the following remediation and regression coverage on
 - Structured model-output recovery is linear and bounded; malformed output
   remains a failed recommendation.
 
-The external deep-security scan service could not generate a replacement report
-because its saved inventory is invalid. This is an unavailable external report,
-not a passing scan; the repository's local source review, regression suite, and
-production dependency audit are recorded in `docs/progress.md`.
+The completed deep-security scan identified two low-severity findings. Both were
+remediated through fail-closed policy loading and conditional rollback, with
+regression coverage protecting both paths. The repository's local source review,
+regression suite, and production dependency audit are recorded in
+`docs/progress.md`.
 
 ## Test Backlog
 
