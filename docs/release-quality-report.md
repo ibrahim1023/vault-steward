@@ -80,8 +80,10 @@ and safe-repair validity of `1.000`, an unsupported-finding rate of `0.000`,
 zero incomplete cases/scans, and zero unsafe remediations. Median latency was
 823 ms and p95 latency was 8,416 ms, with no retries in the passing run.
 
-This is redacted synthetic-corpus evidence only. HyperFusion remains an
-experimental opt-in provider while its remaining manual safety checks mature.
+This is redacted synthetic-corpus evidence. Current macOS manual/provider
+validation, including safety recovery and provider-specific acknowledgement,
+was completed on 2026-08-12. HyperFusion remains an experimental opt-in
+provider, not a general release support claim.
 
 ### Current OpenAI Measurement
 
@@ -100,10 +102,9 @@ Manual acceptance is signed off in `docs/manual-acceptance-checklist.md` as of
 - release screenshots, demonstration, and package/version/tag evidence;
 - a release-owner review after the final completion gate.
 
-The local source-security review is complete. The external deep-security scan
-service could not issue a replacement report because its saved inventory is
-invalid; this unavailable external report must not be represented as passing
-evidence.
+The completed deep-security scan identified two low-severity findings. Both
+were remediated by fail-closed policy loading and conditional rollback, with
+regression coverage protecting both paths.
 
 ## Release Thresholds
 

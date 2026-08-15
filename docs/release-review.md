@@ -43,8 +43,8 @@ opt-in providers.
 
 - Current macOS screenshots, a short demonstration, release tag/version
   evidence, and release-owner review remain required before submission.
-- The external deep-security scan service has an invalid saved inventory, so a
-  replacement third-party report is unavailable; local source review and
-  regression gates are complete.
+- The completed deep-security scan identified two low-severity findings. Both
+  were remediated by fail-closed policy loading and conditional rollback, with
+  regression coverage protecting both paths.
 - Both cloud providers remain experimental opt-in paths despite their passing
   redacted validation reports.

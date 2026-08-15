@@ -148,10 +148,10 @@ remain required before any submission-ready claim.
   acceptance suites, deterministic/full evaluations, package-install smoke,
   and a zero-vulnerability production dependency audit. The macOS acceptance
   retest also covered provider-specific consent, exact preview/stale safety,
-  and the deterministic completion repair. The external deep-security scan
-  service could not issue a replacement report because its saved inventory is
-  invalid; this tooling limitation is recorded separately and does not replace
-  the completed local source review and regression gate.
+  and the deterministic completion repair. The completed deep-security scan
+  identified two low-severity findings. Both were remediated by fail-closed
+  policy loading and conditional rollback, with regression coverage protecting
+  both paths.
 - The 2026-08-05 release audit corrected the complex-acceptance fixture count
   after two intentional stale-batch exercise notes were added. CI now runs the
   full Vitest coverage suite, acceptance tests, full deterministic evaluations,

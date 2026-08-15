@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted on 2026-07-31. Validation in progress.
+Accepted on 2026-07-31. Current macOS validation completed on 2026-08-12.
 
 ## Context
 
@@ -26,7 +26,8 @@ not configurable.
 
 ## Consequences
 
-HyperFusion is labelled experimental while its bounded corpus and manual macOS
-evidence mature. A provider result remains subject to the same typed
-validation, evidence checks, exact preview, and explicit-approval workflow as
-local providers. It cannot authorize or perform vault writes.
+HyperFusion is labelled experimental and opt-in despite its completed bounded
+corpus and current macOS validation evidence. A provider result remains subject
+to the same typed validation, evidence checks, exact preview, and
+explicit-approval workflow as local providers. It cannot authorize or perform
+vault writes.
