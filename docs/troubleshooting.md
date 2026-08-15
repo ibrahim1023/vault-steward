@@ -16,6 +16,19 @@ Use the recovery procedures in `docs/runbooks.md`. The plugin records bounded di
 
 Rebuild with `npm run package:plugin`, install the complete `dist/vault-steward/` directory, reload Obsidian, and confirm the ribbon/command launcher is present. Consult `docs/upgrade-notes.md` and `docs/release-compatibility.md` before replacing an existing plugin directory.
 
+## Custom Policy File Error
+
+An existing `.vault-steward/policy.yaml` is used for deterministic policy
+checks. If it is invalid, unreadable, or oversized, restore a valid file or
+remove it to return to the starter default, then run **Check vault** again.
+
+## Failed or Interrupted Apply
+
+Concurrent note edits are preserved: Vault Steward does not overwrite a
+changed source revision. If the apply reports recovery-required, review and
+re-index the affected files. Before retrying, run a new check and review a
+fresh preview; a fresh explicit approval is required.
+
 ## Evaluation Reports
 
 Evaluation, replay, and synthetic reports are local files under ignored `evals/reports/`. If a replay says source is unavailable, the historical vault text was intentionally not retained; use fixture replay for reproducible evaluation instead.

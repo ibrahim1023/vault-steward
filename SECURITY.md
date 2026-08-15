@@ -13,9 +13,12 @@ Do not publish a vulnerability with vault content, proof-of-concept notes, or se
 - Model output is parsed against typed schemas, citation-checked, size-bounded, and cannot mutate state directly.
 - Prepared edits require one explicit **Apply N fixes** approval and a
   revision-safe preflight of every batch member before the first write.
+- Invalid policy loading and rollback failures fail closed: no additional edit
+  is applied until the problem is recovered and reviewed.
 - Models may choose only bounded candidate IDs or abstain. Deterministic code
   owns patch construction, outcome calculation, approval, and writes.
 - Evaluation and trace records exclude sensitive content by default.
 - Dependency auditing is part of the repository completion gate.
 
-Threat-model and implementation details live in `docs/security.md` and `docs/decisions/`.
+Read the [full threat model](docs/security.md) for the detailed controls and
+trust boundaries.

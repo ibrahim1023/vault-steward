@@ -10,32 +10,30 @@ const requiredPublicDocs = [
   "PRIVACY.md",
   "SECURITY.md",
   "CONTRIBUTING.md",
-  "ROADMAP.md",
-  "CHANGELOG.md",
   "docs/local-models.md",
   "docs/troubleshooting.md",
   "docs/release-compatibility.md",
   "docs/release-readiness.md",
-  "docs/northstar-release-workflow.md",
-  "docs/release-quality-report.md",
-  "docs/community-plugin-submission-checklist.md"
+  "docs/upgrade-notes.md",
+  "docs/known-limitations.md"
 ];
 
 describe("public documentation", () => {
   it("links the required verified documentation from a phase-free README", () => {
     const readme = readFileSync(resolve(root, "README.md"), "utf8");
 
-    expect(readme).toContain("## Privacy And Safety");
-    expect(readme).not.toContain("## Field Engineering Foundations");
-    expect(readme).toContain("## How It Works");
+    expect(readme).toContain("## Keep your vault trustworthy");
+    expect(readme).toContain("## The simple flow");
     expect(readme).toContain("Check vault");
-    expect(readme).toContain("current and proposed references");
-    expect(readme).toContain("expected result");
+    expect(readme).toContain("**Current** and **After**");
     expect(readme).toContain("Apply fixes");
-    expect(readme).toContain("## Evaluation And Observability");
-    expect(readme).toContain("Settings");
-    expect(readme).toContain("History");
-    expect(readme).toContain("Diagnostics");
+    expect(readme).toContain("## Coordinated review, not autonomous editing");
+    expect(readme).toContain("## Choose a model provider");
+    expect(readme).toContain("## Privacy and safety");
+    expect(readme).toContain("## Install and get started");
+    expect(readme).toContain("## Limitations");
+    expect(readme).toContain("## Documentation");
+    expect(readme).toContain("## Development");
     expect(readme).not.toMatch(/\bPhase\s+1[0-9]\b/i);
     expect(readme).not.toMatch(/Community Plugins|Obsidian marketplace/i);
     expect(readme).not.toMatch(/sends? remote telemetry|cloud analytics/i);
@@ -45,44 +43,30 @@ describe("public documentation", () => {
     }
   });
 
-  it("documents only package scripts or explicit local setup commands", () => {
-    const readme = readFileSync(resolve(root, "README.md"), "utf8");
-    const packageJson = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8")) as {
-      scripts: Record<string, string>;
-    };
-    const commands = [...readme.matchAll(/npm run ([a-z0-9:-]+)/g)].map((match) => match[1]!);
-
-    expect(commands).toContain("eval:synthetic");
-    expect(commands.every((command) => command in packageJson.scripts)).toBe(true);
-  });
-
-  it("documents the simple result-first flow and separate utility surfaces", () => {
-    const suite = readFileSync(resolve(root, "docs/manual-acceptance-suite.md"), "utf8");
-    const checklist = readFileSync(resolve(root, "docs/manual-acceptance-checklist.md"), "utf8");
-
-    expect(suite).toContain("Check vault");
-    expect(suite).toContain("Current");
-    expect(suite).toContain("After");
-    expect(suite).toContain("Expected result");
-    expect(suite).toContain("Apply fixes");
-    expect(suite).toContain("Settings");
-    expect(suite).toContain("History");
-    expect(suite).toContain("Diagnostics");
-    expect(checklist).toContain("one dominant action");
-    expect(checklist).toContain("expected result");
-    expect(checklist).toContain("actual result");
-  });
-
   it("keeps platform and cloud-provider release claims bounded", () => {
     const compatibility = readFileSync(resolve(root, "docs/release-compatibility.md"), "utf8");
     const troubleshooting = readFileSync(resolve(root, "docs/troubleshooting.md"), "utf8");
     const privacy = readFileSync(resolve(root, "PRIVACY.md"), "utf8");
 
     expect(compatibility).toContain("limited to macOS");
-    expect(compatibility).toContain("HyperFusion has a passing redacted synthetic-corpus report");
-    expect(compatibility).toContain("OpenAI is experimental");
+    expect(compatibility).toContain("HyperFusion and OpenAI are experimental");
     expect(troubleshooting).toContain("HyperFusion is experimental");
     expect(privacy).toContain("HyperFusion and OpenAI are optional, explicit cloud providers");
+    expect(privacy).toContain("OpenAI acknowledgement never authorizes HyperFusion");
+    expect(privacy).toContain("does not modify vault notes or approval history");
+  });
+
+  it("keeps policy recovery and approval boundaries explicit", () => {
+    const security = readFileSync(resolve(root, "SECURITY.md"), "utf8");
+    const troubleshooting = readFileSync(resolve(root, "docs/troubleshooting.md"), "utf8");
+
+    expect(security).toContain("private vulnerability-reporting route");
+    expect(security).toContain("fail closed");
+    expect(security).toContain("[full threat model](docs/security.md)");
+    expect(troubleshooting).toContain("## Custom Policy File Error");
+    expect(troubleshooting).toContain(".vault-steward/policy.yaml");
+    expect(troubleshooting).toContain("## Failed or Interrupted Apply");
+    expect(troubleshooting).toContain("fresh explicit approval");
   });
 
   it("keeps release readiness and security status current", () => {

@@ -22,10 +22,12 @@
 ### Task 1: Lock release claims with public-documentation tests
 
 **Files:**
+
 - Modify: `tests/docs/public-documentation.test.ts`
 - Test: `tests/docs/public-documentation.test.ts`
 
 **Interfaces:**
+
 - Consumes: repository-root Markdown through `readFileSync` and the public-documentation test convention.
 - Produces: executable guarantees for the release-readiness guide, current security status, bounded provider claims, and removed Policy Studio UI claims.
 
@@ -83,6 +85,7 @@ git commit -m "docs: prepare production release guidance"
 ### Task 2: Create the release-readiness guide and correct release records
 
 **Files:**
+
 - Create: `docs/release-readiness.md`
 - Modify: `docs/community-plugin-submission-checklist.md`
 - Modify: `docs/release-compatibility.md`
@@ -92,6 +95,7 @@ git commit -m "docs: prepare production release guidance"
 - Test: `tests/docs/public-documentation.test.ts`
 
 **Interfaces:**
+
 - Consumes: the approved design in `docs/superpowers/specs/2026-08-15-release-ready-documentation-design.md`, release scripts in `package.json`, and verified Phase 30/31 evidence.
 - Produces: a single owner-facing release procedure and mutually consistent public release, security, limitation, and upgrade claims.
 
@@ -103,10 +107,15 @@ Use these headings and keep each section action-oriented:
 # Release Readiness
 
 ## What this guide is for
+
 ## Build the installable plugin
+
 ## Run the automated gate
+
 ## Collect desktop evidence
+
 ## Prepare marketplace materials
+
 ## Release owner sign-off
 ```
 
@@ -159,6 +168,7 @@ Expected: PASS for release-readiness existence, completed security evidence, pro
 ### Task 3: Refine user-facing README, privacy, security, and troubleshooting guidance
 
 **Files:**
+
 - Modify: `README.md`
 - Modify: `PRIVACY.md`
 - Modify: `SECURITY.md`
@@ -167,6 +177,7 @@ Expected: PASS for release-readiness existence, completed security evidence, pro
 - Test: `tests/docs/public-documentation.test.ts`
 
 **Interfaces:**
+
 - Consumes: the release-readiness guide from Task 2 and the stable product/provider facts in the approved design.
 - Produces: a user-first README with linked detailed guidance and support documents that agree on privacy, provider acknowledgement, policy recovery, and safe approval boundaries.
 
@@ -176,15 +187,25 @@ Keep these concise sections in this order:
 
 ```md
 # Vault Steward
+
 ## Keep your vault trustworthy
+
 ## The simple flow
+
 ## What Vault Steward checks
+
 ## Coordinated review, not autonomous editing
+
 ## Choose a model provider
+
 ## Privacy and safety
+
 ## Install and get started
+
 ## Limitations
+
 ## Documentation
+
 ## Development
 ```
 
@@ -204,6 +225,7 @@ Add two concise troubleshooting sections:
 
 ```md
 ## Custom Policy File Error
+
 ## Failed or Interrupted Apply
 ```
 
@@ -223,10 +245,12 @@ Expected: PASS, with every linked document present and all Markdown formatted.
 ### Task 4: Run the final documentation completion gate
 
 **Files:**
+
 - Modify: `README.md`, `PRIVACY.md`, `SECURITY.md`, `docs/*.md`, `tests/docs/public-documentation.test.ts`
 - Test: `tests/docs/public-documentation.test.ts`
 
 **Interfaces:**
+
 - Consumes: Tasks 1–3.
 - Produces: a verified public documentation bundle ready for release-owner review.
 
