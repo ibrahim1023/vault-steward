@@ -535,14 +535,11 @@ export default class VaultStewardPlugin extends Plugin {
   }
 
   async loadPolicyDraft(): Promise<string> {
-    try {
-      const stat = await this.app.vault.adapter.stat(POLICY_STUDIO_PATH);
-      if (stat && stat.size > MAX_POLICY_BYTES)
-        throw new Error("Policy file exceeds the configured size limit.");
-      return await this.app.vault.adapter.read(POLICY_STUDIO_PATH);
-    } catch {
-      return DEFAULT_POLICY_DRAFT;
-    }
+    const stat = await this.app.vault.adapter.stat(POLICY_STUDIO_PATH);
+    if (!stat) return DEFAULT_POLICY_DRAFT;
+    if (stat.size > MAX_POLICY_BYTES)
+      throw new Error("Policy file exceeds the configured size limit.");
+    return this.app.vault.adapter.read(POLICY_STUDIO_PATH);
   }
 
   async explainFinding(finding: Finding): Promise<FindingExplanation> {

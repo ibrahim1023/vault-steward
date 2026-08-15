@@ -920,6 +920,7 @@ function repairKindLabel(kind: PreparedRepairItem["repairKind"]): string {
 
 function scanFailureMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
+  const normalizedMessage = message.toLowerCase();
   if (message.includes("HyperFusion access requires acknowledgement"))
     return "HyperFusion needs permission before selected vault evidence can be sent. Open Settings to continue.";
   if (message.includes("OpenAI access requires acknowledgement"))
@@ -935,7 +936,7 @@ function scanFailureMessage(error: unknown): string {
   if (message.includes("Vault reader") || message.includes("vault read"))
     return "The active vault could not be read.";
   if (message.includes("database")) return "The local Vault Steward database is unavailable.";
-  if (message.includes("active policy"))
+  if (normalizedMessage.includes("active policy") || normalizedMessage.includes("policy file"))
     return "The custom policy file is invalid. Restore or remove .vault-steward/policy.yaml, then check the vault again.";
   return "The vault check could not complete. Try again.";
 }

@@ -277,6 +277,12 @@ describe("review workflow", () => {
       write: async (path, next) => {
         if (path === "B.md" && next === "Y") throw new Error("disk full");
         contents.set(path, next);
+      },
+      writeIfCurrent: async (path, before, next) => {
+        if (contents.get(path) !== before) return false;
+        if (path === "B.md" && next === "Y") throw new Error("disk full");
+        contents.set(path, next);
+        return true;
       }
     });
     workflow.act(multi, "approved", "t");
