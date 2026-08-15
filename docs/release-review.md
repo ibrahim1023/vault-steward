@@ -31,13 +31,20 @@ opt-in providers.
 
 ## Release Conditions
 
-1. Completed on 2026-07-14: every automated command in `AGENTS.md`, plus the MVP acceptance suite, passed from the Phase 6 branch.
-2. Before broad distribution, install the revised package into the Northstar
-   Acceptance vault and complete the full result-first Ollama and OpenAI matrix.
-3. Produce passing provider reports from the same versioned Northstar corpus,
-   then pass `npm run eval:marketplace:gate`.
-4. Keep the limitations in `docs/known-limitations.md` visible in release notes
-   and do not claim marketplace availability.
+1. Completed on 2026-08-12: the full automated gate and macOS acceptance retest
+   passed, including provider-specific acknowledgement, exact preview, stale
+   safety, and deterministic completion repair.
+2. Completed on 2026-08-05: the Ollama and OpenAI versioned provider reports
+   passed against the same Northstar corpus, and the combined evaluation gate
+   passed. This evidence does not claim marketplace availability.
+3. Before public release, the release owner must record an explicit risk
+   disposition for the unvalidated persisted-finding hydration
+   security-assurance gap, or require remediation and focused regression
+   coverage.
+4. The release owner must also complete current screenshots, a scan-to-approval
+   demonstration, public repository/license confirmation, version/tag/changelog
+   alignment, and the final release-quality **go** decision. Upstream
+   submission remains a separate owner action.
 
 ## Remaining Limitations
 

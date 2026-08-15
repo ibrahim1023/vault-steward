@@ -83,6 +83,20 @@ describe("public documentation", () => {
     expect(upgrade).not.toContain("Policy Studio stores");
   });
 
+  it("keeps the open security-assurance release condition visible to owners", () => {
+    const edgeCases = readFileSync(resolve(root, "docs/security-test-edge-cases.md"), "utf8");
+    const readiness = readFileSync(resolve(root, "docs/release-readiness.md"), "utf8");
+    const limitations = readFileSync(resolve(root, "docs/known-limitations.md"), "utf8");
+    const review = readFileSync(resolve(root, "docs/release-review.md"), "utf8");
+
+    expect(edgeCases).toMatch(/open\s+security-assurance\s+gap/i);
+    expect(edgeCases).toMatch(/release-owner\s+risk\s+disposition/i);
+    expect(readiness).toMatch(/security-assurance[\s\S]{0,80}risk disposition/i);
+    expect(limitations).toMatch(/security-assurance[\s\S]{0,80}risk disposition/i);
+    expect(review).toMatch(/macOS acceptance retest\s+passed/i);
+    expect(review).not.toContain("npm run eval:marketplace:gate");
+  });
+
   it("keeps release records free of local paths and obsolete manual-release gates", () => {
     const manualAcceptance = readFileSync(
       resolve(root, "docs/manual-acceptance-checklist.md"),

@@ -96,14 +96,20 @@ regression coverage protecting both paths. The repository's local source review,
 regression suite, and production dependency audit are recorded in
 `docs/progress.md`.
 
-## Historical, Deferred Test Ideas (Non-release-blocking)
+## Deferred Test Ideas And Release Security-Assurance Gap
 
-This is a retained set of additional adversarial test ideas from the original
-security review. The P0/P1/P2 labels record their historical priority, not a
-current release-blocker classification. The completed deep-security scan and
-its remediations are recorded above; these unchecked ideas are not evidence
-that the documented coverage is incomplete or that a known unsafe behaviour
-remains.
+Most of these are retained adversarial test ideas from the original security
+review. Their P0/P1/P2 labels preserve the original priority; they have not
+each been re-evaluated as current release blockers.
+
+The P0 case for malformed persisted findings before UI hydration is an open
+security-assurance gap. [repositories.ts](../src/storage/repositories.ts)
+checks JSON shape for evidence and selected payload fields, but casts persisted
+finding type, severity, and status values without validating them against the
+runtime contract. Before a public release, the release owner must make an
+explicit release-owner risk disposition for this gap, or require remediation
+and focused deterministic regression coverage. The completed deep-security
+scan does not make this safety case complete.
 
 When a follow-up is selected, add it only after a deterministic reproduction
 fails against the unsafe behaviour where practical, then passes with the
@@ -207,6 +213,6 @@ this document.
 
 ## Follow-up Prioritization
 
-These deferred ideas are not release-owner or upstream-submission gates.
-Resource-limit follow-ups must use deterministic bounded fixtures, not
-multi-gigabyte payloads.
+Except for the persisted-finding hydration gap above, these deferred ideas are
+not release-owner or upstream-submission gates. Resource-limit follow-ups must
+use deterministic bounded fixtures, not multi-gigabyte payloads.

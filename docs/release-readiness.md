@@ -57,5 +57,8 @@ absence of automatic note editing.
 
 The release owner confirms the automated gate, package contents, macOS desktop
 evidence, screenshots, demonstration, public repository and license, and
-version/tag/changelog alignment. Upstream submission is a separate owner
-action and must occur only after this sign-off.
+version/tag/changelog alignment. Before a public release, the release owner
+also records a security-assurance risk disposition for the unvalidated
+persisted-finding hydration gap, or requires its remediation and focused
+regression coverage. Upstream submission is a separate owner action and must
+occur only after this sign-off.
