@@ -96,20 +96,17 @@ regression coverage protecting both paths. The repository's local source review,
 regression suite, and production dependency audit are recorded in
 `docs/progress.md`.
 
-## Deferred Test Ideas And Release Security-Assurance Gap
+## Deferred Test Ideas
 
 Most of these are retained adversarial test ideas from the original security
 review. Their P0/P1/P2 labels preserve the original priority; they have not
 each been re-evaluated as current release blockers.
 
-The P0 case for malformed persisted findings before UI hydration is an open
-security-assurance gap. [repositories.ts](../src/storage/repositories.ts)
-checks JSON shape for evidence and selected payload fields, but casts persisted
-finding type, severity, and status values without validating them against the
-runtime contract. Before a public release, the release owner must make an
-explicit release-owner risk disposition for this gap, or require remediation
-and focused deterministic regression coverage. The completed deep-security
-scan does not make this safety case complete.
+Persisted findings are validated before UI hydration. Unknown finding type,
+severity, or status values, and non-finite confidence values, are rejected by
+[repositories.ts](../src/storage/repositories.ts); focused deterministic
+regression coverage exercises those malformed records. The completed
+deep-security scan does not replace the remaining deferred ideas below.
 
 When a follow-up is selected, add it only after a deterministic reproduction
 fails against the unsafe behaviour where practical, then passes with the
@@ -170,8 +167,9 @@ this document.
 
 ### Model Evidence And Finding Normalization
 
-- [ ] **P0** Reject `NaN`, infinity, unknown runtime severity/status/type, and
-      malformed persisted finding records before UI hydration.
+- [x] **P0** Reject `NaN`, infinity, unknown runtime severity/status/type, and
+      malformed persisted finding records before UI hydration. Regression
+      coverage: `tests/storage/finding-hydration.test.ts`.
 - [ ] **P1** Cap evidence paths, locators, excerpts, finding IDs, explanations,
       labels, and evidence count; reject control characters.
 - [ ] **P1** Use tuple or length-prefixed evidence identity to prove colon-bearing

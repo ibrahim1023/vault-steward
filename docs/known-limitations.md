@@ -18,6 +18,4 @@
 - Marketplace readiness is not a release claim. The remaining release-owner
   actions are public-repository/license confirmation, version/tag/changelog
   alignment, current screenshots, a scan-to-approval demonstration, the final
-  release-quality **go** decision, a security-assurance risk disposition for
-  unvalidated persisted-finding hydration (or its remediation and focused
-  regression coverage), and the separate upstream submission.
+  release-quality **go** decision, and the separate upstream submission.

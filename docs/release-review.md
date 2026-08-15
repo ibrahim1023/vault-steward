@@ -37,11 +37,7 @@ opt-in providers.
 2. Completed on 2026-08-05: the Ollama and OpenAI versioned provider reports
    passed against the same Northstar corpus, and the combined evaluation gate
    passed. This evidence does not claim marketplace availability.
-3. Before public release, the release owner must record an explicit risk
-   disposition for the unvalidated persisted-finding hydration
-   security-assurance gap, or require remediation and focused regression
-   coverage.
-4. The release owner must also complete current screenshots, a scan-to-approval
+3. The release owner must complete current screenshots, a scan-to-approval
    demonstration, public repository/license confirmation, version/tag/changelog
    alignment, and the final release-quality **go** decision. Upstream
    submission remains a separate owner action.

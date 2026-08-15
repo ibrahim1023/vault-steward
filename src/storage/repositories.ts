@@ -6,6 +6,7 @@ import type {
   FindingStatus,
   FindingType
 } from "../contracts/index.js";
+import { FINDING_TYPES } from "../contracts/index.js";
 import {
   type AgentExecutionTrace,
   type TraceKind,
@@ -112,7 +113,11 @@ export function hydrateFinding(record: FindingRecord): Finding | null {
     if (
       !Array.isArray(evidence) ||
       !evidence.every(isEvidence) ||
+      !isFindingType(record.type) ||
+      !isFindingSeverity(record.severity) ||
+      !isFindingStatus(record.status) ||
       typeof payload.confidence !== "number" ||
+      !Number.isFinite(payload.confidence) ||
       typeof payload.explanation !== "string"
     )
       return null;
@@ -1134,4 +1139,16 @@ function isEvidence(value: unknown): value is EvidenceRef {
     typeof (value as EvidenceRef).locator === "string" &&
     typeof (value as EvidenceRef).excerpt === "string"
   );
+}
+
+function isFindingType(value: string): value is FindingType {
+  return FINDING_TYPES.includes(value as FindingType);
+}
+
+function isFindingSeverity(value: string): value is FindingSeverity {
+  return ["info", "low", "medium", "high", "critical"].includes(value as FindingSeverity);
+}
+
+function isFindingStatus(value: string): value is FindingStatus {
+  return ["open", "dismissed", "approved", "applied", "stale"].includes(value as FindingStatus);
 }
