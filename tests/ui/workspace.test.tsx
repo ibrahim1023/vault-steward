@@ -273,6 +273,23 @@ describe("VaultStewardWorkspace", () => {
     expect(within(recommendation).getByRole("button", { name: "Apply 1 fix" })).toBeEnabled();
   });
 
+  it("explains how to recover when an active policy exceeds its size limit", async () => {
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => {
+          throw new Error("Policy file exceeds the configured size limit.");
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Check vault" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "The custom policy file is invalid. Restore or remove .vault-steward/policy.yaml, then check the vault again."
+    );
+  });
+
   it("switches from scanning to preparation once findings are available", async () => {
     let finishPreparation: ((value: PreparedReferenceRepair | null) => void) | undefined;
     render(
