@@ -13,10 +13,9 @@
   conflicting, missing, or unauthorized. Runtime write failures use rollback
   and may require explicit recovery.
 - Multi-vault operation, sync conflict resolution, encrypted-vault support, and future-extension agents are out of scope for the MVP.
-- Marketplace readiness is not a release claim until the remaining submission
-  evidence is complete: a release tag/version record, current screenshots and
-  demonstration, public-repository/license confirmation, and release-owner
-  review. The final macOS acceptance and local source-security gate passed on
-  2026-08-12. Ollama `qwen3:8b`, OpenAI `gpt-4o-mini`, and HyperFusion have
-  passing redacted Northstar reports; both cloud providers remain experimental
-  opt-in paths.
+- macOS is the validated desktop platform; Windows and Linux remain
+  unvalidated.
+- Marketplace readiness is not a release claim. The remaining release-owner
+  actions are public-repository/license confirmation, version/tag/changelog
+  alignment, current screenshots, a scan-to-approval demonstration, the final
+  release-quality **go** decision, and the separate upstream submission.

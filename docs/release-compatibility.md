@@ -6,10 +6,12 @@ currently limited to macOS; Windows and Linux have not been validated. Node.js
 package smoke test verifies the release directory contains `main.js`,
 `manifest.json`, `styles.css`, `sql-wasm.wasm`, and `release-manifest.json`.
 
-The release path is local-first: Ollama is the provider under release
-validation. HyperFusion has a passing redacted synthetic-corpus report but
-still needs manual macOS acceptance before it can be described as supported.
-OpenAI is experimental and requires its own quality and manual evidence.
+The local-first release path is Ollama. HyperFusion and OpenAI have completed
+current macOS manual/provider evidence. HyperFusion has a passing redacted synthetic-corpus report.
+OpenAI has its recorded provider evidence.
+HyperFusion and OpenAI are experimental opt-in providers, not general release support claims.
+OpenAI is experimental.
+Release validation remains limited to macOS.
 
 Before a wider release, run the package/install smoke test, migration/rollback
 checks, the desktop accessibility protocol, and the Northstar acceptance suite.

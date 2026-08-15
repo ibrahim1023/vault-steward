@@ -43,7 +43,6 @@ selection. This avoids making a safe repair depend on a provider response while
 retaining the same evidence, preview, approval, stale-check, rollback, and
 post-write re-index controls.
 
-Phase 30 completed its local source-security review and regression gate on
-2026-08-12. The external deep-security scan service could not create a new
-report because its saved scan inventory is invalid; that unavailable report is
-not represented as a passing external scan.
+The completed deep-security scan identified two low-severity findings. Both
+were remediated by fail-closed policy loading and conditional rollback, and
+regression coverage protects both paths.
