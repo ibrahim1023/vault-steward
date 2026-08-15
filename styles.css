@@ -1,0 +1,802 @@
+.vault-steward {
+  --steward-green: #197a58;
+  --steward-green-soft: rgba(25, 122, 88, 0.12);
+  --steward-amber: #a96112;
+  --steward-amber-soft: rgba(169, 97, 18, 0.12);
+  --steward-red: #b33b4a;
+  --steward-red-soft: rgba(179, 59, 74, 0.1);
+  --steward-blue: #356fa8;
+
+  display: grid;
+  gap: 18px;
+  width: min(100%, 840px);
+  padding: 16px;
+  color: var(--text-normal);
+  container-name: steward-workspace;
+  container-type: inline-size;
+}
+
+.vault-steward *,
+.vault-steward *::before,
+.vault-steward *::after {
+  box-sizing: border-box;
+}
+
+.vault-steward section,
+.vault-steward article,
+.vault-steward details {
+  min-width: 0;
+}
+
+.vault-steward h1,
+.vault-steward h2,
+.vault-steward h3,
+.vault-steward p {
+  margin-top: 0;
+}
+
+.steward-header {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.steward-header h1 {
+  margin-bottom: 2px;
+  font-size: 1.65rem;
+  line-height: 1.2;
+}
+
+.steward-header p {
+  margin-bottom: 0;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.steward-local,
+.target-status {
+  color: var(--steward-green);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.steward-local {
+  flex: 0 0 auto;
+  padding-top: 5px;
+}
+
+.steward-start,
+.steward-progress,
+.steward-result,
+.judgment-view,
+.steward-error {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-left: 4px solid var(--steward-green);
+  background: var(--background-secondary);
+}
+
+.steward-start h2,
+.steward-result h2,
+.judgment-view h2 {
+  margin-bottom: 0;
+  font-size: 1.3rem;
+  line-height: 1.35;
+}
+
+.steward-start p,
+.steward-result p,
+.judgment-view p,
+.steward-error p,
+.steward-progress p {
+  margin-bottom: 0;
+}
+
+.last-check,
+.judgment-source,
+.approval-note,
+.prepared-intro {
+  color: var(--text-muted);
+}
+
+.steward-eyebrow {
+  margin-bottom: 4px;
+  color: var(--steward-green);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.vault-steward button {
+  min-height: 38px;
+  max-width: 100%;
+  border-radius: 6px;
+  white-space: normal;
+}
+
+.steward-primary {
+  width: 100%;
+  border-color: var(--steward-green);
+  background: var(--steward-green);
+  color: #fff;
+  font-weight: 750;
+}
+
+.steward-primary:hover:not(:disabled) {
+  border-color: #116345;
+  background: #116345;
+  color: #fff;
+}
+
+.steward-primary:disabled {
+  opacity: 0.65;
+}
+
+.steward-scan-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.scan-progress-track {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.scan-progress-indicator {
+  display: block;
+  width: 38%;
+  height: 100%;
+  background: #fff;
+  animation: vault-steward-scan-progress 1.25s ease-in-out infinite;
+}
+
+.judgment-actions {
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.judgment-open-note {
+  width: 100%;
+  background: transparent;
+  font-weight: 700;
+}
+
+.dismissal-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 0.45fr);
+  gap: 10px;
+  align-items: end;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.dismissal-reason {
+  display: grid;
+  gap: 5px;
+}
+
+.dismissal-reason > span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.dismissal-reason select {
+  width: 100%;
+  min-height: 38px;
+  max-width: 100%;
+}
+
+.judgment-dismiss {
+  width: 100%;
+}
+
+.judgment-check-again {
+  justify-self: start;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.duplicate-entity-review {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+}
+
+.duplicate-entity-intro,
+.duplicate-entity-shared,
+.duplicate-entity-safety {
+  margin-bottom: 0;
+}
+
+.duplicate-entity-notes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.duplicate-entity-note {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-left: 3px solid var(--steward-blue);
+  background: var(--background-secondary);
+}
+
+.duplicate-entity-note h3,
+.duplicate-entity-note p {
+  margin: 0;
+}
+
+.duplicate-entity-note p,
+.duplicate-entity-note dt,
+.duplicate-entity-safety {
+  color: var(--text-muted);
+}
+
+.duplicate-entity-note dl,
+.duplicate-entity-conflicts dl {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.duplicate-entity-note dl > div,
+.duplicate-entity-conflicts dl > div {
+  display: grid;
+  grid-template-columns: minmax(70px, 0.35fr) minmax(0, 1fr);
+  gap: 6px;
+}
+
+.duplicate-entity-note dd,
+.duplicate-entity-conflicts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.duplicate-entity-conflicts > summary,
+.duplicate-entity-evidence > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.duplicate-entity-conflicts dl,
+.duplicate-entity-evidence ul {
+  margin-top: 8px;
+}
+
+.duplicate-entity-evidence ul {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 0;
+  padding-left: 20px;
+}
+
+.duplicate-entity-evidence li {
+  overflow-wrap: anywhere;
+}
+
+.canonical-entity-actions {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-left: 3px solid var(--steward-blue);
+  background: var(--background-primary);
+}
+
+.canonical-entity-actions h3,
+.canonical-entity-actions p {
+  margin-bottom: 0;
+}
+
+.canonical-suggestion {
+  color: var(--steward-green);
+}
+
+.canonical-abstention,
+.canonical-safety {
+  color: var(--text-muted);
+}
+
+.canonical-choices {
+  display: grid;
+  gap: 8px;
+}
+
+.prepared-result {
+  display: grid;
+  gap: 16px;
+}
+
+.prepared-heading {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.prepared-heading h2 {
+  margin-bottom: 0;
+  font-size: 1.35rem;
+}
+
+.repair-items {
+  display: grid;
+  gap: 10px;
+}
+
+.repair-item {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-primary);
+}
+
+.repair-group {
+  display: grid;
+  gap: 8px;
+}
+
+.repair-group > header {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.repair-group > header small {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.repair-selection-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.repair-item > summary {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.repair-item > summary::-webkit-details-marker {
+  display: none;
+}
+
+.repair-item > summary::after {
+  content: "Details";
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+.repair-item[open] > summary::after {
+  content: "Hide details";
+}
+
+.repair-status {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.repair-status strong {
+  color: var(--steward-green);
+}
+
+.repair-status small,
+.repair-change small {
+  color: var(--text-muted);
+}
+
+.repair-change {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.repair-change > span:not(.repair-arrow) {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.repair-arrow {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+}
+
+.repair-change code {
+  display: block;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  color: var(--text-normal);
+  font-family: var(--font-monospace);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.current-reference {
+  border-left: 3px solid var(--steward-red);
+  background: var(--steward-red-soft);
+}
+
+.repair-details {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.repair-details > div {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.3fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.repair-details dt {
+  color: var(--text-muted);
+}
+
+.repair-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.after-reference {
+  border-left: 3px solid var(--steward-green);
+  background: var(--steward-green-soft);
+}
+
+.expected-result {
+  padding: 14px;
+  border-left: 4px solid var(--steward-blue);
+  background: var(--background-secondary);
+}
+
+.expected-result h3 {
+  margin-bottom: 8px;
+  font-size: 1rem;
+}
+
+.expected-result ul,
+.steward-result ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.approval-note {
+  margin-bottom: 0;
+  text-align: center;
+  font-size: 0.82rem;
+}
+
+.applying-status {
+  margin: -8px 0 0;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.steward-notice {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--steward-amber);
+  background: var(--steward-amber-soft);
+  color: var(--text-normal);
+  font-size: 0.9rem;
+}
+
+.button-spinner {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 8px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: -0.1em;
+  animation: vault-steward-spin 0.8s linear infinite;
+}
+
+@keyframes vault-steward-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes vault-steward-scan-progress {
+  from {
+    transform: translateX(-110%);
+  }
+
+  to {
+    transform: translateX(380%);
+  }
+}
+
+.steward-error {
+  border-left-color: var(--steward-red);
+}
+
+.issue-list,
+.diagnostics-view,
+.workspace-utilities {
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 12px;
+}
+
+.diagnostics-view > summary,
+.history-disclosure > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.workspace-utilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: flex-start;
+}
+
+.workspace-utilities > button,
+.workspace-utilities > details {
+  flex: 1 1 160px;
+}
+
+.workspace-utilities > button {
+  background: transparent;
+  font-weight: 700;
+}
+
+.history-disclosure > summary {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.history-content {
+  margin-top: 10px;
+  padding: 12px;
+  border-left: 3px solid var(--steward-green);
+  background: var(--background-secondary);
+}
+
+.issue-toggle {
+  width: 100%;
+  background: transparent;
+  color: var(--text-normal);
+  font-weight: 700;
+  text-align: left;
+}
+
+.issue-list ul {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.issue-list li {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 3px 10px;
+  padding: 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+}
+
+.issue-list strong {
+  color: var(--steward-amber);
+  text-transform: capitalize;
+}
+
+.issue-list span,
+.issue-list small {
+  overflow-wrap: anywhere;
+}
+
+.issue-list small {
+  grid-column: 2;
+  color: var(--text-muted);
+}
+
+.diagnostics-content {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.diagnostics-intro,
+.diagnostic-card p,
+.diagnostic-patterns span {
+  color: var(--text-muted);
+}
+
+.diagnostics-intro,
+.diagnostic-card h3,
+.diagnostic-card p {
+  margin: 0;
+}
+
+.diagnostic-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-primary);
+}
+
+.diagnostic-card-heading {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.diagnostic-status[data-state="ready"] {
+  color: var(--steward-green);
+  font-weight: 700;
+}
+
+.diagnostic-status[data-state="error"] {
+  color: var(--steward-red);
+  font-weight: 700;
+}
+
+.diagnostic-review,
+.diagnostic-data {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.diagnostic-pattern-disclosure {
+  margin-top: 4px;
+}
+
+.diagnostic-pattern-disclosure > summary {
+  color: var(--text-accent);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.diagnostic-patterns {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diagnostic-patterns li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-left: 3px solid var(--steward-amber);
+  background: var(--background-secondary);
+}
+
+.diagnostic-patterns li > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.diagnostic-patterns strong,
+.diagnostic-patterns span {
+  overflow-wrap: anywhere;
+}
+
+.diagnostic-confirmation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 5px;
+}
+
+.diagnostic-danger {
+  color: var(--steward-red);
+}
+
+.vault-steward button:focus-visible,
+.vault-steward input:focus-visible,
+.vault-steward select:focus-visible,
+.vault-steward summary:focus-visible {
+  outline: 2px solid var(--steward-green);
+  outline-offset: 2px;
+}
+
+@container steward-workspace (max-width: 620px) {
+  .steward-header,
+  .prepared-heading {
+    display: grid;
+  }
+
+  .steward-local {
+    padding-top: 0;
+  }
+
+  .repair-change {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .repair-arrow {
+    transform: rotate(90deg);
+    justify-self: center;
+  }
+
+  .repair-details > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .judgment-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dismissal-panel,
+  .diagnostic-card,
+  .diagnostic-patterns li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .duplicate-entity-notes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .issue-list li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .issue-list small {
+    grid-column: 1;
+  }
+
+  .diagnostic-action,
+  .diagnostic-confirmation button {
+    width: 100%;
+  }
+}

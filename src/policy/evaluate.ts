@@ -18,6 +18,12 @@ export function extractPolicyFacts(notes: readonly PolicyFactSource[]): PolicyFa
   );
   for (const note of notes) {
     const kind = note.frontmatter.kind;
+    if (typeof kind === "string") {
+      for (const [field, value] of Object.entries(note.frontmatter)) {
+        if (field === "kind") continue;
+        add(facts, `${kind}.${field}`, note.path, primitiveOrNull(value));
+      }
+    }
     if (kind === "project")
       add(facts, "project.owner", note.path, stringOrNull(note.frontmatter.owner));
     if (kind === "task") add(facts, "task.due", note.path, stringOrNull(note.frontmatter.due));
@@ -77,6 +83,16 @@ function add(facts: PolicyFacts, fact: string, path: string, value: string | boo
 
 function stringOrNull(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value : null;
+}
+
+function primitiveOrNull(value: unknown): string | boolean | null {
+  return typeof value === "string"
+    ? value.trim()
+      ? value
+      : null
+    : typeof value === "boolean"
+      ? value
+      : null;
 }
 
 function isApprovedStatus(value: unknown): boolean {

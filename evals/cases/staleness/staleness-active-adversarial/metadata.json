@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "staleness-active-adversarial",
+  "family": "staleness",
+  "split": "adversarial",
+  "agent": "staleness",
+  "fixturePath": "evals/cases/staleness/staleness-active-adversarial/vault",
+  "contamination": { "developmentVisible": true, "reason": "adversarial stale signal" }
+}

@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { createGovernedIntegritySession } from "../src/plugin/main.js";
-import type { LocalProvider } from "../src/model-provider/local-provider.js";
+import type { ModelProvider } from "../src/model-provider/local-provider.js";
 import {
   evaluateOperationalBaseline,
   summarizeOperationalMetrics,
@@ -13,7 +13,7 @@ const root = resolve(import.meta.dirname, "..");
 const baseline = JSON.parse(
   await readFile(resolve(root, "evals/baselines/operational.json"), "utf8")
 ) as OperationalBaseline;
-const provider: LocalProvider = {
+const provider: ModelProvider = {
   config: {
     kind: "ollama",
     endpoint: "http://127.0.0.1:11434",

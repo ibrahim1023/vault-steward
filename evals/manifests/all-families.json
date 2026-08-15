@@ -1,0 +1,10 @@
+[
+  "evals/cases/reference/reference-missing-ci",
+  "evals/cases/entity/entity-alias-development",
+  "evals/cases/contradiction/contradiction-supported-ci",
+  "evals/cases/staleness/staleness-active-adversarial",
+  "evals/cases/task/task-overdue-development",
+  "evals/cases/schema/schema-required-ci",
+  "evals/cases/policy/policy-owner-development",
+  "evals/cases/decision/decision-rationale-human"
+]

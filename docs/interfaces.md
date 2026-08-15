@@ -8,7 +8,7 @@ This document owns stable contract shapes. Internal implementation details may c
 
 - Contracts are TypeScript-first and serialized with explicit `schemaVersion`.
 - Model output is a candidate only. Deterministic validators attach authoritative evidence and reject invalid claims.
-- A governed scan requires the local model-analysis stage to complete. `modelAvailable: false` or `completed: false` is a terminal incomplete state, not permission to omit semantic analysis.
+- A governed scan requires the configured model-analysis stage to complete. `modelAvailable: false` or `completed: false` is a terminal incomplete state, not permission to omit semantic analysis.
 - Errors have a machine-readable code, user-safe message, correlation ID, retryability, and optional causal detail for local diagnostics.
 
 ## Core Shapes
@@ -75,9 +75,99 @@ type ToolResult<T> =
 
 Approval actions are append-only records. Only a pending proposal can be approved, dismissed, or deferred. The apply workflow accepts only an approved proposal, re-reads every affected file, verifies its revision and expected text, then writes through the narrow vault adapter. Any mismatch marks the proposal stale; failed or interrupted apply attempts require explicit recovery.
 
+`PreparedRepairBatch` is a versioned, metadata-only grouping of individually
+persisted proposals from one scan. It contains unique proposal and finding IDs
+plus deterministic counts for expected findings resolved, distinct notes
+edited, notes created/deleted, and findings left unchanged. It does not copy
+proposal text, evidence excerpts, or note bodies.
+
+The UI joins the batch to validated proposal operations to display exact current
+and proposed field, task, decision, or reference values. `Apply N fixes` is the explicit approval event for the
+selected proposals. Batch apply validates every proposal, digest, scan binding,
+source revision, expected range, and cross-proposal overlap before the first
+write. A preflight failure writes nothing.
+
+`ReferenceRepairIntent` is the versioned model-to-deterministic boundary for
+reference repair:
+
+```ts
+type ReferenceRepairIntent = {
+  schemaVersion: 1;
+  kind: "retarget-note" | "replace-heading-anchor" | "replace-block-anchor" | "normalize-reference";
+  scanId: string;
+  findingId: string;
+  targetPath: string;
+  provenance: "verified-rename" | "ai-suggested" | "verified-canonical";
+  anchor?: {
+    kind: "heading" | "block";
+    value: string;
+    candidateId: string;
+  };
+};
+```
+
+The intent contains no ranges, replacement syntax, approval, or write
+authority. Runtime validation requires a safe existing Markdown target,
+same-scan/finding binding, a supported kind, and a bounded anchor candidate
+when applicable.
+
+Prepared reference items add repair kind, target existence, target path,
+optional anchor, provenance, and affected-note metadata. Exact Current/After
+text is read from the validated proposal operation rather than copied into the
+batch contract.
+
+`TaskRepairIntent` and `DecisionRepairIntent` are the equivalent versioned
+boundaries for structured existing-note edits. A task intent can only request
+`mark-complete`, `replace-due-date`, `assign-owner`, `assign-project`,
+`clear-abandoned`, or `resolve-duplicate-id`. A decision intent can only request
+`link-project`, `link-related-decision`, or a cited `set-rationale` value. The
+intent carries scan/finding binding and bounded candidate IDs, never a patch
+range or write authority. Completion requires the same task's
+`completed: true` or `status: done` metadata; owner, project, and decision
+candidates are existing active-snapshot notes. Due dates come only from the
+task note, its resolved project, or directly linked decision notes.
+
+Rationale drafting is deliberately narrow: one cited 60–600 character,
+one-to-three-sentence frontmatter value. Newlines, Markdown links, paths,
+unsupported directives, prompt-injection markers, and uncited claims are
+rejected before proposal construction. Deterministic code constructs every
+revision-bound `replace-range` operation, including a field-level Current →
+After preview.
+
+`EntityCanonicalIntent` is the equivalent selection boundary for a duplicate
+entity review:
+
+```ts
+type EntityCanonicalIntent = {
+  schemaVersion: 1;
+  kind: "select-canonical";
+  scanId: string;
+  findingId: string;
+  candidateId: string;
+};
+```
+
+The candidate ID must name one of the two notes cited by the active duplicate
+finding. A model may choose that ID or abstain, but the user selects it before
+consolidation. Deterministic code can then prepare only inbound reference
+normalization and transfers of aliases exclusive to the duplicate. It preserves
+link labels, anchors, embeds, source-relative paths, and both note bodies; it
+cannot merge, delete, rename, or automatically select notes.
+
 ## Tool Permissions
 
 Agents receive only read-scoped tools: retrieve indexed evidence, resolve paths within the active vault, and inspect parsed policy/graph data. The apply tool is not agent-callable; it is invoked by the review workflow only after explicit approval and stale-revision validation.
+
+The reference recommender may select an ID from a bounded list of target notes,
+headings, or block IDs, or abstain. Candidate data comes only from the active
+immutable snapshot and verified rename/canonical metadata. Deterministic code
+verifies the selected candidate and constructs the `replace-range` proposal
+for wiki links, wiki embeds, Markdown links, and Markdown embeds. It preserves
+labels, aliases, unaffected anchors, and embed markers; heading anchors render
+as `#heading`, block anchors as `#^block-id`, and Markdown destinations remain
+source-relative and percent-encoded. Unknown candidates, duplicate normalized
+anchors, malformed output, cross-scan results, traversal, external targets, and
+unsupported fragments fail closed.
 
 ## Unified Finding Normalization
 
@@ -86,3 +176,36 @@ Agents receive only read-scoped tools: retrieve indexed evidence, resolve paths 
 ## Versioning and Compatibility
 
 Persisted records and serialized contracts add fields compatibly, preserve old readers during migrations, and increment `schemaVersion` for breaking changes. The plugin never interprets unknown model fields as instructions.
+
+## Incremental Scan Contract
+
+`VaultEvent` is a versioned, vault-relative event record. `planIncrementalScan` may return an incremental plan only for bounded, safe Markdown modify events. Rename, delete, create, malformed paths, empty queues, and event overflow return a full scan plan; correctness takes precedence over work reduction.
+
+`ParseProduct` stores only a normalized path, revision hash, parser version,
+metadata hashes, and typed dependency targets. Heading and block-ID metadata
+participates in its content fingerprint, so anchor candidates cannot be reused
+after those structures change. It is reusable only for the exact parser
+version and revision. The active process may reuse its immutable parsed note;
+SQLite does not retain historical note bodies to reconstruct parse state after
+restart. Model route results are held only in process memory and are reused only
+when the provider identity and that route's declared evidence context hash
+match exactly.
+
+`ChangeImpact` reports affected inbound references, aliases, task/decision/policy dependencies, and deterministic rename-repair records. For an exact internal rename, each record captures the source path and revision, locator, exact current reference, and replacement. Wiki links, wiki embeds, Markdown links, and Markdown embeds preserve their labels and anchors; Markdown destinations are source-relative and percent-encoded. These records remain read-only until a later workflow binds them to a finding, proposal digest, explicit approval, and apply preflight. Ambiguous aliases and delete events remain review-only impact records.
+
+`FindingLifecycleRecord` contains aggregate type/evidence-key state: first and last completed observation, recurrence count, stale state, and whether the finding was absent from a later completed scan. History UI renders only aggregate state and timestamps, never the persisted evidence payload.
+
+## Change-Aware Maintenance Contract
+
+`buildChangeAwareFindings` consumes only vault-relative events plus the immutable parsed snapshots before and after a completed scan. It creates review-only `staleness` findings for citations affected by rename/delete events and for citations to a decision that has newly become superseded. Every signal carries the existing source reference and locator; it has no repair operation, model authority, or write path. Safe modify batches record an incremental reuse plan, while create, rename, delete, overflow, malformed, and ambiguous events remain conservative full-vault plans.
+
+## Policy Template Contract
+
+Policy-template parsing and validation remain internal contracts. Policy Studio
+authoring is not exposed in the v0.1 workspace.
+
+The internal template set contains project, decision, task, meeting, and
+research. Any future authoring surface must still require parse, zero-write
+preview, and explicit save before activation.
+
+Classification uses only frontmatter `kind`, folder segments, and heading patterns. An explicit known `kind` wins; conflicting or absent bounded signals abstain. Active templates create deterministic missing-field findings. A `TemplateRepairIntent` contains only scan/finding/template/field/candidate IDs. The candidate value must already exist on a same-template note in the immutable snapshot. A repair is prepared only when exactly one safe candidate exists; otherwise it remains review-only. The existing digest-bound preview, approval, preflight, rollback, and re-index path owns application.

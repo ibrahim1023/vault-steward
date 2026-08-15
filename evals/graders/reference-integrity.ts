@@ -35,14 +35,21 @@ export function gradeReferenceIntegrity(
     const actual = results.find((result) => result.id === testCase.id)?.actual ?? [];
     expectedTotal += testCase.expected.length;
     actualTotal += actual.length;
-    matched += actual.filter((finding) =>
-      testCase.expected.some(
-        (expected) =>
+    const remainingExpected = new Set(testCase.expected.keys());
+    for (const finding of actual) {
+      const matchIndex = [...remainingExpected].find((index) => {
+        const expected = testCase.expected[index]!;
+        return (
           expected.type === finding.type &&
           expected.notePath === finding.notePath &&
           expected.locator === finding.locator
-      )
-    ).length;
+        );
+      });
+      if (matchIndex !== undefined) {
+        remainingExpected.delete(matchIndex);
+        matched += 1;
+      }
+    }
   }
 
   return {

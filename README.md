@@ -1,91 +1,87 @@
 # Vault Steward
 
-Vault Steward is a local-first Obsidian plugin for auditing note vaults for integrity and governance issues. It combines deterministic Markdown analysis, local persistence, policy checks, and evidence-backed findings while preserving the user's control over every change.
+## Keep your vault trustworthy
 
-## Capabilities
+Vault Steward helps you find broken references, schema problems, task and
+decision drift, and policy violations in a local Obsidian vault. It presents
+cited findings and safe repair options; it never edits a note on its own.
 
-Vault Steward provides:
+## The simple flow
 
-- Obsidian plugin lifecycle, settings, command registration, and a status view.
-- A status workspace that runs a governed local scan, shows progress and safe failures, and populates evidence-backed reference findings.
-- A read-only Obsidian vault adapter with normalized paths, revision hashes, cancellation, and invalidation events.
-- Deterministic Markdown reference-integrity checks and safe proposed repairs for broken internal references.
-- Local SQLite-compatible persistence through `sql.js`, forward-only migrations, immutable scan snapshots, and a persisted review queue.
-- Deterministic graph projection, bounded YAML policy parsing/evaluation, schema validation, task integrity checks, decision validation, and a persisted review queue.
-- Required local Ollama or llama.cpp-compatible model provider for bounded entity, contradiction, staleness, and ambiguous-decision analysis. Every candidate is JSON-validated, citation-checked against the active scan, and cannot mutate vault state.
+1. Choose a model provider in Settings.
+2. Select **Check vault**.
+3. Review the exact **Current** and **After** preview for each proposed change.
+4. Select the changes you want, then explicitly use **Apply fixes**.
 
-The repository README is kept current as product capabilities change. Architecture decisions, interfaces, operational constraints, and detailed engineering progress are maintained in `docs/`.
+Each selected change is checked against the current note revision immediately
+before it is applied. If the note changed, Vault Steward preserves that edit
+and asks you to create a fresh preview.
 
-## Privacy And Safety
+## What Vault Steward checks
 
-- Local-only: no telemetry, cloud API, remote storage, or automatic note mutation.
-- SQLite is the canonical local store. `sql.js` runs SQLite through a bundled WebAssembly asset.
-- The deterministic core owns parsing, policy evaluation, evidence validation, finding normalization, and persistence.
-- A loopback-only local model is required for a completed governed scan. Provider absence or model-output exhaustion leaves the scan incomplete; it cannot silently fall back to a deterministic-only completion.
-- Any note mutation must be explicitly approved and revalidated against the current source revision.
+- Broken internal links, embeds, and anchors.
+- Markdown and frontmatter schema violations.
+- Task, decision, and deterministic YAML policy issues.
+- Bounded, cited review candidates for duplicate entities, contradictions,
+  staleness, and ambiguous decisions.
 
-## Requirements
+## Coordinated review, not autonomous editing
 
-- Node.js 20 or newer
-- Obsidian desktop 1.5.0 or newer
-- A running local Ollama service with a configured model, or a compatible local llama.cpp endpoint
+Deterministic checks parse the vault, validate evidence, prepare exact diffs,
+and enforce policy. A configured model can classify or rank bounded cited
+evidence, but it cannot write notes, change policy, approve a proposal, or
+apply a fix. You remain the approval authority for every edit.
+
+## Choose a model provider
+
+Ollama is the local-first path. Ollama and llama.cpp-compatible providers must
+use loopback-only endpoints. HyperFusion and OpenAI are experimental opt-in
+cloud providers: each requires its own API key and acknowledgement before it
+can receive bounded selected evidence at its fixed API origin. Acknowledging
+one cloud provider does not enable the other.
+
+Model quality varies by device, model, vault content, and task. See the
+[local model guidance](docs/local-models.md) and
+[evaluation methodology](EVALS.md) for detailed, local evaluation material.
+
+## Privacy and safety
+
+Vault Steward stores its canonical state locally and excludes note bodies,
+prompts, raw model output, absolute paths, URLs, and secrets from default
+traces. Cloud use is limited to the selected evidence and prompt required for
+that request; it never grants authority to edit a note. Read the full
+[privacy statement](PRIVACY.md) and [security overview](SECURITY.md).
+
+## Install and get started
+
+Obsidian desktop 1.5.0 or later is required. Build the plugin, copy the full
+`dist/vault-steward/` directory to
+`<vault>/.obsidian/plugins/vault-steward/`, enable it in Obsidian, configure a
+provider, and start with **Check vault**. See
+[release compatibility](docs/release-compatibility.md),
+[troubleshooting](docs/troubleshooting.md), and
+[upgrade notes](docs/upgrade-notes.md) for operating guidance.
+
+## Limitations
+
+macOS is the only validated desktop platform; Windows and Linux are
+unvalidated. Vault Steward cannot establish external facts or guarantee model
+accuracy, and its repair families are deliberately narrow. See
+[known limitations](docs/known-limitations.md) for the complete boundaries.
+
+## Documentation
+
+- [Release readiness](docs/release-readiness.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Upgrade notes](docs/upgrade-notes.md)
+- [Release compatibility](docs/release-compatibility.md)
+- [Privacy](PRIVACY.md)
+- [Security](SECURITY.md)
+- [Known limitations](docs/known-limitations.md)
+- [Observability and retained data](OBSERVABILITY.md)
 
 ## Development
 
-Install dependencies and run the verification suite:
-
-```bash
-npm install
-npm run format:check
-npm run lint
-npm run typecheck
-npm run build
-npm run package:plugin
-npm run test:unit
-npm run test:integration
-npm run test:e2e
-npm run test:acceptance
-npm run eval:smoke
-npm run perf:smoke
-npm run ops:smoke
-npm run security:check
-```
-
-`npm run build` writes `main.js` and `sql-wasm.wasm` at the project root. `npm run package:plugin` creates `dist/vault-steward/` with those assets, `manifest.json`, and a SHA-256 `release-manifest.json`. Install that directory as `vault-steward` under an Obsidian vault's `.obsidian/plugins/` directory.
-
-## Repository Guide
-
-- `src/main.ts`: Obsidian plugin entry point and settings/status UI wiring.
-- `src/vault-adapter/`: narrow live-vault boundary.
-- `src/scanner/` and `src/reference/`: deterministic Markdown parsing and reference checks.
-- `src/storage/`: SQLite runtime, migrations, repositories, and scan snapshots.
-- `src/graph/`, `src/policy/`, `src/schema/`, `src/tasks/`, `src/decisions/`, `src/coordinator/`: deterministic governance and finding pipeline.
-- `src/model-provider/` and `src/agents/`: loopback-only model adapters, bounded context assembly, typed output validation, and deterministic agent coordination.
-- `tests/`: unit, integration, UI, and end-to-end coverage.
-- `docs/`: architecture, interfaces, security, reliability, and ADRs.
-
-Read [AGENTS.md](AGENTS.md) before contributing. It defines module boundaries, test expectations, privacy constraints, and the completion gate.
-
-See [upgrade notes](docs/upgrade-notes.md) for install, upgrade, and uninstall guidance.
-
-See [local runbooks](docs/runbooks.md) for recovery procedures and diagnostic handling.
-
-## Commands
-
-| Command                       | Purpose                                                            |
-| ----------------------------- | ------------------------------------------------------------------ |
-| `npm run format:check`        | Check Prettier formatting.                                         |
-| `npm run lint`                | Run ESLint.                                                        |
-| `npm run typecheck`           | Run strict TypeScript checking.                                    |
-| `npm run build`               | Build the Obsidian plugin bundle and SQLite WebAssembly asset.     |
-| `npm run package:plugin`      | Produce a versioned desktop-plugin release directory.              |
-| `npm run test:plugin-install` | Run the packaged install/uninstall smoke harness.                  |
-| `npm run test:unit`           | Run deterministic unit and component tests.                        |
-| `npm run test:integration`    | Run SQLite migration, snapshot, and coordinator integration tests. |
-| `npm run test:e2e`            | Run the current end-to-end reference-finding test.                 |
-| `npm run test:acceptance`     | Run the synthetic MVP vault acceptance suite.                      |
-| `npm run eval:smoke`          | Run the deterministic reference-integrity evaluation.              |
-| `npm run eval:full`           | Run all registered evaluations.                                    |
-| `npm run perf:smoke`          | Run the fixed large-vault and incremental-scan performance gate.   |
-| `npm run ops:smoke`           | Run metadata-only MVP operational baseline checks.                 |
-| `npm run security:check`      | Audit production dependencies.                                     |
+Use Node.js 20 or later for development and packaging. Run the documented
+checks in [CONTRIBUTING.md](CONTRIBUTING.md); release owners should follow the
+[release-readiness guide](docs/release-readiness.md).

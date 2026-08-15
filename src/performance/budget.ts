@@ -4,6 +4,8 @@ export type PerformanceBaseline = {
   minimumAttachmentCount: number;
   maxFullScanMs: number;
   maxIncrementalScanMs: number;
+  minimumReusedNotes: number;
+  maxEventQueueDepth: number;
   maxHeapDeltaBytes: number;
   maxSqliteWriteBytes: number;
 };
@@ -13,6 +15,8 @@ export type PerformanceMeasurement = {
   attachmentCount: number;
   fullScanMs: number;
   incrementalScanMs: number;
+  reusedNoteCount: number;
+  eventQueueDepth: number;
   heapDeltaBytes: number;
   sqliteWriteBytes: number;
 };
@@ -30,6 +34,10 @@ export function evaluatePerformanceBudget(
     errors.push("full scan duration exceeded baseline");
   if (measurement.incrementalScanMs > baseline.maxIncrementalScanMs)
     errors.push("incremental scan duration exceeded baseline");
+  if (measurement.reusedNoteCount < baseline.minimumReusedNotes)
+    errors.push("incremental parser reuse fell below baseline");
+  if (measurement.eventQueueDepth > baseline.maxEventQueueDepth)
+    errors.push("event queue depth exceeded baseline");
   if (measurement.heapDeltaBytes > baseline.maxHeapDeltaBytes)
     errors.push("heap growth exceeded baseline");
   if (measurement.sqliteWriteBytes > baseline.maxSqliteWriteBytes)

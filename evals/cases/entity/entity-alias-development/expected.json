@@ -1,0 +1,10 @@
+[
+  {
+    "id": "alias",
+    "type": "entity-alias",
+    "notePath": "Ada.md",
+    "locator": "line:1:column:1",
+    "severity": "low",
+    "safeFix": "not-applicable"
+  }
+]

@@ -1,5 +1,5 @@
 import { assembleEvidenceContext, type EvidenceInput } from "../model-provider/context.js";
-import type { LocalProvider } from "../model-provider/local-provider.js";
+import type { ModelProvider } from "../model-provider/local-provider.js";
 import { generateStructured, type ModelTrace } from "../model-provider/structured.js";
 
 export type AgentEvidence = EvidenceInput;
@@ -52,7 +52,7 @@ export function validateEntityCandidates(
 
 export async function runEntityAgent(
   input: { scanId: string; evidence: readonly AgentEvidence[] },
-  providers: readonly LocalProvider[]
+  providers: readonly ModelProvider[]
 ): Promise<AgentRun<EntityCandidate>> {
   const response = await generateAgentOutput<EntityOutput>(
     "entity",
@@ -88,7 +88,7 @@ export async function runContradictionAgent(
     evidence: readonly AgentEvidence[];
     propositions: readonly ContradictionProposition[];
   },
-  providers: readonly LocalProvider[]
+  providers: readonly ModelProvider[]
 ): Promise<AgentRun<ContradictionCandidate>> {
   const response = await generateAgentOutput<ContradictionOutput>(
     "contradiction",
@@ -105,7 +105,7 @@ export async function runContradictionAgent(
 
 export async function runStalenessAgent(
   input: { scanId: string; now: string; records: readonly StalenessRecord[] },
-  providers: readonly LocalProvider[]
+  providers: readonly ModelProvider[]
 ): Promise<AgentRun<StalenessCandidate>> {
   const eligible = input.records.filter((record) => isStalenessEligible(record, input.now));
   const response = await generateAgentOutput<StalenessOutput>(
@@ -133,7 +133,7 @@ export async function runDecisionAgent(
       evidence: AgentEvidence;
     }[];
   },
-  providers: readonly LocalProvider[]
+  providers: readonly ModelProvider[]
 ): Promise<AgentRun<DecisionCandidate>> {
   const ambiguous = input.decisions.filter(
     (decision) => !decision.rationale || Boolean(decision.supersedes)
@@ -157,7 +157,7 @@ async function generateAgentOutput<T extends { candidates: unknown[] }>(
   agent: string,
   scanId: string,
   evidence: readonly AgentEvidence[],
-  providers: readonly LocalProvider[],
+  providers: readonly ModelProvider[],
   validate: (value: unknown) => value is T
 ): Promise<{ value: T | null; limitations: string[]; traces: ModelTrace[] }> {
   const context = assembleEvidenceContext({ scanId, evidence, policyIds: [], ...DEFAULT_BUDGET });

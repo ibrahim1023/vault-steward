@@ -31,6 +31,7 @@ describe("scan snapshot repository", () => {
       id: "scan-1",
       vaultFingerprint: "vault-1",
       status: "completed",
+      configHash: "config-1",
       inputHash: "input-1",
       parserVersion: "parser-1",
       files: [{ path: "Home.md", revisionHash: "revision-1" }]

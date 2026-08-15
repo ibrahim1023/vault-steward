@@ -1,11 +1,14 @@
 import { createHash } from "node:crypto";
 
+import type { VaultEvent } from "../contracts/incremental.js";
 import type { WritableVault } from "../review/workflow.js";
 import type { VaultFile, VaultReader } from "./types.js";
+import { assertScanLimits, DEFAULT_SCAN_LIMITS, type ScanLimits } from "../scanner/limits.js";
 
 export type VaultFileHandle = {
   path: string;
   extension: string;
+  stat?: { size: number };
 };
 
 export type VaultEventRef = unknown;
@@ -19,36 +22,55 @@ export type VaultEventSource = {
 
 export type WritableVaultEventSource = VaultEventSource & {
   modify(file: VaultFileHandle, content: string): Promise<void>;
+  process?(file: VaultFileHandle, fn: (content: string) => string): Promise<string>;
 };
 
 export class ObsidianVaultReader implements VaultReader {
   private readonly invalidatedPaths = new Set<string>();
+  private readonly invalidatedEvents: VaultEvent[] = [];
 
-  constructor(private readonly vault: VaultEventSource) {}
+  constructor(
+    private readonly vault: VaultEventSource,
+    private readonly limits: ScanLimits = DEFAULT_SCAN_LIMITS
+  ) {}
 
   async listFiles(signal?: AbortSignal): Promise<readonly VaultFile[]> {
     throwIfAborted(signal);
     const files: VaultFile[] = [];
-
-    for (const file of [...this.vault.getFiles()].sort((left, right) =>
+    const handles = [...this.vault.getFiles()].sort((left, right) =>
       left.path.localeCompare(right.path)
-    )) {
+    );
+    if (handles.length > this.limits.maxFiles)
+      throw new Error("vault exceeds configured processing limits");
+    const paths = new Set<string>();
+    let totalBytes = 0;
+
+    for (const file of handles) {
       throwIfAborted(signal);
       const path = normalizeAndValidatePath(file.path);
+      if (paths.has(path)) throw new Error("Vault path is ambiguous.");
+      paths.add(path);
+      const size = file.extension === "md" ? file.stat?.size : 0;
+      if (size !== undefined) {
+        if (size > this.limits.maxFileBytes || totalBytes + size > this.limits.maxTotalBytes)
+          throw new Error("vault exceeds configured processing limits");
+        totalBytes += size;
+      }
       const content = file.extension === "md" ? await this.vault.read(file) : "";
       throwIfAborted(signal);
       files.push({ path, content, revision: revisionFor(path, content) });
     }
-
+    assertScanLimits(files, this.limits);
     return files;
   }
 
   watchInvalidations(): () => void {
     const refs = [
-      this.vault.on("modify", (file) => this.invalidateFile(file)),
-      this.vault.on("delete", (file) => this.invalidateFile(file)),
+      this.vault.on("create", (file) => this.invalidateFile(file, "create")),
+      this.vault.on("modify", (file) => this.invalidateFile(file, "modify")),
+      this.vault.on("delete", (file) => this.invalidateFile(file, "delete")),
       this.vault.on("rename", (file, oldPath) => {
-        this.invalidateFile(file);
+        this.invalidateFile(file, "rename", typeof oldPath === "string" ? oldPath : undefined);
         if (typeof oldPath === "string") this.invalidatePath(oldPath);
       })
     ];
@@ -64,8 +86,21 @@ export class ObsidianVaultReader implements VaultReader {
     return paths;
   }
 
-  private invalidateFile(file: unknown): void {
-    if (isVaultFileHandle(file)) this.invalidatePath(file.path);
+  consumeInvalidatedEvents(): VaultEvent[] {
+    const events = [...this.invalidatedEvents];
+    this.invalidatedEvents.length = 0;
+    return events;
+  }
+
+  private invalidateFile(file: unknown, kind: VaultEvent["kind"], oldPath?: string): void {
+    if (!isVaultFileHandle(file)) return;
+    this.invalidatedEvents.push({
+      schemaVersion: 1,
+      kind,
+      path: file.path,
+      ...(oldPath ? { oldPath } : {})
+    });
+    this.invalidatePath(file.path);
   }
 
   private invalidatePath(path: string): void {
@@ -88,6 +123,23 @@ export class ObsidianVaultWriter implements WritableVault {
 
   async write(path: string, content: string): Promise<void> {
     await this.vault.modify(this.findMarkdownFile(path), content);
+  }
+
+  async writeIfCurrent(path: string, before: string, content: string): Promise<boolean> {
+    const file = this.findMarkdownFile(path);
+    if (!this.vault.process) {
+      const current = await this.vault.read(file);
+      if (current !== before) return false;
+      await this.vault.modify(file, content);
+      return true;
+    }
+    let applied = false;
+    await this.vault.process(file, (current) => {
+      if (current !== before) return current;
+      applied = true;
+      return content;
+    });
+    return applied;
   }
 
   private findMarkdownFile(path: string): VaultFileHandle {
@@ -116,11 +168,19 @@ function normalizeAndValidatePath(path: string): string {
   if (
     normalized.length === 0 ||
     normalized.startsWith("/") ||
-    normalized.split("/").some((segment) => segment === "..")
+    hasControlCharacters(normalized) ||
+    normalized.split("/").some((segment) => segment === "" || segment === "." || segment === "..")
   ) {
     throw new Error("Vault path resolves outside the active vault.");
   }
   return normalized;
+}
+
+function hasControlCharacters(value: string): boolean {
+  return [...value].some((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 31 || code === 127;
+  });
 }
 
 function revisionFor(path: string, content: string): string {

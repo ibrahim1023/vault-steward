@@ -6,20 +6,22 @@ This document owns agent roles, model boundaries, budgets, and guardrails. Evalu
 
 ## Operating Model
 
-The scanner, graph builder, reference integrity checks, task parsing, schema validation, policy evaluation, diff generation, and apply workflow are deterministic. A local model performs the required semantic-analysis stage for governed scans, identifying candidate entities, propositions, staleness signals, or ranked evidence. Every model result is schema-validated and evidence-checked before it becomes a finding.
+The scanner, graph builder, reference integrity checks, task parsing, schema validation, policy evaluation, diff generation, outcome calculation, approval, and apply workflow are deterministic. The selected model provider performs the required semantic-analysis stage for governed scans, identifying candidate entities, propositions, staleness signals, or ranked evidence. For repair recommendations, it may choose an ID from a bounded list of target notes derived from the active immutable snapshot, or abstain. In a duplicate-entity review it may rank only the two cited notes as canonical or abstain; deterministic code may then prepare inbound-link and exclusive-alias normalization, never a note merge or deletion. For structured task and decision repair, it may choose an allowed intent and snapshot-derived candidate ID, or draft a constrained cited rationale; deterministic code constructs the patch. Fully determined repairs, such as an unchecked task explicitly marked `status:done`, bypass model selection and retain the same exact evidence and approval controls. Ollama and llama.cpp remain local; HyperFusion and OpenAI each require their own explicit cloud-data acknowledgement. Every model result is schema-validated and evidence-checked before it becomes a finding or recommendation.
 
-| Agent         | Input                              | Output                           | Model use                        |
-| ------------- | ---------------------------------- | -------------------------------- | -------------------------------- |
-| Scanner       | vault files                        | normalized records               | none                             |
-| Entity        | canonical graph and labels         | duplicate/alias candidates       | required                         |
-| Contradiction | bounded propositions and citations | conflict candidates              | expected                         |
-| Staleness     | timestamps, status, linked context | stale candidates                 | required                         |
-| Reference     | parsed links and vault index       | broken-reference findings        | none                             |
-| Task          | parsed tasks and graph             | task findings                    | required for ambiguous ownership |
-| Schema        | frontmatter and schema             | violations                       | none                             |
-| Decision      | decision records and links         | unresolved/superseded candidates | required                         |
-| Policy        | typed facts and YAML rules         | violations                       | none                             |
-| Coordinator   | validated candidates               | deduped review queue             | none                             |
+| Agent            | Input                              | Output                              | Model use                        |
+| ---------------- | ---------------------------------- | ----------------------------------- | -------------------------------- |
+| Scanner          | vault files                        | normalized records                  | none                             |
+| Entity           | canonical graph and labels         | duplicate/alias candidates          | required                         |
+| Contradiction    | bounded propositions and citations | conflict candidates                 | expected                         |
+| Staleness        | timestamps, status, linked context | stale candidates                    | required                         |
+| Reference        | parsed links and vault index       | broken-reference findings           | none                             |
+| Task             | parsed tasks and graph             | task findings                       | required for ambiguous ownership |
+| Schema           | frontmatter and schema             | violations                          | none                             |
+| Decision         | decision records and links         | unresolved/superseded candidates    | required                         |
+| Policy           | typed facts and YAML rules         | violations                          | none                             |
+| Coordinator      | validated candidates               | ranked recommendation set           | none                             |
+| Repair guide     | bounded target IDs                 | selected target ID or abstention    | bounded                          |
+| Canonical ranker | two cited duplicate-note IDs       | selected canonical ID or abstention | bounded                          |
 
 ## Workflow Controls
 
@@ -27,13 +29,23 @@ The scanner, graph builder, reference integrity checks, task parsing, schema val
 - Coordinator routes only after deterministic eligibility checks and caps each agent to one attempt plus one repair attempt for malformed structured output.
 - No agent calls another agent directly. Coordinator owns handoffs and stores only declared shared context.
 - Terminate on a complete typed response, exhausted budget, missing evidence, policy failure, or timeout. Mark incomplete work visibly.
-- A completed governed scan requires an available local provider and successful bounded semantic-analysis stage. Provider absence or structured-output exhaustion leaves the scan incomplete; it never degrades to a deterministic-only completion.
+- A completed governed scan requires an available configured provider and successful bounded semantic-analysis stage. Provider absence or structured-output exhaustion leaves the scan incomplete; it never degrades to a deterministic-only completion.
 - Structured model output is parsed as JSON, validated against the receiving contract, and may receive one repair attempt. Traces retain provider/model, latency, retry count, and outcome only; they never retain prompts or note excerpts.
+- Semantic prompts are registered per agent with an immutable version, SHA-256 hash,
+  input/output schema compatibility labels, and a scan-bound registry fingerprint.
+  Changing a prompt creates a new version; it never rewrites an existing registration.
+  Rollback means selecting an earlier compatible registration and recording its new
+  scan binding. Diagnostics compares metadata and hashes only. Raw prompt or output
+  snapshots remain unavailable unless separately opted in under local trace controls.
 - Evidence context has a fixed untrusted-data prefix, vault-relative locators, entry and token limits, and excludes private entries before a provider call.
+- A repair model sees candidate IDs and metadata only. Unknown IDs, cross-scan
+  candidates, malformed output, and unsupported operations are rejected.
+- Deterministic code constructs every patch range, expected result, approval
+  record, and write operation. Model output never supplies mutation authority.
 
 ## Security and Evidence
 
-Treat note content as untrusted data. Prompts must label it as data, never instructions. Agents cannot access network, shell, arbitrary filesystem paths, or write tools. A finding needs source locators that resolve to the active scan snapshot. The final severity, policy violation, and proposal are deterministic coordinator decisions.
+Treat note content as untrusted data. Prompts must label it as data, never instructions. Agents cannot access shell, arbitrary filesystem paths, or write tools. Provider adapters may access only their configured Ollama/llama.cpp loopback endpoint, the fixed HyperFusion Chat Completions origin, or the fixed OpenAI API origin after explicit opt-in. A finding needs source locators that resolve to the active scan snapshot. Final severity, policy violation, proposal, expected result, approval, and apply decisions remain deterministic.
 
 ## Runtime Budgets
 
@@ -41,4 +53,4 @@ Initial defaults are configuration, not promises: one concurrent model request; 
 
 ## Governed Scan Input Boundary
 
-`src/core/governed-scan.ts` constructs each local-model request from the immutable scanner snapshot. It supplies bounded note evidence, deterministic contradiction propositions, staleness records, and decision records to the coordinator. The core result includes metadata-only model traces and limitations; a required model-stage failure returns an incomplete scan with no completed finding set.
+`src/core/governed-scan.ts` constructs each model request from the immutable scanner snapshot. It supplies bounded note evidence, deterministic contradiction propositions, staleness records, and decision records to the coordinator. The core result includes metadata-only model traces and limitations; a required model-stage failure returns an incomplete scan with no completed finding set.

@@ -1,0 +1,16 @@
+{
+  "seed": "synthetic-small-v1",
+  "noteCount": 32,
+  "folderDepth": 3,
+  "linkDensity": 0.5,
+  "entityCount": 8,
+  "taskCount": 12,
+  "decisionCount": 6,
+  "contradictionRate": 0.1,
+  "duplicateEntityRate": 0.1,
+  "brokenReferenceRate": 0.2,
+  "stalenessRate": 0.1,
+  "orphanTaskRate": 0.1,
+  "schemaViolationRate": 0.1,
+  "unresolvedDecisionRate": 0.1
+}

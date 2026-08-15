@@ -3,10 +3,11 @@ import type { AgentEvidence } from "../agents/model-assisted.js";
 import type { Finding } from "../contracts/index.js";
 import { checkDecisions, indexDecision } from "../decisions/index.js";
 import { normalizeFinding } from "../findings/normalize.js";
-import type { LocalProvider } from "../model-provider/local-provider.js";
+import type { ModelProvider } from "../model-provider/local-provider.js";
 import type { ModelTrace } from "../model-provider/structured.js";
 import { evaluatePolicies, extractPolicyFacts } from "../policy/evaluate.js";
 import type { Policy } from "../policy/parse.js";
+import { getPolicyTemplate, validatePolicyTemplateNote } from "../policy/templates.js";
 import { checkReferenceIntegrity } from "../reference/check.js";
 import { scanVaultFiles, type ScanSnapshot } from "../scanner/scan.js";
 import { validateSchema, type SchemaDefinition } from "../schema/check.js";
@@ -25,18 +26,24 @@ export type GovernedScanResult = {
 export type GovernedScanOptions = {
   schemas?: readonly SchemaDefinition[];
   policies?: readonly Policy[];
+  snapshot?: ScanSnapshot;
+  coordinator?: LocalAgentCoordinator;
 };
 
 export async function runGovernedScan(
   files: readonly VaultFile[],
-  providers: readonly LocalProvider[],
+  providers: readonly ModelProvider[],
   now: string,
   options: GovernedScanOptions = {}
 ): Promise<GovernedScanResult> {
-  const snapshot = scanVaultFiles(files);
+  const snapshot = options.snapshot ?? scanVaultFiles(files);
   const agentEvidence = snapshot.notes.map(toEvidence);
-  const activeEvidence = collectActiveEvidence(snapshot, options.schemas ?? []);
-  const coordinator = new LocalAgentCoordinator(providers);
+  const activeEvidence = collectActiveEvidence(
+    snapshot,
+    options.schemas ?? [],
+    options.policies ?? []
+  );
+  const coordinator = options.coordinator ?? new LocalAgentCoordinator(providers);
   const semanticAnalysis = await coordinator.run({
     scanId: snapshot.id,
     now,
@@ -77,7 +84,10 @@ export async function runGovernedScan(
     })
   });
 
-  if (!semanticAnalysis.completed) {
+  if (
+    !semanticAnalysis.completed &&
+    !semanticAnalysis.limitations.includes("local-model-output-unavailable")
+  ) {
     return {
       scanId: snapshot.id,
       findings: [],
@@ -123,12 +133,40 @@ function normalizeFindings(
     ),
     ...decisionFindings(snapshot, evidence),
     ...schemaFindings(snapshot, evidence, options.schemas ?? []),
+    ...templateSchemaFindings(snapshot, evidence, options.policies ?? []),
     ...policyFindings(snapshot, evidence, options.policies ?? [])
   ];
   const semantic = semanticAnalysis.candidates.flatMap((candidate) =>
     normalizeSemanticCandidate(snapshot.id, evidence, candidate)
   );
   return [...deterministic, ...semantic];
+}
+
+function templateSchemaFindings(
+  snapshot: ScanSnapshot,
+  evidence: readonly AgentEvidence[],
+  policies: readonly Policy[]
+): Finding[] {
+  const enabledTemplates = [
+    ...new Set(
+      policies.filter((policy) => policy.enabled).flatMap((policy) => policy.templates ?? [])
+    )
+  ];
+  if (enabledTemplates.length === 0) return [];
+  return snapshot.notes.flatMap((note) =>
+    validatePolicyTemplateNote(note, enabledTemplates).flatMap((issue) => {
+      const finding = normalizeFinding({
+        scanId: snapshot.id,
+        type: "schema",
+        severity: "low",
+        evidence: [frontmatterEvidence(note.path, note.frontmatter, `frontmatter:${issue.field}`)],
+        availableEvidence: evidence,
+        explanation: issue.message,
+        confidence: 1
+      });
+      return finding ? [finding] : [];
+    })
+  );
 }
 
 function schemaFindings(
@@ -182,7 +220,10 @@ function decisionFindings(snapshot: ScanSnapshot, evidence: readonly AgentEviden
     const decision = indexDecision(note.path, note.frontmatter);
     return decision ? [{ ...decision, notePath: note.path, excerpt: "decision" }] : [];
   });
-  return checkDecisions(decisions).flatMap((issue) => {
+  return checkDecisions(
+    decisions,
+    snapshot.notes.map((note) => note.path)
+  ).flatMap((issue) => {
     const decision = decisions.find((item) => item.id === issue.id);
     if (!decision) return [];
     const finding = normalizeFinding({
@@ -271,13 +312,13 @@ function normalized(
 }
 
 function toEvidence(note: ScanSnapshot["notes"][number]): AgentEvidence {
-  return { notePath: note.path, locator: "line:1", excerpt: note.content.slice(0, 2_000) };
+  return { notePath: note.path, locator: "line:1:column:1", excerpt: note.content.slice(0, 2_000) };
 }
 
 function lineEvidence(notePath: string, content: string, line: number): AgentEvidence {
   return {
     notePath,
-    locator: `line:${line}`,
+    locator: `line:${line}:column:1`,
     excerpt: content.split("\n")[line - 1] ?? ""
   };
 }
@@ -294,7 +335,8 @@ function frontmatterEvidence(
 
 function collectActiveEvidence(
   snapshot: ScanSnapshot,
-  schemas: readonly SchemaDefinition[]
+  schemas: readonly SchemaDefinition[],
+  policies: readonly Policy[]
 ): AgentEvidence[] {
   return snapshot.notes.flatMap((note) => {
     const lines = note.content.split("\n").slice(0, 100);
@@ -307,9 +349,16 @@ function collectActiveEvidence(
       ...Object.keys(schema.enums ?? {}),
       ...Object.keys(schema.types ?? {})
     ]);
+    const templateFields = policies
+      .filter((policy) => policy.enabled)
+      .flatMap((policy) => policy.templates ?? [])
+      .flatMap((templateId) => getPolicyTemplate(templateId)?.rules ?? [])
+      .map((rule) => rule.fact.split(".", 2)[1] ?? "");
     const frontmatterEvidenceEntries = [
-      ...new Set([...Object.keys(note.frontmatter), ...schemaFields])
-    ].map((field) => frontmatterEvidence(note.path, note.frontmatter, `frontmatter:${field}`));
+      ...new Set([...Object.keys(note.frontmatter), ...schemaFields, ...templateFields])
+    ]
+      .filter(Boolean)
+      .map((field) => frontmatterEvidence(note.path, note.frontmatter, `frontmatter:${field}`));
     return [
       toEvidence(note),
       ...lineEvidenceEntries,

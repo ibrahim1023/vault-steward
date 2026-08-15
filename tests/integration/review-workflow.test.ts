@@ -84,6 +84,41 @@ describe("review workflow", () => {
     await expect(workflow.apply(proposal, "t2")).resolves.toEqual({ ok: false, reason: "stale" });
     expect(writes).toBe(0);
   });
+  it("fails closed when a note changes between preflight and the write boundary", async () => {
+    const repo = await fixture();
+    let content = "See x";
+    const workflow = new ReviewWorkflow(repo, {
+      read: async () => ({ content, revision: "r" }),
+      write: async () => {
+        throw new Error("fallback write must not run");
+      },
+      writeIfCurrent: async () => {
+        content = "Changed after preflight";
+        return false;
+      }
+    });
+    workflow.act(proposal, "approved", "t");
+    await expect(workflow.apply(proposal, "t2")).resolves.toEqual({
+      ok: false,
+      reason: "write-failed"
+    });
+    expect(content).toBe("Changed after preflight");
+  });
+
+  it("rejects a proposal whose persisted digest no longer matches the approved patch", async () => {
+    const repo = await fixture();
+    const altered: Proposal = {
+      ...proposal,
+      operations: [{ ...proposal.operations[0]!, replacement: "attacker-controlled" }]
+    };
+    const workflow = new ReviewWorkflow(repo, {
+      read: async () => ({ content: "See x", revision: "r" }),
+      write: async () => undefined
+    });
+    workflow.act(proposal, "approved", "t");
+    await expect(workflow.apply(altered, "t2")).rejects.toThrow("integrity");
+    expect(repo.getProposalStatus(proposal.id)).toBe("approved");
+  });
   it("marks failed or interrupted applies for explicit recovery", async () => {
     const repo = await fixture();
     const workflow = new ReviewWorkflow(repo, {
@@ -242,6 +277,12 @@ describe("review workflow", () => {
       write: async (path, next) => {
         if (path === "B.md" && next === "Y") throw new Error("disk full");
         contents.set(path, next);
+      },
+      writeIfCurrent: async (path, before, next) => {
+        if (contents.get(path) !== before) return false;
+        if (path === "B.md" && next === "Y") throw new Error("disk full");
+        contents.set(path, next);
+        return true;
       }
     });
     workflow.act(multi, "approved", "t");

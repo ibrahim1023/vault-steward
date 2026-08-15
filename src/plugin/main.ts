@@ -1,8 +1,13 @@
-import type { CoordinatorResult } from "../agents/coordinator.js";
+import {
+  AgentResultCache,
+  LocalAgentCoordinator,
+  type CoordinatorResult
+} from "../agents/coordinator.js";
 import { runGovernedScan, type GovernedScanResult } from "../core/governed-scan.js";
-import type { LocalProvider } from "../model-provider/local-provider.js";
+import type { ModelProvider } from "../model-provider/local-provider.js";
 import { checkReferenceIntegrity } from "../reference/check.js";
-import { scanVaultFiles } from "../scanner/scan.js";
+import { scanVaultFiles, type ScanSnapshot } from "../scanner/scan.js";
+import type { Policy } from "../policy/parse.js";
 import type { VaultFile } from "../vault-adapter/types.js";
 
 export type ReferenceIntegrityResult = {
@@ -23,14 +28,29 @@ export function createReferenceIntegritySession(): {
   };
 }
 
-export function createGovernedIntegritySession(providers: readonly LocalProvider[]): {
-  scan(files: readonly VaultFile[]): Promise<GovernedIntegrityResult>;
+export function createGovernedIntegritySession(
+  providers: readonly ModelProvider[],
+  cache?: AgentResultCache
+): {
+  scan(
+    files: readonly VaultFile[],
+    snapshot?: ScanSnapshot,
+    policies?: readonly Policy[]
+  ): Promise<GovernedIntegrityResult>;
 } {
   return {
-    async scan(files) {
-      const result = await runGovernedScan(files, providers, new Date().toISOString());
-      if (!result.completed)
-        throw new Error("required local model semantic analysis did not complete");
+    async scan(files, snapshot, policies) {
+      const result = await runGovernedScan(files, providers, new Date().toISOString(), {
+        ...(snapshot ? { snapshot } : {}),
+        ...(policies ? { policies } : {}),
+        ...(cache ? { coordinator: new LocalAgentCoordinator(providers, cache) } : {})
+      });
+      if (!result.completed) {
+        if (result.limitations.includes("local-model-output-unavailable")) {
+          throw new Error("required model output could not be validated");
+        }
+        throw new Error("required model provider is unavailable");
+      }
       return result;
     }
   };

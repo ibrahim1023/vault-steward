@@ -1,0 +1,10 @@
+[
+  {
+    "id": "time-scope",
+    "type": "contradiction",
+    "notePath": "Roadmap.md",
+    "locator": "line:2:column:1",
+    "severity": "low",
+    "safeFix": "not-applicable"
+  }
+]

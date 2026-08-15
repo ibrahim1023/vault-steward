@@ -1,10 +1,8 @@
 import type { Finding, FindingType } from "../contracts/index.js";
-import { normalizeAnchor, normalizeVaultPath, type ScanSnapshot } from "../scanner/scan.js";
-
-type ResolvedTarget = { path: string; anchor?: string };
+import { resolveInternalReference } from "./resolve.js";
+import type { ScanSnapshot } from "../scanner/scan.js";
 
 export function checkReferenceIntegrity(scan: ScanSnapshot): Finding[] {
-  const notesByPath = new Map(scan.notes.map((note) => [note.path, note]));
   const findings: Finding[] = [];
 
   for (const note of scan.notes) {
@@ -13,8 +11,8 @@ export function checkReferenceIntegrity(scan: ScanSnapshot): Finding[] {
         continue;
       }
 
-      const resolved = resolveTarget(reference.rawTarget, note.path, reference.kind === "markdown");
-      if (resolved === null) {
+      const resolved = resolveInternalReference(scan, reference, note.path);
+      if (resolved.status === "invalid") {
         findings.push(
           createFinding(
             scan.id,
@@ -26,16 +24,21 @@ export function checkReferenceIntegrity(scan: ScanSnapshot): Finding[] {
         );
         continue;
       }
-
-      const target = notesByPath.get(resolved.path);
-      const targetExists = target !== undefined;
-      const anchorExists =
-        resolved.anchor === undefined ||
-        target?.headings.some((heading) => normalizeAnchor(heading) === resolved.anchor);
-
-      if (!targetExists || !anchorExists) {
+      if (resolved.status === "ambiguous") {
+        findings.push(
+          createFinding(scan.id, note.path, reference, "broken-reference", "ambiguous target")
+        );
+        continue;
+      }
+      if (resolved.status === "missing") {
         findings.push(
           createFinding(scan.id, note.path, reference, "broken-reference", "missing target")
+        );
+        continue;
+      }
+      if (!resolved.anchorExists) {
+        findings.push(
+          createFinding(scan.id, note.path, reference, "broken-reference", "missing anchor")
         );
       }
     }
@@ -46,48 +49,6 @@ export function checkReferenceIntegrity(scan: ScanSnapshot): Finding[] {
 
 function isAllowedExternalUri(target: string): boolean {
   return /^https?:/i.test(target);
-}
-
-function resolveTarget(
-  rawTarget: string,
-  sourcePath: string,
-  isRelativeMarkdownLink: boolean
-): ResolvedTarget | null {
-  const [rawPath, rawAnchor] = rawTarget.split("#", 2);
-  const path = normalizeVaultPath(rawPath ?? "");
-
-  if (!path || path.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(path)) {
-    return null;
-  }
-
-  const resolvedPath = normalizeResolvedPath(
-    isRelativeMarkdownLink ? `${directoryOf(sourcePath)}/${path}` : path
-  );
-  if (!resolvedPath) return null;
-  const withExtension = resolvedPath.includes(".") ? resolvedPath : `${resolvedPath}.md`;
-  const anchor = rawAnchor === undefined ? undefined : normalizeAnchor(rawAnchor);
-  return anchor === "" && rawAnchor !== undefined
-    ? null
-    : { path: withExtension, ...(anchor ? { anchor } : {}) };
-}
-
-function directoryOf(path: string): string {
-  const index = path.lastIndexOf("/");
-  return index < 0 ? "" : path.slice(0, index);
-}
-
-function normalizeResolvedPath(path: string): string | null {
-  const parts: string[] = [];
-  for (const part of path.split("/")) {
-    if (part === "" || part === ".") continue;
-    if (part === "..") {
-      if (parts.length === 0) return null;
-      parts.pop();
-      continue;
-    }
-    parts.push(part);
-  }
-  return parts.length > 0 ? parts.join("/") : null;
 }
 
 function createFinding(

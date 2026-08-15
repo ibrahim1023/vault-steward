@@ -6,6 +6,7 @@ import {
   type VaultEventSource,
   type VaultFileHandle
 } from "../../src/vault-adapter/obsidian-reader.js";
+import { scanVaultFiles } from "../../src/scanner/scan.js";
 
 class FakeVault implements VaultEventSource {
   readonly listeners = new Map<string, Array<(...args: unknown[]) => void>>();
@@ -92,6 +93,51 @@ describe("ObsidianVaultReader", () => {
     });
   });
 
+  it("rejects ambiguous paths and bounded vault inputs before parsing", async () => {
+    const duplicate = new FakeVault(
+      [
+        { path: "notes\\Home.md", extension: "md" },
+        { path: "notes/Home.md", extension: "md" }
+      ],
+      new Map([
+        ["notes\\Home.md", "one"],
+        ["notes/Home.md", "two"]
+      ])
+    );
+    await expect(new ObsidianVaultReader(duplicate).listFiles()).rejects.toThrow("ambiguous");
+    expect(() =>
+      scanVaultFiles([{ path: "Home.md", content: "# one\n# two" }], new Map(), {
+        maxFiles: 1,
+        maxFileBytes: 100,
+        maxTotalBytes: 100,
+        maxHeadingsPerFile: 1,
+        maxReferencesPerFile: 1
+      })
+    ).toThrow("processing limits");
+  });
+
+  it("rejects an oversized Markdown file from metadata before reading it", async () => {
+    let reads = 0;
+    const vault = new FakeVault(
+      [{ path: "Large.md", extension: "md", stat: { size: 101 } }],
+      new Map()
+    );
+    vault.read = async () => {
+      reads += 1;
+      return "x";
+    };
+    await expect(
+      new ObsidianVaultReader(vault, {
+        maxFiles: 2,
+        maxFileBytes: 100,
+        maxTotalBytes: 100,
+        maxHeadingsPerFile: 10,
+        maxReferencesPerFile: 10
+      }).listFiles()
+    ).rejects.toThrow("processing limits");
+    expect(reads).toBe(0);
+  });
+
   it("tracks changed and renamed files until the scanner consumes the invalidation set", () => {
     const vault = new FakeVault(
       [{ path: "Home.md", extension: "md" }],
@@ -100,11 +146,18 @@ describe("ObsidianVaultReader", () => {
     const reader = new ObsidianVaultReader(vault);
     const stopWatching = reader.watchInvalidations();
 
+    vault.emit("create", { path: "Created.md", extension: "md" });
     vault.emit("modify", { path: "Home.md", extension: "md" });
     vault.emit("rename", { path: "Renamed.md", extension: "md" }, "Home.md");
 
-    expect(reader.consumeInvalidatedPaths()).toEqual(["Home.md", "Renamed.md"]);
+    expect(reader.consumeInvalidatedPaths()).toEqual(["Created.md", "Home.md", "Renamed.md"]);
     expect(reader.consumeInvalidatedPaths()).toEqual([]);
+    expect(reader.consumeInvalidatedEvents()).toEqual([
+      { schemaVersion: 1, kind: "create", path: "Created.md" },
+      { schemaVersion: 1, kind: "modify", path: "Home.md" },
+      { schemaVersion: 1, kind: "rename", path: "Renamed.md", oldPath: "Home.md" }
+    ]);
+    expect(reader.consumeInvalidatedEvents()).toEqual([]);
 
     stopWatching();
     vault.emit("delete", { path: "Renamed.md", extension: "md" });

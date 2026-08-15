@@ -39,6 +39,13 @@ export type OperationalBaseline = {
   maxApplyFailureRate: number;
 };
 
+export function calculatePercentile(values: readonly number[], percentile: number): number | null {
+  if (values.length === 0 || percentile < 0 || percentile > 1) return null;
+  const sorted = [...values].filter(Number.isFinite).sort((left, right) => left - right);
+  if (sorted.length === 0) return null;
+  return sorted[Math.min(sorted.length - 1, Math.ceil(percentile * sorted.length) - 1)] ?? null;
+}
+
 export function summarizeOperationalMetrics(
   samples: readonly OperationalSample[]
 ): OperationalMetrics {

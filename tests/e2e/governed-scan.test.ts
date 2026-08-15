@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { createGovernedIntegritySession } from "../../src/plugin/main.js";
-import type { LocalProvider } from "../../src/model-provider/local-provider.js";
+import type { ModelProvider } from "../../src/model-provider/local-provider.js";
 
-const provider: LocalProvider = {
+const provider: ModelProvider = {
   config: {
     kind: "ollama",
     endpoint: "http://127.0.0.1:11434",
@@ -31,6 +31,6 @@ describe("governed scans", () => {
     });
     await expect(
       createGovernedIntegritySession([]).scan([{ path: "Home.md", content: "[[Missing]]" }])
-    ).rejects.toThrow("required local model");
+    ).rejects.toThrow("required model");
   });
 });

@@ -22,11 +22,15 @@ export function ProposalReviewPanel({
   const [outcome, setOutcome] = useState<string | undefined>();
   const affectedNotes = new Set(proposal.operations.map((operation) => operation.path)).size;
   const apply = async () => {
-    const result = await onApply(proposal.id);
     setConfirming(false);
-    setOutcome(
-      result.ok ? "Approved change applied." : `Apply could not complete: ${result.reason}.`
-    );
+    try {
+      const result = await onApply(proposal.id);
+      setOutcome(
+        result.ok ? "Approved change applied." : `Apply could not complete: ${result.reason}.`
+      );
+    } catch {
+      setOutcome("Apply could not complete. The proposal may no longer be approved.");
+    }
   };
   return (
     <section aria-label="Proposal review">
@@ -52,7 +56,8 @@ export function ProposalReviewPanel({
         </button>
       ) : null}
       {confirming ? (
-        <dialog open aria-label="Apply this approved change?">
+        <div role="alertdialog" aria-labelledby="apply-confirmation-title">
+          <h3 id="apply-confirmation-title">Apply this approved change?</h3>
           <p>
             Apply this approved change to {affectedNotes} affected note
             {affectedNotes === 1 ? "" : "s"}?
@@ -63,7 +68,7 @@ export function ProposalReviewPanel({
           <button type="button" onClick={() => void apply()}>
             Confirm apply
           </button>
-        </dialog>
+        </div>
       ) : null}
       {outcome ? <p role="status">{outcome}</p> : null}
     </section>

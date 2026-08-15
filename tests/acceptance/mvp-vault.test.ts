@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { LocalAgentCoordinator } from "../../src/agents/coordinator.js";
 import type { AgentEvidence } from "../../src/agents/model-assisted.js";
 import { checkDecisions, indexDecision } from "../../src/decisions/index.js";
-import type { LocalProvider } from "../../src/model-provider/local-provider.js";
+import type { ModelProvider } from "../../src/model-provider/local-provider.js";
 import { evaluatePolicies, extractPolicyFacts } from "../../src/policy/evaluate.js";
 import { parsePolicy } from "../../src/policy/parse.js";
 import { checkReferenceIntegrity } from "../../src/reference/check.js";
@@ -16,7 +16,7 @@ import { applyMigrations } from "../../src/storage/migrations.js";
 import { VaultStewardRepository } from "../../src/storage/repositories.js";
 import { checkTasks } from "../../src/tasks/check.js";
 
-const provider: LocalProvider = {
+const provider: ModelProvider = {
   config: {
     kind: "ollama",
     endpoint: "http://127.0.0.1:11434",

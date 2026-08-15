@@ -103,6 +103,108 @@ export const MIGRATIONS: readonly Migration[] = [
       CREATE INDEX scans_reusable_snapshot_idx
         ON scans (vault_fingerprint, input_hash, parser_version, status);
     `
+  },
+  {
+    version: 4,
+    sql: `
+      CREATE TABLE parse_products (
+        scan_id TEXT NOT NULL REFERENCES scans(id),
+        parser_version TEXT NOT NULL,
+        path TEXT NOT NULL,
+        revision_hash TEXT NOT NULL,
+        frontmatter_hash TEXT NOT NULL,
+        body_metadata_hash TEXT NOT NULL,
+        PRIMARY KEY (scan_id, path)
+      );
+      CREATE INDEX parse_products_reuse_idx
+        ON parse_products (parser_version, path, revision_hash);
+    `
+  },
+  {
+    version: 5,
+    sql: `
+      CREATE TABLE parse_dependencies (
+        scan_id TEXT NOT NULL REFERENCES scans(id),
+        path TEXT NOT NULL,
+        target_path TEXT NOT NULL,
+        relation TEXT NOT NULL,
+        PRIMARY KEY (scan_id, path, target_path, relation)
+      );
+      CREATE INDEX parse_dependencies_target_idx
+        ON parse_dependencies (target_path);
+    `
+  },
+  {
+    version: 6,
+    sql: `
+      CREATE TABLE reviewer_feedback (
+        id TEXT PRIMARY KEY,
+        finding_id TEXT NOT NULL REFERENCES findings(id),
+        proposal_id TEXT,
+        verdict TEXT NOT NULL CHECK (verdict IN ('false-positive', 'useful', 'needs-review')),
+        label TEXT,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX reviewer_feedback_finding_idx ON reviewer_feedback (finding_id);
+    `
+  },
+  {
+    version: 7,
+    sql: `
+      CREATE TABLE trace_spans (id TEXT PRIMARY KEY, scan_id TEXT NOT NULL REFERENCES scans(id), parent_span_id TEXT, kind TEXT NOT NULL, started_at TEXT NOT NULL, completed_at TEXT, outcome TEXT NOT NULL, correlation_id TEXT NOT NULL, attributes_json TEXT NOT NULL, schema_version INTEGER NOT NULL);
+      CREATE TABLE agent_executions (id TEXT PRIMARY KEY, scan_id TEXT NOT NULL REFERENCES scans(id), span_id TEXT NOT NULL REFERENCES trace_spans(id), agent TEXT NOT NULL, model TEXT NOT NULL, duration_ms INTEGER NOT NULL, retry_count INTEGER NOT NULL, validation TEXT NOT NULL, correlation_id TEXT NOT NULL, schema_version INTEGER NOT NULL);
+      CREATE TABLE finding_lineage (finding_id TEXT PRIMARY KEY REFERENCES findings(id), scan_id TEXT NOT NULL REFERENCES scans(id), evidence_locators_json TEXT NOT NULL, parsed_artifact_ids_json TEXT NOT NULL, validator_id TEXT NOT NULL, coordinator_decision_id TEXT NOT NULL, agent_execution_id TEXT, correlation_id TEXT NOT NULL, schema_version INTEGER NOT NULL);
+      CREATE TABLE telemetry_settings (id INTEGER PRIMARY KEY CHECK (id = 1), retention_days INTEGER NOT NULL, updated_at TEXT NOT NULL);
+      INSERT INTO telemetry_settings (id, retention_days, updated_at) VALUES (1, 30, CURRENT_TIMESTAMP);
+      CREATE TABLE telemetry_deletions (id TEXT PRIMARY KEY, deleted_at TEXT NOT NULL, category TEXT NOT NULL, scan_id TEXT);
+    `
+  },
+  {
+    version: 8,
+    sql: `
+      ALTER TABLE telemetry_settings ADD COLUMN store_prompt_snapshots INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE telemetry_settings ADD COLUMN store_model_output_snapshots INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE telemetry_settings ADD COLUMN redact_excerpts INTEGER NOT NULL DEFAULT 1;
+      ALTER TABLE telemetry_settings ADD COLUMN excluded_folders_json TEXT NOT NULL DEFAULT '[]';
+      CREATE TABLE trace_configurations (
+        scan_id TEXT PRIMARY KEY REFERENCES scans(id),
+        fingerprint TEXT NOT NULL,
+        values_json TEXT NOT NULL,
+        schema_version INTEGER NOT NULL
+      );
+      CREATE TABLE trace_snapshots (
+        id TEXT PRIMARY KEY,
+        scan_id TEXT NOT NULL REFERENCES scans(id),
+        category TEXT NOT NULL CHECK (category IN ('prompt', 'model-output')),
+        snapshot_json TEXT NOT NULL,
+        byte_count INTEGER NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX trace_spans_scan_started_idx ON trace_spans (scan_id, started_at);
+      CREATE INDEX trace_snapshots_scan_category_idx ON trace_snapshots (scan_id, category);
+    `
+  },
+  {
+    version: 9,
+    sql: `
+      ALTER TABLE finding_lineage ADD COLUMN retrieval_metadata_json TEXT NOT NULL DEFAULT '[]';
+      ALTER TABLE finding_lineage ADD COLUMN policy_evaluation_id TEXT;
+      ALTER TABLE finding_lineage ADD COLUMN proposal_source_id TEXT;
+    `
+  },
+  {
+    version: 10,
+    sql: `
+      ALTER TABLE proposals ADD COLUMN proposal_digest TEXT NOT NULL DEFAULT '';
+      ALTER TABLE approvals ADD COLUMN proposal_digest TEXT;
+    `
+  },
+  {
+    version: 11,
+    sql: `
+      ALTER TABLE reviewer_feedback ADD COLUMN pattern_key TEXT NOT NULL DEFAULT '';
+      CREATE INDEX reviewer_feedback_pattern_idx ON reviewer_feedback (pattern_key);
+    `
   }
 ];
 

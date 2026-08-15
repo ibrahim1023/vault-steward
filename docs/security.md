@@ -8,23 +8,41 @@ This document owns security controls and trust boundaries. It complements, rathe
 
 Sensitive assets are vault content, attachment paths, policy files, local model prompts/results, SQLite data, and approval audit records. Trust boundaries exist at vault input, YAML parsing, model prompts/outputs, plugin configuration, optional local model HTTP endpoint, and the approval-to-apply transition.
 
-| Threat                               | Required control                                                                                                                                       |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Prompt injection in notes            | Treat notes as data; fixed prompt delimiters; no write/shell/network tools; validate output and evidence deterministically.                            |
-| Path traversal or malicious links    | Canonicalize paths and require them to remain within the active vault; reject traversal, file embeds, and URI schemes outside the HTTP(S) link policy. |
-| Unauthorized mutation                | Apply only user-approved, revision-checked structured patches through the vault adapter; append audit record.                                          |
-| Malformed YAML/Markdown/model output | Size/depth limits; schema validation; safe parser configuration; fail closed with diagnostics.                                                         |
-| Local provider exposure              | Provider endpoint is explicit local configuration; no secret-bearing prompts; timeouts and response-size caps.                                         |
-| Sensitive logging                    | Default metadata-only logs; redact content, paths, credentials, and prompts.                                                                           |
-| Dependency compromise                | Lock dependencies, review plugin/model/parser updates, run planned audit checks, minimize packages.                                                    |
-| Resource exhaustion                  | File, attachment, parser, queue, model-token, and timeout limits; cancellation and backpressure.                                                       |
+| Threat                               | Required control                                                                                                                                                                                                            |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Prompt injection in notes            | Treat notes as data; fixed prompt delimiters; no write/shell/network tools; validate output and evidence deterministically.                                                                                                 |
+| Path traversal or malicious links    | Canonicalize paths and require them to remain within the active vault; reject traversal, file embeds, and URI schemes outside the HTTP(S) link policy.                                                                      |
+| Unauthorized mutation                | Apply only user-approved, revision-checked structured patches through the vault adapter; append audit record.                                                                                                               |
+| Malformed YAML/Markdown/model output | Size/depth limits; schema validation; safe parser configuration; fail closed with diagnostics.                                                                                                                              |
+| Model provider exposure              | Ollama/llama.cpp endpoints are loopback-only. HyperFusion and OpenAI are fixed HTTPS origins, require an API key plus explicit cloud-data acknowledgement, use bounded requests, and cannot use arbitrary remote endpoints. |
+| Sensitive logging                    | Default metadata-only logs; redact content, paths, credentials, and prompts.                                                                                                                                                |
+| Dependency compromise                | Lock dependencies, review plugin/model/parser updates, run planned audit checks, minimize packages.                                                                                                                         |
+| Resource exhaustion                  | File, attachment, parser, queue, model-token, and timeout limits; cancellation and backpressure.                                                                                                                            |
 
 ## Authentication and Authorization
 
-The initial product inherits the local Obsidian user session and has no remote accounts or tenants. The user selects the vault. Agent authorization is capability-based and read-only; mutation authorization is a UI approval token bound to a proposal and source revision.
+The initial product inherits the local Obsidian user session and has no remote accounts or tenants. The user selects the vault. Agent authorization is capability-based and read-only; mutation authorization is created only by the **Apply N fixes** UI action and is bound to each persisted proposal digest and source revision. All batch members are preflighted before the first write.
 
 ## Enforcement Requirements
 
-No cloud API, telemetry, remote storage, shell execution, or broad filesystem scanning may be introduced without a material ADR and explicit product-scope change. Security-relevant failures must be surfaced to the user without leaking note content in logs.
+No cloud API, telemetry, remote storage, shell execution, or broad filesystem scanning may be introduced without a material ADR and explicit product-scope change. The approved exceptions are the fixed-origin, user-authorized OpenAI provider in [ADR 0006](decisions/0006-openai-opt-in-provider.md) and HyperFusion provider in [ADR 0007](decisions/0007-hyperfusion-opt-in-provider.md). Security-relevant failures must be surfaced to the user without leaking note content in logs.
 
-The offline/privacy acceptance suite statically rejects runtime shell, telemetry, and cloud-storage capabilities, and proves local providers reject non-loopback endpoints before any request is made.
+The privacy acceptance suite statically rejects runtime shell, telemetry, cloud-storage, and arbitrary remote provider capabilities. Local provider endpoints remain loopback-only; cloud configurations are pinned to their provider-specific API origins before any request is made.
+
+## Phase 30 Hardening
+
+New scan evidence records an exact one-based line and column. Repair planning rejects legacy line-only evidence rather than selecting the first matching text. At the write boundary, the Obsidian adapter uses per-file processing to re-check the current content before changing it.
+
+Markdown file metadata is checked before reading content, aggregate scan limits are enforced incrementally, and frontmatter/policy parsing rejects oversized, deeply nested, alias/merge-based, malformed, or language-engine YAML input. Frontmatter is parsed only as a YAML mapping; language-qualified `---js` delimiters are rejected and the vulnerable `gray-matter` parser is not shipped.
+
+Cloud-data acknowledgement is stored per provider. An acknowledgement for OpenAI cannot authorize HyperFusion, and legacy shared consent is intentionally discarded on settings migration. Structured model recovery uses a bounded linear JSON extraction pass; malformed model output remains fail-closed.
+
+An unchecked task explicitly marked `status:done` is a deterministic repair
+case: it produces one exact checkbox operation and does not require a model
+selection. This avoids making a safe repair depend on a provider response while
+retaining the same evidence, preview, approval, stale-check, rollback, and
+post-write re-index controls.
+
+The completed deep-security scan identified two low-severity findings. Both
+were remediated by fail-closed policy loading and conditional rollback, and
+regression coverage protects both paths.

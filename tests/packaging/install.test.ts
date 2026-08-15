@@ -11,6 +11,7 @@ describe("plugin install harness", () => {
       "main.js",
       "manifest.json",
       "sql-wasm.wasm",
+      "styles.css",
       "release-manifest.json"
     ]);
     expect(() => pluginInstallPath("/vault", "../unsafe")).toThrow("safe slug");

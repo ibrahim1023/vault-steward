@@ -8,6 +8,8 @@ const baseline = {
   minimumAttachmentCount: 50,
   maxFullScanMs: 10_000,
   maxIncrementalScanMs: 1_000,
+  minimumReusedNotes: 299,
+  maxEventQueueDepth: 50,
   maxHeapDeltaBytes: 128 * 1024 * 1024,
   maxSqliteWriteBytes: 20 * 1024 * 1024
 };
@@ -20,6 +22,8 @@ describe("performance budget", () => {
         attachmentCount: 50,
         fullScanMs: 120,
         incrementalScanMs: 4,
+        reusedNoteCount: 299,
+        eventQueueDepth: 1,
         heapDeltaBytes: 1024,
         sqliteWriteBytes: 4096
       })
@@ -33,9 +37,11 @@ describe("performance budget", () => {
         attachmentCount: 0,
         fullScanMs: 20_000,
         incrementalScanMs: 2_000,
+        reusedNoteCount: 0,
+        eventQueueDepth: 51,
         heapDeltaBytes: 200 * 1024 * 1024,
         sqliteWriteBytes: 30 * 1024 * 1024
       })
-    ).toHaveLength(6);
+    ).toHaveLength(8);
   });
 });

@@ -1,8 +1,21 @@
 # MVP Release Review
 
+## Phase 10 Addendum
+
+The post-MVP review confirms local scheduler guards, deterministic maintenance grouping/impact inspection, redacted portability contracts, release artifact checks, and the desktop accessibility protocol. Automated evidence passes; the documented desktop protocol remains required before wider distribution.
+
+## Manual Desktop Acceptance
+
+Completed on 2026-07-16: ribbon and command-palette launch, governed scanning, maintenance impact inspection, policy preview/save, model readiness, offline failure recovery, and packaged-plugin reinstall/reopen were exercised in Obsidian desktop.
+
 ## Decision
 
-**Conditional internal MVP release approved.** The package, deterministic core, local-model boundary, safety controls, and automated Phase 6 gates are ready for local developer installation. Broader distribution is blocked on a manual Obsidian desktop check and on wiring semantic findings and proposal actions into the live workspace.
+**Development promotion complete, not release acceptance.** Phase 30 security
+hardening was promoted to `development` at `bdd770f` on 2026-08-12 after the
+full automated gate and macOS acceptance retest passed. Broader distribution
+remains blocked on the submission materials and release-owner review listed in
+the Community Plugins checklist. HyperFusion and OpenAI remain experimental
+opt-in providers.
 
 ## Reviewed Controls
 
@@ -11,17 +24,30 @@
 - Privacy and security: local-only provider endpoints, no telemetry/cloud/shell/broad scan capability, redacted diagnostics, bounded input/output, revision-safe apply, and dependency auditing are enforced.
 - Reliability: migrations, corrupt database bytes, vault I/O, cancellation, provider failures, malformed structured output, duplicate events, restart recovery, and apply/re-index recovery paths have deterministic coverage.
 - Operations: performance and operational thresholds are versioned and verified through local smoke gates.
-- Usability: the UI review documents keyboard-native controls, accessible scan/error announcements, readable evidence and diff output, narrow-pane behavior, and error recovery.
+- Usability: the release candidate must expose one dominant action, exact
+  Current/After output, deterministic expected and actual results, direct
+  Settings and History, and technical tools under Diagnostics.
 - Acceptance: the synthetic vault exercises references, entities, contradictions, staleness, tasks, schemas, decisions, policies, coordinator routing, proposal construction, approval, apply, and re-index.
 
 ## Release Conditions
 
-1. Completed on 2026-07-14: every automated command in `AGENTS.md`, plus the MVP acceptance suite, passed from the Phase 6 branch.
-2. Before broad distribution, install the packaged plugin into a real local Obsidian vault, complete one governed scan with the configured local model, and confirm the status workspace updates correctly.
-3. Keep the limitations in `docs/known-limitations.md` visible in release notes until semantic findings and proposal controls are connected to the workspace.
+1. Completed on 2026-08-12: the full automated gate and macOS acceptance retest
+   passed, including provider-specific acknowledgement, exact preview, stale
+   safety, and deterministic completion repair.
+2. Completed on 2026-08-05: the Ollama and OpenAI versioned provider reports
+   passed against the same Northstar corpus, and the combined evaluation gate
+   passed. This evidence does not claim marketplace availability.
+3. The release owner must complete current screenshots, a scan-to-approval
+   demonstration, public repository/license confirmation, version/tag/changelog
+   alignment, and the final release-quality **go** decision. Upstream
+   submission remains a separate owner action.
 
 ## Remaining Limitations
 
-- The live workspace currently renders deterministic reference findings, not all semantic candidate types.
-- The core proposal workflow is explicit-approval and revision safe, but its approval/apply controls are not yet exposed through the Obsidian workspace.
-- Model quality gates need calibration on representative local fixtures before wider distribution.
+- Current macOS screenshots, a short demonstration, release tag/version
+  evidence, and release-owner review remain required before submission.
+- The completed deep-security scan identified two low-severity findings. Both
+  were remediated by fail-closed policy loading and conditional rollback, with
+  regression coverage protecting both paths.
+- Both cloud providers remain experimental opt-in paths despite their passing
+  redacted validation reports.

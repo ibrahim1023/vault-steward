@@ -6,17 +6,19 @@ This document owns persisted domain concepts and lifecycle. The forward-only SQL
 
 ## Core Records
 
-| Record        | Key fields                                                          | Notes                                                        |
-| ------------- | ------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `scan`        | `id`, vault fingerprint, started/finished time, status, config hash | immutable run boundary; `scan_inputs` stores paths/revisions |
-| `note`        | stable file ID, path, revision hash, frontmatter, body metadata     | content stays local                                          |
-| `node`        | `id`, `kind`, scan ID, source note ID, display label                | kinds: note, entity, project, task, decision, attachment     |
-| `edge`        | `id`, scan ID, from, to, relation, evidence locator                 | relations from `spec.md`                                     |
-| `policy`      | ID, YAML source hash, enabled status                                | parsed before evaluation                                     |
-| `finding`     | required fields from `spec.md`, scan ID, lifecycle status           | user-reviewable output                                       |
-| `proposal`    | finding ID, patch, source revisions, status                         | cannot be applied stale                                      |
-| `approval`    | proposal ID, user action, timestamp, applied revision               | append-only audit record                                     |
-| `model_trace` | request metadata, schema version, timing, token counts, outcome     | excludes note text by default                                |
+| Record             | Key fields                                                             | Notes                                                        |
+| ------------------ | ---------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `scan`             | `id`, vault fingerprint, started/finished time, status, config hash    | immutable run boundary; `scan_inputs` stores paths/revisions |
+| `note`             | stable file ID, path, revision hash, frontmatter, body metadata        | content stays local                                          |
+| `node`             | `id`, `kind`, scan ID, source note ID, display label                   | kinds: note, entity, project, task, decision, attachment     |
+| `edge`             | `id`, scan ID, from, to, relation, evidence locator                    | relations from `spec.md`                                     |
+| `policy`           | ID, YAML source hash, enabled status                                   | parsed before evaluation                                     |
+| `finding`          | required fields from `spec.md`, scan ID, lifecycle status              | user-reviewable output                                       |
+| `proposal`         | finding ID, patch, source revisions, status                            | cannot be applied stale                                      |
+| `approval`         | proposal ID, user action, timestamp, applied revision                  | append-only audit record                                     |
+| `model_trace`      | request metadata, schema version, timing, token counts, outcome        | excludes note text by default                                |
+| `parse_product`    | scan ID, parser version, normalized path, revision and metadata hashes | parser-reuse eligibility; no note body retained              |
+| `parse_dependency` | scan ID, source path, target path, relation                            | persisted reference dependency projection                    |
 
 ## Consistency and Transactions
 
@@ -24,7 +26,7 @@ Each scan writes within a transaction per bounded batch, then marks the scan com
 
 ## Lifecycle and Retention
 
-Raw note text is read from the vault, not duplicated unless a user explicitly enables a local cache. SQLite retains normalized metadata, evidence locators, hashes, findings, approvals, and aggregate traces. Stale scan records remain replayable until user-managed cleanup; cleanup must preserve audit records unless explicitly purged.
+Raw note text is read from the vault and is not duplicated into parse-product history. SQLite retains normalized metadata, evidence locators, hashes, dependency targets, findings, approvals, and aggregate traces. Finding lifecycle is derived from completed scan records; a finding is resolved when it is absent from a later completed scan, while stale remains an explicit persisted finding status. Stale scan records remain replayable until user-managed cleanup; cleanup must preserve audit records unless explicitly purged.
 
 ## Migrations and Concurrency
 

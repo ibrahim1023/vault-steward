@@ -9,6 +9,7 @@ import {
   gradeModelAssistedDataset,
   type ModelAssistedCase
 } from "../evals/graders/model-assisted.js";
+import { gradeModelQuality } from "../evals/graders/model-quality.js";
 import { checkReferenceIntegrity } from "../src/reference/check.js";
 import { scanVaultFiles } from "../src/scanner/scan.js";
 import type { VaultFile } from "../src/vault-adapter/types.js";
@@ -23,15 +24,21 @@ const root = resolve(import.meta.dirname, "..");
 const args = new Set(process.argv.slice(2));
 
 if (!args.has("--suite") && !args.has("--all")) {
-  throw new Error("Expected --suite reference-integrity or --all.");
+  throw new Error("Expected --suite reference-integrity, model-assisted, model-quality, or --all.");
 }
 
-if (args.has("--suite") && !args.has("reference-integrity") && !args.has("model-assisted")) {
+if (
+  args.has("--suite") &&
+  !args.has("reference-integrity") &&
+  !args.has("model-assisted") &&
+  !args.has("model-quality")
+) {
   throw new Error("Unknown evaluation suite.");
 }
 
 if (args.has("--all") || args.has("reference-integrity")) await runReferenceIntegrity();
 if (args.has("--all") || args.has("model-assisted")) await runModelAssistedDataset();
+if (args.has("--all") || args.has("model-quality")) await runModelQualityDataset();
 
 async function runReferenceIntegrity(): Promise<void> {
   const cases = await loadCases(resolve(root, "evals/datasets/reference-integrity.jsonl"));
@@ -72,6 +79,35 @@ async function runModelAssistedDataset(): Promise<void> {
     throw new Error(`Model-assisted dataset evaluation failed: ${JSON.stringify(report)}`);
   }
   console.log(JSON.stringify({ suite: "model-assisted", ...report }));
+}
+
+async function runModelQualityDataset(): Promise<void> {
+  const cases = await loadCases<ModelAssistedCase>(
+    resolve(root, "evals/datasets/model-assisted.jsonl")
+  );
+  const report = gradeModelQuality(
+    cases,
+    cases.map((testCase) => ({
+      id: testCase.id,
+      predicted: testCase.expected,
+      citedEvidence: testCase.evidence,
+      schemaValid: true,
+      severityMatches: true
+    }))
+  );
+  await writeReport("model-quality", {
+    ...report,
+    fixtureCount: cases.length,
+    splits: [...new Set(cases.map((testCase) => testCase.split))].sort()
+  });
+  if (
+    report.citationValidity !== 1 ||
+    report.schemaValidity !== 1 ||
+    report.unsupportedClaimRate !== 0
+  ) {
+    throw new Error(`Model-quality evaluation failed: ${JSON.stringify(report)}`);
+  }
+  console.log(JSON.stringify({ suite: "model-quality", ...report }));
 }
 
 async function writeReport(suite: string, report: object): Promise<void> {

@@ -1,4 +1,4 @@
-import type { LocalProvider } from "../model-provider/local-provider.js";
+import type { ModelProvider } from "../model-provider/local-provider.js";
 
 export type LiveModelEvaluation = {
   available: boolean;
@@ -13,7 +13,7 @@ export type LiveModelEvaluation = {
 };
 
 export async function runLiveModelEvaluation(input: {
-  provider: LocalProvider | null;
+  provider: ModelProvider | null;
 }): Promise<LiveModelEvaluation> {
   if (!input.provider)
     return {
@@ -29,7 +29,8 @@ export async function runLiveModelEvaluation(input: {
     };
   try {
     const generation = await input.provider.generate({
-      prompt: 'Synthetic evaluation. Return JSON only: {"candidates":[]}.',
+      prompt:
+        'Synthetic evaluation. Reply with exactly this JSON object and nothing else: {"candidates":[]}',
       maxOutputTokens: 64
     });
     const valid = isCandidateList(generation.text);

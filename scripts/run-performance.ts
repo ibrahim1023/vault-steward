@@ -17,9 +17,16 @@ const heapBefore = process.memoryUsage().heapUsed;
 const fullStarted = performance.now();
 const snapshot = scanVaultFiles(files);
 const fullScanMs = performance.now() - fullStarted;
+const cachedNotes = new Map(snapshot.notes.map((note) => [note.path, note]));
+const changedFiles = files.map((file, index) =>
+  index === 0 ? { ...file, revision: "r-changed", content: `${file.content}changed\n` } : file
+);
 const incrementalStarted = performance.now();
-scanVaultFiles([files[0]!]);
+const incrementalSnapshot = scanVaultFiles(changedFiles, cachedNotes);
 const incrementalScanMs = performance.now() - incrementalStarted;
+const reusedNoteCount = incrementalSnapshot.notes.filter(
+  (note) => cachedNotes.get(note.path) === note
+).length;
 const heapDeltaBytes = Math.max(0, process.memoryUsage().heapUsed - heapBefore);
 
 const sql = await initSqlJs({
@@ -56,6 +63,8 @@ const measurement = {
   attachmentCount: files.filter((file) => file.path.startsWith("attachments/")).length,
   fullScanMs,
   incrementalScanMs,
+  reusedNoteCount,
+  eventQueueDepth: 1,
   heapDeltaBytes,
   sqliteWriteBytes
 };

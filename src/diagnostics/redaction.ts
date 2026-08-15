@@ -19,8 +19,8 @@ export type RedactedDiagnostic = {
 };
 
 const MESSAGES: Record<DiagnosticInput["code"], string> = {
-  "provider-unavailable": "The required local model provider is unavailable.",
-  "structured-output-failed": "Local model output could not be validated.",
+  "provider-unavailable": "The required model provider is unavailable.",
+  "structured-output-failed": "Model output could not be validated.",
   "scan-failed": "The scan could not complete.",
   "apply-failed": "The approved change could not be applied.",
   "migration-failed": "The local database migration could not complete.",

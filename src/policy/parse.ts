@@ -1,7 +1,8 @@
 import { parseDocument } from "yaml";
+import { isPolicyTemplateId, type PolicyTemplateId } from "./templates.js";
 
-const MAX_POLICY_BYTES = 32_768;
-const POLICY_FIELDS = new Set(["id", "version", "enabled", "rules"]);
+export const MAX_POLICY_BYTES = 32_768;
+const POLICY_FIELDS = new Set(["id", "version", "enabled", "templates", "rules"]);
 const RULE_FIELDS = new Set(["id", "fact", "operator", "value", "severity"]);
 const OPERATORS = new Set(["required", "equals", "not_equals", "forbidden"]);
 const SEVERITIES = new Set(["info", "low", "medium", "high", "critical"]);
@@ -18,15 +19,17 @@ export type Policy = {
   id: string;
   version: 1;
   enabled: boolean;
+  templates?: PolicyTemplateId[];
   rules: PolicyRule[];
 };
 
 export type PolicyParseResult = { ok: true; value: Policy } | { ok: false; diagnostics: string[] };
 
 export function parsePolicy(source: string): PolicyParseResult {
-  if (new TextEncoder().encode(source).byteLength > MAX_POLICY_BYTES) {
-    return { ok: false, diagnostics: [`policy exceeds the ${MAX_POLICY_BYTES}-byte limit`] };
-  }
+  const sizeError = policySizeDiagnostic(source);
+  if (sizeError) return { ok: false, diagnostics: [sizeError] };
+  const safetyError = yamlSafetyDiagnostic(source);
+  if (safetyError) return { ok: false, diagnostics: [safetyError] };
 
   const document = parseDocument(source, { uniqueKeys: true });
   if (document.errors.length > 0) {
@@ -43,12 +46,36 @@ export function parsePolicy(source: string): PolicyParseResult {
   return diagnostics.length > 0 ? { ok: false, diagnostics } : { ok: true, value: toPolicy(value) };
 }
 
+export function policySizeDiagnostic(source: string): string | null {
+  return new TextEncoder().encode(source).byteLength > MAX_POLICY_BYTES
+    ? `policy exceeds the ${MAX_POLICY_BYTES}-byte limit`
+    : null;
+}
+
+function yamlSafetyDiagnostic(source: string): string | null {
+  if (/(^|\n)\s*(?:<<\s*:|[^#\n]+:\s*[*&])/.test(source))
+    return "policy aliases and merge keys are not supported";
+  let maxDepth = 0;
+  for (const line of source.split("\n")) {
+    if (!/\S/.test(line)) continue;
+    maxDepth = Math.max(maxDepth, Math.floor(line.match(/^\s*/)![0].length / 2) + 1);
+  }
+  return maxDepth > 64 ? "policy nesting exceeds the 64-level limit" : null;
+}
+
 function validatePolicy(value: Record<string, unknown>): string[] {
   const diagnostics: string[] = [];
   if (!isNonEmptyString(value.id)) diagnostics.push("policy id must be a non-empty string");
   if (value.version !== 1) diagnostics.push("policy version must be 1");
   if (value.enabled !== undefined && typeof value.enabled !== "boolean") {
     diagnostics.push("policy enabled must be a boolean");
+  }
+  if (value.templates !== undefined) {
+    if (!Array.isArray(value.templates) || !value.templates.every(isPolicyTemplateId)) {
+      diagnostics.push("policy templates must contain only known template ids");
+    } else if (new Set(value.templates).size !== value.templates.length) {
+      diagnostics.push("policy templates must not contain duplicates");
+    }
   }
   if (!Array.isArray(value.rules)) return [...diagnostics, "policy rules must be an array"];
 
@@ -81,6 +108,7 @@ function toPolicy(value: Record<string, unknown>): Policy {
     id: value.id as string,
     version: 1,
     enabled: value.enabled !== false,
+    ...(Array.isArray(value.templates) ? { templates: value.templates as PolicyTemplateId[] } : {}),
     rules: (value.rules as Record<string, unknown>[]).map((rule) => ({
       id: rule.id as string,
       fact: rule.fact as string,

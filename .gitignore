@@ -5,9 +5,14 @@ main.js
 sql-wasm.wasm
 coverage/
 evals/reports/*.json
+evals/generated/
 npm-debug.log*
+.pnpm-store/
+.superpowers/
+.worktrees/
 
 # docs
 task.md
+.env
 spec.md
 starter.md

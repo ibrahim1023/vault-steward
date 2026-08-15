@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "decision-rationale-human",
+  "family": "decision",
+  "split": "human-review",
+  "agent": "decision",
+  "fixturePath": "evals/cases/decision/decision-rationale-human/vault",
+  "contamination": {
+    "developmentVisible": false,
+    "reason": "requires adjudicated reviewer interpretation"
+  },
+  "humanLabel": { "labelId": "decision-rationale-001", "adjudicated": false }
+}

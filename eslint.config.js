@@ -4,7 +4,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", "coverage", "evals/reports", "main.js"] },
+  { ignores: ["dist", "coverage", "evals/reports", "main.js", ".worktrees"] },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {

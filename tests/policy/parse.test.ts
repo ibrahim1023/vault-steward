@@ -3,6 +3,19 @@ import { describe, expect, it } from "vitest";
 import { parsePolicy } from "../../src/policy/parse.js";
 
 describe("policy parser", () => {
+  it("rejects deep nesting and aliases before YAML conversion", () => {
+    const nested = Array.from({ length: 65 }, (_, index) => `${"  ".repeat(index)}x${index}:`).join(
+      "\n"
+    );
+    expect(parsePolicy(nested)).toMatchObject({
+      ok: false,
+      diagnostics: [expect.stringContaining("nesting")]
+    });
+    expect(parsePolicy("id: p\nversion: 1\nrules: &rules []")).toMatchObject({
+      ok: false,
+      diagnostics: [expect.stringContaining("aliases")]
+    });
+  });
   it("accepts a bounded versioned policy", () => {
     expect(
       parsePolicy(`

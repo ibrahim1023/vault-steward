@@ -8,7 +8,7 @@ export type PluginManifest = {
 };
 
 export type ReleaseArtifact = {
-  path: "main.js" | "manifest.json" | "sql-wasm.wasm";
+  path: "main.js" | "manifest.json" | "sql-wasm.wasm" | "styles.css";
   sha256: string;
 };
 
@@ -50,7 +50,12 @@ export function createReleaseManifest(
 ): ReleaseManifest {
   const errors = validatePluginManifest(plugin);
   if (errors.length) throw new Error(errors.join("; "));
-  const expected = new Set<ReleaseArtifact["path"]>(["main.js", "manifest.json", "sql-wasm.wasm"]);
+  const expected = new Set<ReleaseArtifact["path"]>([
+    "main.js",
+    "manifest.json",
+    "sql-wasm.wasm",
+    "styles.css"
+  ]);
   const values = Object.fromEntries(
     artifacts.map((artifact) => {
       if (!expected.delete(artifact.path) || !/^[a-f0-9]{64}$/.test(artifact.sha256))

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "stale",
+    "type": "staleness",
+    "notePath": "Project.md",
+    "locator": "line:1:column:1",
+    "severity": "low",
+    "safeFix": "not-applicable"
+  }
+]

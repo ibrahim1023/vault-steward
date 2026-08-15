@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { runGovernedScan } from "../../src/core/governed-scan.js";
-import type { LocalProvider } from "../../src/model-provider/local-provider.js";
+import type { ModelProvider } from "../../src/model-provider/local-provider.js";
 
-const provider: LocalProvider = {
+const provider: ModelProvider = {
   config: {
     kind: "ollama",
     endpoint: "http://127.0.0.1:11434",
@@ -42,6 +42,18 @@ describe("snapshot-derived governed scan", () => {
     ]);
   });
 
+  it("emits exact evidence locators for governed task findings", async () => {
+    const result = await runGovernedScan(
+      [{ path: "Tasks.md", content: "- [ ] Launch due:2025-01-01 ^launch" }],
+      [provider],
+      "2026-07-14T00:00:00Z"
+    );
+
+    expect(result.findings.find((finding) => finding.type === "task")?.evidence[0]).toMatchObject({
+      locator: "line:1:column:1"
+    });
+  });
+
   it("derives configured schema and policy findings from the same snapshot", async () => {
     const result = await runGovernedScan(
       [{ path: "Project.md", content: "---\nkind: project\nstatus: archived\n---\nProject" }],
@@ -54,6 +66,7 @@ describe("snapshot-derived governed scan", () => {
             id: "project-owner",
             version: 1,
             enabled: true,
+            templates: [],
             rules: [
               {
                 id: "owner-required",
@@ -72,6 +85,26 @@ describe("snapshot-derived governed scan", () => {
     );
   });
 
+  it("emits schema findings only for activated, unambiguous policy templates", async () => {
+    const result = await runGovernedScan(
+      [{ path: "Projects/Atlas.md", content: "---\nkind: project\n---\n# Atlas" }],
+      [provider],
+      "2026-07-14T00:00:00Z",
+      {
+        policies: [
+          { id: "project-template", version: 1, enabled: true, templates: ["project"], rules: [] }
+        ]
+      }
+    );
+
+    expect(result.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "schema", explanation: "Project notes require 'owner'." }),
+        expect.objectContaining({ type: "schema", explanation: "Project notes require 'status'." })
+      ])
+    );
+  });
+
   it("does not report a completed scan when the required local model stage fails", async () => {
     const result = await runGovernedScan(
       [{ path: "Home.md", content: "[[Missing]]" }],
@@ -81,5 +114,27 @@ describe("snapshot-derived governed scan", () => {
 
     expect(result).toMatchObject({ completed: false, findings: [] });
     expect(result.limitations).toContain("local-model-provider-required");
+  });
+
+  it("keeps deterministic integrity checks available when model output is malformed", async () => {
+    const malformedProvider: ModelProvider = {
+      ...provider,
+      generate: async () => ({
+        text: "this is not JSON",
+        provider: "ollama",
+        model: "test",
+        latencyMs: 1
+      })
+    };
+
+    const result = await runGovernedScan(
+      [{ path: "Home.md", content: "[[Missing]]" }],
+      [malformedProvider],
+      "2026-07-14T00:00:00Z"
+    );
+
+    expect(result.completed).toBe(true);
+    expect(result.findings.map((finding) => finding.type)).toContain("broken-reference");
+    expect(result.limitations).toContain("local-model-output-unavailable");
   });
 });

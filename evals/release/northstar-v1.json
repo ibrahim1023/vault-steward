@@ -1,0 +1,690 @@
+{
+  "schemaVersion": 1,
+  "id": "northstar-release-v1",
+  "persona": "product-project-team",
+  "fixtureRoot": "fixtures/desktop-acceptance-vault",
+  "cases": [
+    {
+      "schemaVersion": 1,
+      "id": "project-owner-missing",
+      "family": "policy",
+      "label": "positive",
+      "task": "Determine whether the open project frontmatter is missing an owner. A non-empty owner key means no finding",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Projects/Northstar Launch.md",
+          "startLine": 1,
+          "endLine": 9
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "policy-missing-owner",
+        "severity": "high",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "decision-rationale-missing",
+      "family": "decision",
+      "label": "positive",
+      "task": "Determine whether the open decision frontmatter is missing a rationale. A non-empty rationale key means no finding",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Decisions/ADR-004-Launch-window.md",
+          "startLine": 1,
+          "endLine": 8
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "decision-missing-rationale",
+        "severity": "low",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "decision-rationale-present",
+      "family": "decision",
+      "label": "hard-negative",
+      "task": "Determine whether the open decision frontmatter is missing a rationale. A non-empty rationale key means no finding",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Decisions/ADR-005-Validation-first.md",
+          "startLine": 1,
+          "endLine": 9
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "partner-checklist-missing",
+      "family": "reference",
+      "label": "positive",
+      "task": "Determine whether an internal wiki target is missing. A target is missing only when no supplied note has that exact path. Select a replacement only when its supplied content supports the same intended checklist",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Partner Enablement.md",
+          "startLine": 19,
+          "endLine": 19
+        },
+        {
+          "id": "e2",
+          "notePath": "Guides/Partner Onboarding Checklist.md",
+          "startLine": 1,
+          "endLine": 8
+        }
+      ],
+      "candidateTargets": [
+        {
+          "id": "target-1",
+          "notePath": "Guides/Partner Onboarding Checklist.md"
+        }
+      ],
+      "expected": {
+        "decision": "finding",
+        "findingType": "broken-reference",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "eligible",
+        "candidateTargetId": "target-1"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "brief-reference-valid",
+      "family": "reference",
+      "label": "hard-negative",
+      "task": "Determine whether an internal wiki target is missing. A supplied note with the exact target path means no finding",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Partner Enablement.md",
+          "startLine": 16,
+          "endLine": 16
+        },
+        {
+          "id": "e2",
+          "notePath": "Product/Northstar Brief.md",
+          "startLine": 1,
+          "endLine": 8
+        }
+      ],
+      "candidateTargets": [
+        {
+          "id": "target-1",
+          "notePath": "Product/Northstar Brief.md"
+        }
+      ],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "external-style-target",
+      "family": "reference",
+      "label": "positive",
+      "task": "Determine whether the wiki target uses an external URL inside wiki-link syntax. That syntax is unsupported inside the vault",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Notes/Working Agreement.md",
+          "startLine": 19,
+          "endLine": 19
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "invalid-reference",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "brief-anchor-missing",
+      "family": "reference",
+      "label": "positive",
+      "task": "Determine whether the wiki target exists but its heading anchor does not. Match the anchor against supplied Markdown headings",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Research/Customer Interviews.md",
+          "startLine": 38,
+          "endLine": 38
+        },
+        {
+          "id": "e2",
+          "notePath": "Product/Northstar Brief.md",
+          "startLine": 30,
+          "endLine": 40
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "broken-reference",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "success-anchor-valid",
+      "family": "reference",
+      "label": "hard-negative",
+      "task": "Determine whether the wiki target exists but its heading anchor does not. An exact supplied Markdown heading means no finding",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Research/Customer Interviews.md",
+          "startLine": 37,
+          "endLine": 37
+        },
+        {
+          "id": "e2",
+          "notePath": "Product/Northstar Brief.md",
+          "startLine": 24,
+          "endLine": 29
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "interview-embed-missing",
+      "family": "reference",
+      "label": "positive",
+      "task": "Determine whether the embedded note target is missing. A target is missing when no supplied note has that path",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Research/Customer Interviews.md",
+          "startLine": 39,
+          "endLine": 39
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "broken-reference",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "analytics-task-overdue",
+      "family": "task",
+      "label": "positive",
+      "task": "Determine whether the checkbox task is incomplete and due before 2026-07-29. A checked task means no finding",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 16,
+          "endLine": 16
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-overdue",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "completed-task-not-overdue",
+      "family": "task",
+      "label": "hard-negative",
+      "task": "Determine whether the checkbox task is incomplete and due before 2026-07-29. A checked task means no finding",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 15,
+          "endLine": 15
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "rota-task-orphaned",
+      "family": "task",
+      "label": "positive",
+      "task": "Determine whether the incomplete checkbox task has a project field but no non-empty owner field",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 17,
+          "endLine": 17
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-orphaned",
+        "severity": "low",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "rota-task-overdue",
+      "family": "task",
+      "label": "positive",
+      "task": "Determine whether the incomplete support rota task is due before 2026-07-29",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 17,
+          "endLine": 17
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-overdue",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "duplicate-task-staging-overdue",
+      "family": "task",
+      "label": "positive",
+      "task": "Determine whether the incomplete staging migration task is due before 2026-07-29",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 18,
+          "endLine": 18
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-overdue",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "duplicate-task-production-overdue",
+      "family": "task",
+      "label": "positive",
+      "task": "Determine whether the incomplete production migration task is due before 2026-07-29",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 19,
+          "endLine": 19
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-overdue",
+        "severity": "medium",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "duplicate-task-id",
+      "family": "task",
+      "label": "positive",
+      "task": "Determine whether two distinct checkbox tasks use the same trailing block identifier",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 19,
+          "endLine": 19
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-duplicated",
+        "severity": "low",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "abandoned-task-open",
+      "family": "task",
+      "label": "positive",
+      "task": "Determine whether the incomplete checkbox task is explicitly marked abandoned true",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 20,
+          "endLine": 20
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-abandoned",
+        "severity": "low",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "task-date-malformed",
+      "family": "task",
+      "label": "positive",
+      "task": "Determine whether the checkbox task due field is not a valid calendar date",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Launch Readiness.md",
+          "startLine": 21,
+          "endLine": 21
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "finding",
+        "findingType": "task-malformed",
+        "severity": "low",
+        "citedEvidenceIds": ["e1"],
+        "repairEligibility": "ineligible",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "task-guidance-not-task",
+      "family": "task",
+      "label": "hard-negative",
+      "task": "Determine whether the prose contains a Markdown checkbox task. Ordinary prose that discusses tasks means no finding",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Notes/Working Agreement.md",
+          "startLine": 7,
+          "endLine": 12
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "non-goal-not-work-item",
+      "family": "task",
+      "label": "hard-negative",
+      "task": "Determine whether the non-goal prose contains a Markdown checkbox task. Ordinary prose means no finding",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Product/Northstar Brief.md",
+          "startLine": 30,
+          "endLine": 34
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "launch-window-consistent",
+      "family": "contradiction",
+      "label": "hard-negative",
+      "task": "Determine whether the evidence makes mutually exclusive claims about the approved launch window. Related facts that do not conflict mean no finding",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Decisions/ADR-004-Launch-window.md",
+          "startLine": 17,
+          "endLine": 21
+        },
+        {
+          "id": "e2",
+          "notePath": "Projects/Northstar Launch.md",
+          "startLine": 19,
+          "endLine": 25
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "validation-order-consistent",
+      "family": "contradiction",
+      "label": "hard-negative",
+      "task": "Determine whether the evidence makes mutually exclusive claims about validation preceding invitations. Agreement means no finding",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Product/Northstar Brief.md",
+          "startLine": 18,
+          "endLine": 22
+        },
+        {
+          "id": "e2",
+          "notePath": "Decisions/ADR-005-Validation-first.md",
+          "startLine": 17,
+          "endLine": 21
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "research-implication-insufficient",
+      "family": "contradiction",
+      "label": "abstention",
+      "task": "Determine whether customer concerns and the proposed guided setup make mutually exclusive claims. Related motivation is not a contradiction",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Research/Customer Interviews.md",
+          "startLine": 14,
+          "endLine": 25
+        },
+        {
+          "id": "e2",
+          "notePath": "Product/Northstar Brief.md",
+          "startLine": 18,
+          "endLine": 22
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "support-risk-insufficient",
+      "family": "staleness",
+      "label": "abstention",
+      "task": "Determine whether the project risk is stale from the supplied evidence alone. Without a superseding date or state, abstain",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Projects/Northstar Launch.md",
+          "startLine": 43,
+          "endLine": 48
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "retrospective-template-current",
+      "family": "staleness",
+      "label": "hard-negative",
+      "task": "Determine whether the open template is stale or superseded. An update date alone is not enough evidence",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Notes/Launch Retrospective Template.md",
+          "startLine": 1,
+          "endLine": 12
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "partner-scope-insufficient",
+      "family": "policy",
+      "label": "abstention",
+      "task": "Determine whether partner enablement violates launch scope from the supplied evidence alone. Compatible scope descriptions mean no finding",
+      "evidence": [
+        {
+          "id": "e1",
+          "notePath": "Work/Partner Enablement.md",
+          "startLine": 7,
+          "endLine": 12
+        },
+        {
+          "id": "e2",
+          "notePath": "Projects/Northstar Launch.md",
+          "startLine": 27,
+          "endLine": 33
+        }
+      ],
+      "candidateTargets": [],
+      "expected": {
+        "decision": "abstain",
+        "findingType": null,
+        "severity": null,
+        "citedEvidenceIds": [],
+        "repairEligibility": "abstain",
+        "candidateTargetId": null
+      }
+    }
+  ]
+}

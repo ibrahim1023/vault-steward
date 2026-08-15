@@ -20,6 +20,11 @@ jobs:
       - run: npm run test:unit
       - run: npm run test:integration
       - run: npm run test:e2e
+      - run: npm run test:acceptance
+      - run: npm run test:coverage
       - run: npm run eval:smoke
+      - run: npm run eval:full
+      - run: npm run evals -- --manifest evals/manifests/ci-regression.json --compare evals/baselines/evaluation-main.json
       - run: npm run build
+      - run: npm run test:plugin-install
       - run: npm run security:check
