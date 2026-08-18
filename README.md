@@ -6,6 +6,10 @@ Vault Steward helps you find broken references, schema problems, task and
 decision drift, and policy violations in a local Obsidian vault. It presents
 cited findings and safe repair options; it never edits a note on its own.
 
+![Vault Steward showing an exact Current and After repair preview before approval](docs/images/vault-steward-approval-preview.png)
+
+See the complete [scan-to-approval walkthrough](docs/screenshots.md).
+
 ## The simple flow
 
 1. Choose a model provider in Settings.
@@ -72,6 +76,7 @@ accuracy, and its repair families are deliberately narrow. See
 ## Documentation
 
 - [Release readiness](docs/release-readiness.md)
+- [Product walkthrough](docs/screenshots.md)
 - [Changelog](CHANGELOG.md)
 - [MIT license](LICENSE)
 - [Troubleshooting](docs/troubleshooting.md)

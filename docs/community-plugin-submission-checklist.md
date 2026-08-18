@@ -35,7 +35,8 @@ submission and must not be used to claim marketplace availability.
 ## Marketplace Materials
 
 - [x] Public documentation describes current behavior without phase or marketplace claims.
-- [ ] Stable macOS screenshots show check, exact preview, approval, and result.
+- [x] Stable macOS screenshots show check, exact preview, approval, and result.
+      (2026-08-18: published in `docs/screenshots.md`.)
 - [ ] A short Northstar demonstration shows scan to review to approval.
 - [x] Visible counts, labels, provider claims, and repair results have been verified.
 - [x] Manual installation and provider-specific troubleshooting are current.
