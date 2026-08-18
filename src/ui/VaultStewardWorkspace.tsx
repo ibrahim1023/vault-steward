@@ -293,7 +293,8 @@ export function VaultStewardWorkspace({
           </p>
           {activeFindings.length > 0 ? (
             <p className="last-check">
-              Last check: {formatCount(activeFindings.length, "issue")} still needs attention.
+              Last check: {formatCount(activeFindings.length, "issue")} still{" "}
+              {activeFindings.length === 1 ? "needs" : "need"} attention.
             </p>
           ) : null}
           <button className="steward-primary" type="button" onClick={checkVault}>

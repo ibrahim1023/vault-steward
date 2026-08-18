@@ -240,6 +240,21 @@ describe("VaultStewardWorkspace", () => {
     }
   });
 
+  it("uses plural agreement for the saved issue count", async () => {
+    const secondFinding: Finding = { ...finding, id: "finding-2" };
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [] })}
+        loadFindings={() => [finding, secondFinding]}
+      />
+    );
+
+    expect(
+      await screen.findByText("Last check: 2 issues still need attention.")
+    ).toBeInTheDocument();
+  });
+
   it("checks the vault and shows an exact prepared result", async () => {
     render(
       <VaultStewardWorkspace
