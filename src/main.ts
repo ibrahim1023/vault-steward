@@ -112,12 +112,14 @@ export default class VaultStewardPlugin extends Plugin {
     }
   }
 
-  async onunload(): Promise<void> {
-    this.app.workspace.detachLeavesOfType(STATUS_VIEW_TYPE);
-    if (this.database) {
-      await this.database.flush();
-      this.database.close();
-      this.database = undefined;
+  onunload(): void {
+    const database = this.database;
+    this.database = undefined;
+    if (database) {
+      void database
+        .flush()
+        .catch(() => undefined)
+        .finally(() => database.close());
     }
   }
 
@@ -666,7 +668,7 @@ export default class VaultStewardPlugin extends Plugin {
   private async openStatusView(): Promise<void> {
     const leaf = this.app.workspace.getRightLeaf(false) ?? this.app.workspace.getLeaf("tab");
     await leaf.setViewState({ type: STATUS_VIEW_TYPE, active: true });
-    this.app.workspace.revealLeaf(leaf);
+    await this.app.workspace.revealLeaf(leaf);
   }
 }
 
@@ -780,7 +782,6 @@ class VaultStewardSettingsTab extends PluginSettingTab {
 
   display(): void {
     this.containerEl.empty();
-    this.containerEl.createEl("h2", { text: "Vault Steward settings" });
 
     new Setting(this.containerEl)
       .setName("Vault label fallback")

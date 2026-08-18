@@ -101,4 +101,25 @@ describe("trace contracts", () => {
       })
     ).toBe(false);
   });
+
+  it("rejects timeline values that only resemble trace records", () => {
+    expect(
+      validateTraceExport({
+        schemaVersion: 1,
+        scanId: "scan-1",
+        exportedAt: "2026-07-29T00:00:00.000Z",
+        timeline: [{ id: "root", kind: "governed-scan" }],
+        configuration: null
+      })
+    ).toBe(false);
+    expect(
+      validateTraceExport({
+        schemaVersion: 1,
+        scanId: "scan-1",
+        exportedAt: "2026-07-29T00:00:00.000Z",
+        timeline: [],
+        configuration: { fingerprint: "x", values: ["not-an-object"] }
+      })
+    ).toBe(false);
+  });
 });

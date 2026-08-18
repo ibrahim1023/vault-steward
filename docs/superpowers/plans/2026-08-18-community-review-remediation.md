@@ -24,10 +24,12 @@
 ### Task 1: Manifest and public command compatibility
 
 **Files:**
+
 - Modify: `manifest.json`, `versions.json`, `tests/plugin/manifest.test.ts`
 - Modify: `src/plugin/commands.ts`, `tests/plugin/commands.test.ts`
 
 **Interfaces:**
+
 - Produces a valid Obsidian manifest with `version: "0.1.1"`, `minAppVersion: "1.7.2"`, and no `main` field.
 - Produces the command label `Open status` while retaining command id `open-status`.
 
@@ -49,11 +51,15 @@ Expected: assertions fail against `0.1.0`, `1.5.0`, `main`, and `Open Vault Stew
 - [ ] **Step 3: Make the smallest metadata and command edits**
 
 ```json
-{ "version": "0.1.1", "minAppVersion": "1.7.2", "description": "Local-first, evidence-backed vault maintenance." }
+{
+  "version": "0.1.1",
+  "minAppVersion": "1.7.2",
+  "description": "Local-first, evidence-backed vault maintenance."
+}
 ```
 
 ```ts
-name: "Open status"
+name: "Open status";
 ```
 
 - [ ] **Step 4: Run focused tests and confirm GREEN**
@@ -65,9 +71,11 @@ Expected: all assertions pass.
 ### Task 2: Obsidian lifecycle and settings UI compliance
 
 **Files:**
+
 - Modify: `src/main.ts`, `tests/ui/workspace.test.tsx` or a new focused plugin lifecycle test
 
 **Interfaces:**
+
 - `onunload()` returns `void`, never detaches user-positioned leaves, closes an initialized database safely.
 - `openStatusView()` awaits `workspace.revealLeaf(leaf)`.
 - Settings display uses `new Setting(containerEl).setName(...).setHeading()` or has no redundant title element.
@@ -107,9 +115,11 @@ Expected: all source-level behavioral contracts pass.
 ### Task 3: Obsidian-native model transport and timer compatibility
 
 **Files:**
+
 - Modify: `src/model-provider/local-provider.ts`, model-provider tests, `tests/security/hardening.test.ts`, and provider integration tests as needed
 
 **Interfaces:**
+
 - Introduce `ProviderRequester`, which accepts `{ url, method, headers, body }` and returns `{ status, text }`.
 - The production default uses Obsidian `requestUrl`; tests inject `ProviderRequester` stubs.
 - `window.setTimeout` and `window.clearTimeout` own provider deadlines.
@@ -149,11 +159,13 @@ Expected: provider behavior and safety regression assertions pass without global
 ### Task 4: Bundle and package remediation
 
 **Files:**
+
 - Modify: `src/storage/sqlite-runtime.ts`, `esbuild.config.mjs`, `scripts/package-plugin.ts`
 - Modify: `src/packaging/install.ts`, `src/packaging/release-manifest.ts`, `src/release/compatibility.ts`
 - Modify: `tests/storage/sqlite-runtime.test.ts`, `tests/packaging/*.test.ts`, `tests/release/compatibility.test.ts`
 
 **Interfaces:**
+
 - Production imports `sql.js/dist/sql-wasm-browser.js` and embeds `sql-wasm-browser.wasm`.
 - Production build defines `process.env.NODE_ENV` as `production` and minifies `main.js`.
 - Internal package test can retain `release-manifest.json`; public GitHub release asset set is exactly `main.js`, `manifest.json`, and `styles.css`.
@@ -184,11 +196,13 @@ Expected: plugin package installs, embeds SQLite bytes, has no `node:fs` fallbac
 ### Task 5: Strict type warning remediation and release documentation
 
 **Files:**
+
 - Modify: `src/contracts/trace.ts`, `src/storage/repositories.ts`, cited source files from scorecard
 - Modify: `README.md`, `CHANGELOG.md`, `docs/community-plugin-submission-checklist.md`, `docs/release-compatibility.md`, `docs/upgrade-notes.md`, `docs/progress.md`
 - Test: `tests/contracts`, `tests/storage`, and a new source-scorecard regression test
 
 **Interfaces:**
+
 - Runtime validators narrow unknown JSON with object guards before property access.
 - Repository deserializers return only validated record values.
 - Public docs disclose vault reads/writes/enumeration, bounded provider networking, and embedded WASM.
@@ -198,7 +212,7 @@ Expected: plugin package installs, embeds SQLite bytes, has no `node:fs` fallbac
 
 ```ts
 expect(validateTraceExport({ timeline: [{ attributes: null }] })).toBe(false);
-expect(readMetadata('[]')).toBeNull();
+expect(readMetadata("[]")).toBeNull();
 ```
 
 - [ ] **Step 2: Run focused contracts/storage tests and confirm RED**
@@ -220,6 +234,7 @@ Expected: no actionable source lint issues and all focused tests pass.
 ### Task 6: Completion gate and 0.1.1 release preparation
 
 **Files:**
+
 - Modify: release documents only if verification evidence changes
 
 - [ ] **Step 1: Run the full completion gate**
@@ -235,4 +250,3 @@ Expected: package contains `main.js`, `manifest.json`, `styles.css`, and interna
 - [ ] **Step 3: Recheck the Community scorecard after `0.1.1` is published**
 
 Expected: intentional disclosures remain; actionable risks/warnings are removed or have a documented upstream limitation.
-

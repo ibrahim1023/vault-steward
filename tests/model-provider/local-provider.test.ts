@@ -69,7 +69,7 @@ describe("local model providers", () => {
     );
   });
   it("asks Ollama for native JSON output", async () => {
-    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ response: "{}" })));
+    const requester = vi.fn().mockResolvedValue(new Response(JSON.stringify({ response: "{}" })));
     const provider = createLocalProvider(
       {
         kind: "ollama",
@@ -78,14 +78,14 @@ describe("local model providers", () => {
         timeoutMs: 20,
         maxResponseBytes: 1000
       },
-      fetcher
+      requester
     );
     await provider.generate({ prompt: "x", maxOutputTokens: 5 });
-    expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body))).toMatchObject({
+    expect(JSON.parse(String(requester.mock.calls[0]?.[1]?.body))).toMatchObject({
       format: "json",
       think: false
     });
-    expect(fetcher.mock.calls[0]?.[1]).toMatchObject({ redirect: "error" });
+    expect(requester.mock.calls[0]?.[1]).toMatchObject({ redirect: "error" });
   });
 
   it("rejects redirect responses and invalid resource limits before model data can escape", async () => {

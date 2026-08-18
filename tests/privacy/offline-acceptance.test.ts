@@ -20,11 +20,8 @@ describe("offline and privacy acceptance", () => {
     expect(combined).not.toMatch(/node:child_process|execFile\(|spawn\(|shelljs/i);
     expect(combined).not.toMatch(/telemetry\.(track|capture)|analytics\.(track|capture)/i);
     expect(combined).not.toMatch(/from\s+["'](?:@sentry|aws-sdk|firebase|supabase|lancedb)/i);
-    expect(
-      sources
-        .filter((source) => source.content.includes("fetcher: FetchLike = fetch"))
-        .map((source) => source.path)
-    ).toEqual(["model-provider/local-provider.ts"]);
+    expect(combined).toContain('import { requestUrl } from "obsidian"');
+    expect(combined).not.toMatch(/\bfetch\s*\(/);
   });
 
   it("rejects cloud and private-network local endpoints and pins cloud providers to their API origins", () => {

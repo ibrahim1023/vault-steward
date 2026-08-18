@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -30,7 +31,7 @@ describe("SQLite runtime compatibility spike", () => {
 
   it("initializes from embedded wasm bytes without a file locator", async () => {
     const wasmBinary = Uint8Array.from(
-      await readFile("node_modules/sql.js/dist/sql-wasm.wasm")
+      await readFile("node_modules/sql.js/dist/sql-wasm-browser.wasm")
     ).buffer;
     const runtime = await createSqliteRuntime({
       wasmBinary,
@@ -44,5 +45,10 @@ describe("SQLite runtime compatibility spike", () => {
     ]);
 
     runtime.close();
+  });
+
+  it("selects SQL.js's browser runtime when packaging the plugin", async () => {
+    const build = await readFile(resolve(import.meta.dirname, "../../esbuild.config.mjs"), "utf8");
+    expect(build).toContain('conditions: ["browser"]');
   });
 });

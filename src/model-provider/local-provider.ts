@@ -1,3 +1,5 @@
+import { requestUrl } from "obsidian";
+
 export type LocalProviderKind = "ollama" | "llama.cpp";
 export type OpenAIProviderKind = "openai";
 export type HyperFusionProviderKind = "hyperfusion";
@@ -44,7 +46,7 @@ export type ModelProvider = {
   readonly capabilities: readonly string[];
   generate(request: LocalGenerationRequest): Promise<LocalGeneration>;
 };
-export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
+export type ProviderRequester = (url: string, init?: RequestInit) => Promise<Response>;
 
 export const MAX_PROVIDER_TIMEOUT_MS = 10 * 60 * 1_000;
 export const MAX_PROVIDER_RESPONSE_BYTES = 10 * 1_024 * 1_024;
@@ -54,7 +56,7 @@ export const HYPERFUSION_API_BASE_URL = "https://api.hyperfusion.io/v1";
 
 export function createLocalProvider(
   config: LocalProviderConfig,
-  fetcher: FetchLike = fetch
+  requester: ProviderRequester = requestWithObsidian
 ): ModelProvider {
   validateConfig(config);
   return {
@@ -71,7 +73,7 @@ export function createLocalProvider(
       }, config.timeoutMs);
       const started = Date.now();
       try {
-        const response = await fetcher(endpointFor(config), {
+        const response = await requester(endpointFor(config), {
           method: "POST",
           headers: { "content-type": "application/json" },
           signal: controller.signal,
@@ -107,10 +109,10 @@ export function createLocalProvider(
 
 export function createOpenAIProvider(
   config: OpenAIProviderConfig,
-  fetcher: FetchLike = fetch
+  requester: ProviderRequester = requestWithObsidian
 ): ModelProvider {
   validateOpenAIConfig(config, true);
-  return createProvider(config, fetcher, {
+  return createProvider(config, requester, {
     endpoint: `${OPENAI_API_BASE_URL}/responses`,
     headers: {
       "content-type": "application/json",
@@ -123,10 +125,10 @@ export function createOpenAIProvider(
 
 export function createHyperFusionProvider(
   config: HyperFusionProviderConfig,
-  fetcher: FetchLike = fetch
+  requester: ProviderRequester = requestWithObsidian
 ): ModelProvider {
   validateHyperFusionConfig(config, true);
-  return createProvider(config, fetcher, {
+  return createProvider(config, requester, {
     endpoint: `${HYPERFUSION_API_BASE_URL}/chat/completions`,
     headers: {
       "content-type": "application/json",
@@ -139,11 +141,39 @@ export function createHyperFusionProvider(
 
 export function createModelProvider(
   config: ModelProviderConfig,
-  fetcher: FetchLike = fetch
+  requester: ProviderRequester = requestWithObsidian
 ): ModelProvider {
-  if (config.kind === "openai") return createOpenAIProvider(config, fetcher);
-  if (config.kind === "hyperfusion") return createHyperFusionProvider(config, fetcher);
-  return createLocalProvider(config, fetcher);
+  if (config.kind === "openai") return createOpenAIProvider(config, requester);
+  if (config.kind === "hyperfusion") return createHyperFusionProvider(config, requester);
+  return createLocalProvider(config, requester);
+}
+
+async function requestWithObsidian(url: string, init?: RequestInit): Promise<Response> {
+  const body = init?.body;
+  if (body !== undefined && typeof body !== "string") {
+    throw new Error("provider request body is invalid");
+  }
+  const response = await raceWithAbort(
+    requestUrl({
+      url,
+      ...(init?.method ? { method: init.method } : {}),
+      ...(init?.headers ? { headers: init.headers as Record<string, string> } : {}),
+      ...(body !== undefined ? { body } : {}),
+      throw: false
+    }),
+    init?.signal
+  );
+  return new Response(response.arrayBuffer, { status: response.status, headers: response.headers });
+}
+
+function raceWithAbort<T>(request: Promise<T>, signal: AbortSignal | null | undefined): Promise<T> {
+  if (!signal) return request;
+  if (signal.aborted) return Promise.reject(new DOMException("Aborted", "AbortError"));
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(new DOMException("Aborted", "AbortError"));
+    signal.addEventListener("abort", abort, { once: true });
+    void request.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+  });
 }
 
 export function selectProvider(
@@ -220,7 +250,7 @@ function validateHyperFusionConfig(
 
 function createProvider(
   config: ModelProviderConfig,
-  fetcher: FetchLike,
+  requester: ProviderRequester,
   requestConfig: {
     endpoint: string;
     headers: Record<string, string>;
@@ -242,7 +272,7 @@ function createProvider(
       }, config.timeoutMs);
       const started = Date.now();
       try {
-        const response = await fetcher(requestConfig.endpoint, {
+        const response = await requester(requestConfig.endpoint, {
           method: "POST",
           headers: requestConfig.headers,
           signal: controller.signal,

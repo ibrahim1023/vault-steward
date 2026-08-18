@@ -16,7 +16,7 @@ export function registerPluginCommands(
 ): void {
   registry.addCommand({
     id: OPEN_STATUS_COMMAND_ID,
-    name: "Open Vault Steward status",
+    name: "Open status",
     callback: onOpenStatus
   });
 }

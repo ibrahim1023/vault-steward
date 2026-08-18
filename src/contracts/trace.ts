@@ -97,36 +97,56 @@ export function validateTraceMetadata(value: unknown): boolean {
 }
 
 export function validateTraceExport(value: unknown): value is TraceExport {
-  if (!value || typeof value !== "object") return false;
-  const candidate = value as Partial<TraceExport>;
+  if (!isRecord(value)) return false;
   return (
-    candidate.schemaVersion === 1 &&
-    typeof candidate.scanId === "string" &&
-    candidate.scanId.length > 0 &&
-    typeof candidate.exportedAt === "string" &&
-    Array.isArray(candidate.timeline) &&
-    candidate.timeline.every(
-      (span) =>
-        !!span &&
-        typeof span === "object" &&
-        typeof span.id === "string" &&
-        (typeof span.parentSpanId === "string" || span.parentSpanId === null) &&
-        typeof span.kind === "string" &&
-        TRACE_KINDS.includes(span.kind as TraceKind) &&
-        typeof span.startedAt === "string" &&
-        (typeof span.completedAt === "string" || span.completedAt === null) &&
-        (span.outcome === "success" || span.outcome === "failure") &&
-        (typeof span.durationMs === "number" || span.durationMs === null) &&
-        typeof span.retryCount === "number" &&
-        (typeof span.fileCount === "number" || span.fileCount === null) &&
-        (typeof span.errorCode === "string" || span.errorCode === null) &&
-        validateTraceMetadata(span.attributes)
-    ) &&
-    (candidate.configuration === null ||
-      (!!candidate.configuration &&
-        typeof candidate.configuration.fingerprint === "string" &&
-        validateTraceMetadata(candidate.configuration.values)))
+    value.schemaVersion === 1 &&
+    typeof value.scanId === "string" &&
+    value.scanId.length > 0 &&
+    typeof value.exportedAt === "string" &&
+    Array.isArray(value.timeline) &&
+    value.timeline.every(isTraceExportTimelineItem) &&
+    (value.configuration === null || isTraceExportConfiguration(value.configuration))
   );
+}
+
+function isTraceExportTimelineItem(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === "string" &&
+    (typeof value.parentSpanId === "string" || value.parentSpanId === null) &&
+    typeof value.kind === "string" &&
+    TRACE_KINDS.includes(value.kind as TraceKind) &&
+    typeof value.startedAt === "string" &&
+    (typeof value.completedAt === "string" || value.completedAt === null) &&
+    (value.outcome === "success" || value.outcome === "failure") &&
+    (typeof value.durationMs === "number" || value.durationMs === null) &&
+    typeof value.retryCount === "number" &&
+    (typeof value.fileCount === "number" || value.fileCount === null) &&
+    (typeof value.errorCode === "string" || value.errorCode === null) &&
+    isFlatTraceMetadata(value.attributes)
+  );
+}
+
+function isTraceExportConfiguration(value: unknown): boolean {
+  return (
+    isRecord(value) && typeof value.fingerprint === "string" && isFlatTraceMetadata(value.values)
+  );
+}
+
+function isFlatTraceMetadata(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    Object.entries(value).every(
+      ([key, item]) =>
+        (typeof item === "string" || typeof item === "number" || typeof item === "boolean") &&
+        validateTraceMetadata(key) &&
+        validateTraceMetadata(item)
+    )
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 export function validateFindingLineage(lineage: FindingLineage): boolean {

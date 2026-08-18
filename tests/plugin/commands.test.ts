@@ -13,7 +13,7 @@ describe("plugin commands", () => {
 
     const command = addCommand.mock.calls[0]?.[0] as PluginCommand;
     expect(command.id).toBe(OPEN_STATUS_COMMAND_ID);
-    expect(command.name).toBe("Open Vault Steward status");
+    expect(command.name).toBe("Open status");
     expect(command.callback).toBeTypeOf("function");
   });
 });

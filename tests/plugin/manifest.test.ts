@@ -11,11 +11,13 @@ describe("plugin manifest", () => {
       main: string;
       minAppVersion: string;
       version: string;
+      description: string;
     };
 
     expect(manifest.id).toBe("vault-steward");
     expect(manifest.main).toBe("main.js");
-    expect(manifest.minAppVersion).toMatch(/^1\./);
-    expect(manifest.version).toMatch(/^0\.1\.0$/);
+    expect(manifest.minAppVersion).toBe("1.7.2");
+    expect(manifest.version).toBe("0.1.1");
+    expect(manifest.description).not.toMatch(/Obsidian/i);
   });
 });
