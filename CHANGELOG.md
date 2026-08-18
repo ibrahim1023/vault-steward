@@ -2,6 +2,23 @@
 
 All notable changes to Vault Steward are documented in this file.
 
+## 0.2.0 - 2026-08-18
+
+### Changed
+
+- Replaced the runtime React DOM bundle with Preact compatibility rendering,
+  preserving the existing workspace while removing runtime script injection.
+- Adopted Obsidian 1.13 declarative settings registration so Vault Steward's
+  settings can participate in the application settings search.
+- Raised the supported Obsidian desktop version to 1.13.0.
+
+### Release integrity
+
+- GitHub Actions now validates every release tag, attests `main.js` and
+  `styles.css`, and publishes the three official Community Plugins assets.
+- Removed avoidable unsafe casts and promise-returning event handlers from the
+  release source.
+
 ## 0.1.0 - 2026-08-18
 
 Initial public release candidate.

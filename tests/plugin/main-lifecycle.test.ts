@@ -26,6 +26,7 @@ describe("plugin lifecycle and settings compatibility", () => {
     const source = await readFile(resolve(import.meta.dirname, "../../src/main.ts"), "utf8");
 
     expect(source).toContain("await this.app.workspace.revealLeaf(leaf)");
-    expect(source).not.toContain('createEl("h2", { text: "Vault Steward settings" })');
+    expect(source).toContain("getSettingDefinitions(): SettingDefinitionItem[]");
+    expect(source).not.toContain("display(): void");
   });
 });

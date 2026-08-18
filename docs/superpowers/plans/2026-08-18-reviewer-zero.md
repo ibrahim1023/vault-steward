@@ -22,6 +22,7 @@
 ### Task 1: Replace the packaged UI renderer
 
 **Files:**
+
 - Modify: `package.json`, `package-lock.json`, `esbuild.config.mjs`
 - Modify: `tests/ui/workbench-styles.test.ts`
 - Create: `tests/packaging/preact-bundle.test.ts`
@@ -34,6 +35,7 @@
 ### Task 2: Migrate to declarative settings
 
 **Files:**
+
 - Modify: `src/main.ts`, `manifest.json`, `versions.json`, `package.json`, `package-lock.json`
 - Modify: `tests/plugin/main-lifecycle.test.ts`, `tests/plugin/manifest.test.ts`
 - Create: `tests/plugin/declarative-settings.test.ts`
@@ -46,6 +48,7 @@
 ### Task 3: Remove source-level reviewer warnings
 
 **Files:**
+
 - Modify: `src/model-provider/local-provider.ts`, `src/ui/VaultStewardWorkspace.tsx`, `src/contracts/prepared-repair.ts`, `src/observability/fingerprint.ts`, `src/review/entity-consolidation.ts`, `src/review/reference-recommendation.ts`, `src/storage/repositories.ts`, `evals/release/contracts.ts`
 - Modify: relevant existing unit tests under `tests/` and `evals/`
 
@@ -57,6 +60,7 @@
 ### Task 4: Attested release automation
 
 **Files:**
+
 - Create: `.github/workflows/release.yml`
 - Modify: `README.md`, `docs/release-readiness.md`, `tests/docs/public-documentation.test.ts`
 
@@ -69,6 +73,7 @@
 ### Task 5: Completion and 0.2.0 release
 
 **Files:**
+
 - Modify: `CHANGELOG.md`, `docs/progress.md`
 
 - [ ] Add verified 0.2.0 release notes and update progress.

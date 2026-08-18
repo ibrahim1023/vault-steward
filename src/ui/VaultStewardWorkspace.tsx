@@ -118,9 +118,13 @@ export function VaultStewardWorkspace({
 
   useEffect(() => {
     if (!loadFindings) return;
-    Promise.resolve(loadFindings())
-      .then(setFindings)
-      .catch(() => setErrorMessage("The saved issue list is unavailable."));
+    void (async () => {
+      try {
+        setFindings(await loadFindings());
+      } catch {
+        setErrorMessage("The saved issue list is unavailable.");
+      }
+    })();
   }, [loadFindings]);
 
   const chooseNext = async (
@@ -772,16 +776,17 @@ function CanonicalEntityActions({
       return () => {
         active = false;
       };
-    void recommend()
-      .then((result) => {
+    void (async () => {
+      try {
+        const result = await recommend();
         if (active) setRecommendation(result);
-      })
-      .catch(() => {
+      } catch {
         if (active)
           setMessage(
             "AI could not rank these notes. Choose the note you want to keep as canonical."
           );
-      });
+      }
+    })();
     return () => {
       active = false;
     };
@@ -815,14 +820,15 @@ function CanonicalEntityActions({
             onClick={() => {
               setPreparing(candidate.id);
               setMessage(undefined);
-              void prepare(candidate.id).then((prepared) => {
+              void (async () => {
+                const prepared = await prepare(candidate.id);
                 if (!prepared) {
                   setPreparing(undefined);
                   setMessage(
                     "A safe consolidation could not be prepared. The notes were not changed."
                   );
                 }
-              });
+              })();
             }}
           >
             {preparing === candidate.id

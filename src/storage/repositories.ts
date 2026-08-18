@@ -18,6 +18,10 @@ import {
 } from "../contracts/trace.js";
 import { parseProposal, proposalDigest } from "../contracts/proposal.js";
 
+const FINDING_TYPE_SET = new Set<string>(FINDING_TYPES);
+const FINDING_SEVERITY_SET = new Set<string>(["info", "low", "medium", "high", "critical"]);
+const FINDING_STATUS_SET = new Set<string>(["open", "dismissed", "approved", "applied", "stale"]);
+
 export type ScanRecord = {
   id: string;
   vaultFingerprint: string;
@@ -109,10 +113,11 @@ export type FindingLifecycleRecord = {
 export function hydrateFinding(record: FindingRecord): Finding | null {
   try {
     const evidence = JSON.parse(record.evidenceJson) as unknown;
-    const payload = JSON.parse(record.payloadJson) as Record<string, unknown>;
+    const payload = JSON.parse(record.payloadJson) as unknown;
     if (
       !Array.isArray(evidence) ||
       !evidence.every(isEvidence) ||
+      !isRecord(payload) ||
       !isFindingType(record.type) ||
       !isFindingSeverity(record.severity) ||
       !isFindingStatus(record.status) ||
@@ -125,8 +130,8 @@ export function hydrateFinding(record: FindingRecord): Finding | null {
       schemaVersion: 1,
       id: record.id,
       scanId: record.scanId,
-      type: record.type as FindingType,
-      severity: record.severity as FindingSeverity,
+      type: record.type,
+      severity: record.severity,
       evidence,
       affectedNoteIds: [...new Set(evidence.map((item) => item.notePath))],
       ...(typeof payload.violatedPolicyId === "string"
@@ -135,7 +140,7 @@ export function hydrateFinding(record: FindingRecord): Finding | null {
       explanation: payload.explanation,
       suggestedFixes: [],
       confidence: payload.confidence,
-      status: record.status as FindingStatus
+      status: record.status
     };
   } catch {
     return null;
@@ -890,9 +895,7 @@ export class VaultStewardRepository {
       [scanId]
     )[0]?.values[0];
     const values = typeof row?.[1] === "string" ? safeMetadata(row[1]) : null;
-    return typeof row?.[0] === "string" && values !== null
-      ? { fingerprint: row[0], values: values as Record<string, string | number | boolean> }
-      : null;
+    return typeof row?.[0] === "string" && values !== null ? { fingerprint: row[0], values } : null;
   }
 
   deleteTraceForScan(scanId: string, deletedAt: string, id: string): void {
@@ -1052,12 +1055,18 @@ function safeStringArray(value: string): string[] {
 function safeMetadata(value: string): Record<string, string | number | boolean> | null {
   try {
     const parsed = JSON.parse(value) as unknown;
-    return parsed &&
-      typeof parsed === "object" &&
-      !Array.isArray(parsed) &&
-      validateTraceMetadata(parsed)
-      ? (parsed as Record<string, string | number | boolean>)
-      : null;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const metadata: Record<string, string | number | boolean> = {};
+    for (const [key, item] of Object.entries(parsed)) {
+      if (
+        (typeof item !== "string" && typeof item !== "number" && typeof item !== "boolean") ||
+        !validateTraceMetadata(key) ||
+        !validateTraceMetadata(item)
+      )
+        return null;
+      metadata[key] = item;
+    }
+    return metadata;
   } catch {
     return null;
   }
@@ -1119,7 +1128,8 @@ function countRows(database: Database, tableName: string): number {
 
 function parsePayload(payloadJson: string): { confidence: number; violatedPolicyId?: string } {
   try {
-    const payload = JSON.parse(payloadJson) as Record<string, unknown>;
+    const payload = JSON.parse(payloadJson) as unknown;
+    if (!isRecord(payload)) return { confidence: 0 };
     return {
       confidence: typeof payload.confidence === "number" ? payload.confidence : 0,
       ...(typeof payload.violatedPolicyId === "string"
@@ -1131,24 +1141,27 @@ function parsePayload(payloadJson: string): { confidence: number; violatedPolicy
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 function isEvidence(value: unknown): value is EvidenceRef {
   return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as EvidenceRef).notePath === "string" &&
-    typeof (value as EvidenceRef).locator === "string" &&
-    typeof (value as EvidenceRef).excerpt === "string"
+    isRecord(value) &&
+    typeof value.notePath === "string" &&
+    typeof value.locator === "string" &&
+    typeof value.excerpt === "string"
   );
 }
 
 function isFindingType(value: string): value is FindingType {
-  return FINDING_TYPES.includes(value as FindingType);
+  return FINDING_TYPE_SET.has(value);
 }
 
 function isFindingSeverity(value: string): value is FindingSeverity {
-  return ["info", "low", "medium", "high", "critical"].includes(value as FindingSeverity);
+  return FINDING_SEVERITY_SET.has(value);
 }
 
 function isFindingStatus(value: string): value is FindingStatus {
-  return ["open", "dismissed", "approved", "applied", "stale"].includes(value as FindingStatus);
+  return FINDING_STATUS_SET.has(value);
 }

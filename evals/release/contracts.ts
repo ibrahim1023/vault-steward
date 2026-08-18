@@ -3,6 +3,11 @@ export const RELEASE_DECISIONS = ["finding", "abstain"] as const;
 export const RELEASE_REPAIR_ELIGIBILITY = ["eligible", "ineligible", "abstain"] as const;
 export const RELEASE_SEVERITIES = ["info", "low", "medium", "high", "critical"] as const;
 
+const RELEASE_CASE_LABEL_SET = new Set<string>(RELEASE_CASE_LABELS);
+const RELEASE_DECISION_SET = new Set<string>(RELEASE_DECISIONS);
+const RELEASE_REPAIR_ELIGIBILITY_SET = new Set<string>(RELEASE_REPAIR_ELIGIBILITY);
+const RELEASE_SEVERITY_SET = new Set<string>(RELEASE_SEVERITIES);
+
 export type ReleaseCaseLabel = (typeof RELEASE_CASE_LABELS)[number];
 export type ReleaseDecision = (typeof RELEASE_DECISIONS)[number];
 export type ReleaseRepairEligibility = (typeof RELEASE_REPAIR_ELIGIBILITY)[number];
@@ -133,8 +138,8 @@ export function createReleaseDecisionValidator(
     )
       return false;
     if (
-      !RELEASE_DECISIONS.includes(value.decision as ReleaseDecision) ||
-      !RELEASE_REPAIR_ELIGIBILITY.includes(value.repairEligibility as ReleaseRepairEligibility) ||
+      !isReleaseDecision(value.decision) ||
+      !isReleaseRepairEligibility(value.repairEligibility) ||
       !Array.isArray(value.citedEvidenceIds) ||
       !value.citedEvidenceIds.every((id) => typeof id === "string" && evidenceIds.has(id)) ||
       new Set(value.citedEvidenceIds).size !== value.citedEvidenceIds.length
@@ -200,34 +205,33 @@ function validateReleaseCase(value: unknown): value is ReleaseCorpusCase {
     value.schemaVersion !== 1 ||
     !isSafeId(value.id) ||
     !isSafeText(value.family) ||
-    !RELEASE_CASE_LABELS.includes(value.label as ReleaseCaseLabel) ||
+    !isReleaseCaseLabel(value.label) ||
     !isSafeTask(value.task) ||
     !Array.isArray(value.evidence) ||
     value.evidence.length === 0 ||
     value.evidence.length > 8 ||
     !value.evidence.every(validateEvidenceRange) ||
-    new Set(value.evidence.map((item) => (item as ReleaseEvidenceRange).id)).size !==
-      value.evidence.length ||
+    new Set(value.evidence.map((item) => item.id)).size !== value.evidence.length ||
     !Array.isArray(value.candidateTargets) ||
     value.candidateTargets.length > 12 ||
     !value.candidateTargets.every(validateCandidate)
   )
     return false;
   const expected = value.expected;
-  const evidenceIds = new Set(value.evidence.map((item) => (item as ReleaseEvidenceRange).id));
-  const candidateIds = new Set(value.candidateTargets.map((item) => (item as { id: string }).id));
+  const evidenceIds = new Set(value.evidence.map((item) => item.id));
+  const candidateIds = new Set(value.candidateTargets.map((item) => item.id));
   if (
-    !RELEASE_DECISIONS.includes(expected.decision as ReleaseDecision) ||
+    !isReleaseDecision(expected.decision) ||
     !Array.isArray(expected.citedEvidenceIds) ||
     !expected.citedEvidenceIds.every((id) => typeof id === "string" && evidenceIds.has(id)) ||
-    !RELEASE_REPAIR_ELIGIBILITY.includes(expected.repairEligibility as ReleaseRepairEligibility)
+    !isReleaseRepairEligibility(expected.repairEligibility)
   )
     return false;
   if (value.label === "positive") {
     return (
       expected.decision === "finding" &&
       isSafeText(expected.findingType) &&
-      RELEASE_SEVERITIES.includes(expected.severity as ReleaseSeverity) &&
+      isReleaseSeverity(expected.severity) &&
       expected.citedEvidenceIds.length > 0 &&
       (expected.candidateTargetId === null ||
         (typeof expected.candidateTargetId === "string" &&
@@ -308,6 +312,22 @@ function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): 
 
 function isFiniteNonNegative(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function isReleaseCaseLabel(value: unknown): value is ReleaseCaseLabel {
+  return typeof value === "string" && RELEASE_CASE_LABEL_SET.has(value);
+}
+
+function isReleaseDecision(value: unknown): value is ReleaseDecision {
+  return typeof value === "string" && RELEASE_DECISION_SET.has(value);
+}
+
+function isReleaseRepairEligibility(value: unknown): value is ReleaseRepairEligibility {
+  return typeof value === "string" && RELEASE_REPAIR_ELIGIBILITY_SET.has(value);
+}
+
+function isReleaseSeverity(value: unknown): value is ReleaseSeverity {
+  return typeof value === "string" && RELEASE_SEVERITY_SET.has(value);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

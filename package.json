@@ -1,6 +1,6 @@
 {
   "name": "vault-steward",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -36,8 +36,7 @@
     "security:check": "npm audit --omit=dev --audit-level=moderate"
   },
   "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "preact": "^10.29.8",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "sql.js": "^1.14.1",
@@ -60,6 +59,8 @@
     "jsdom": "^26.1.0",
     "obsidian": "^1.8.7",
     "prettier": "^3.6.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "tsx": "^4.20.4",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.41.0",

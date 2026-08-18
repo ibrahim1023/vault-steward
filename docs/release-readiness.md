@@ -30,6 +30,7 @@ npm run test:integration
 npm run test:e2e
 npm run test:acceptance
 npm run build
+npm run eval:smoke
 npm run security:check
 ```
 
@@ -54,9 +55,18 @@ Community Plugins submission. Check that public descriptions accurately state
 the local-first provider path, experimental cloud-provider boundaries, and the
 absence of automatic note editing.
 
+## Publish the release
+
+The release workflow is the only supported publication path. After version,
+manifest, `versions.json`, and changelog alignment have been verified, create
+and push the matching numeric tag (for example, `0.2.0`). GitHub Actions runs
+the release gate, packages exactly `main.js`, `manifest.json`, and `styles.css`,
+attests the executable assets, and creates the GitHub release. Do not create a
+manual release for an attested version.
+
 ## Release owner sign-off
 
 The release owner confirms the automated gate, package contents, macOS desktop
-evidence, screenshots, public repository and license, and version/tag/changelog
-alignment. Upstream submission is a separate owner action and must occur only
-after this sign-off.
+evidence, screenshots, public repository and license, version/tag/changelog
+alignment, and the successful attested GitHub workflow. Upstream submission is
+a separate owner action and must occur only after this sign-off.

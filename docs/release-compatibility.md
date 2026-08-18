@@ -1,6 +1,6 @@
 # Release Compatibility
 
-Vault Steward targets Obsidian desktop 1.5.0 or newer. Release validation is
+Vault Steward targets Obsidian desktop 1.13.0 or newer. Release validation is
 currently limited to macOS; Windows and Linux have not been validated. Node.js
 20 or newer is required only for repository development and packaging. The
 package smoke test verifies the release directory contains `main.js`,

@@ -18,8 +18,13 @@ function canonicalize(value: unknown): FingerprintValue | undefined {
   if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
   if (Array.isArray(value)) {
     if (value.length > 100) return undefined;
-    const items = value.map(canonicalize);
-    return items.every((item) => item !== undefined) ? (items as FingerprintValue[]) : undefined;
+    const items: FingerprintValue[] = [];
+    for (const item of value) {
+      const canonical = canonicalize(item);
+      if (canonical === undefined) return undefined;
+      items.push(canonical);
+    }
+    return items;
   }
   if (value === null || typeof value !== "object") return undefined;
   const entries = Object.entries(value);

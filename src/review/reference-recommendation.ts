@@ -245,7 +245,9 @@ function buildAnchorCandidates(
     .sort(
       (left, right) =>
         right.score - left.score ||
-        left.candidate.anchor!.normalized.localeCompare(right.candidate.anchor!.normalized)
+        (left.candidate.anchor?.normalized ?? "").localeCompare(
+          right.candidate.anchor?.normalized ?? ""
+        )
     )
     .slice(0, MAX_CANDIDATES)
     .map((item) => item.candidate);

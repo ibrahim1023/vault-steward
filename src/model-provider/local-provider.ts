@@ -67,7 +67,7 @@ export function createLocalProvider(
       const onAbort = () => controller.abort();
       request.signal?.addEventListener("abort", onAbort, { once: true });
       let timedOut = false;
-      const timer = setTimeout(() => {
+      const timer = window.setTimeout(() => {
         timedOut = true;
         controller.abort();
       }, config.timeoutMs);
@@ -100,7 +100,7 @@ export function createLocalProvider(
         if (request.signal?.aborted) throw new Error("provider request canceled");
         throw new Error("provider unavailable");
       } finally {
-        clearTimeout(timer);
+        window.clearTimeout(timer);
         request.signal?.removeEventListener("abort", onAbort);
       }
     }
@@ -266,7 +266,7 @@ function createProvider(
       const onAbort = () => controller.abort();
       request.signal?.addEventListener("abort", onAbort, { once: true });
       let timedOut = false;
-      const timer = setTimeout(() => {
+      const timer = window.setTimeout(() => {
         timedOut = true;
         controller.abort();
       }, config.timeoutMs);
@@ -299,7 +299,7 @@ function createProvider(
         if (request.signal?.aborted) throw new Error("provider request canceled");
         throw new Error("provider unavailable");
       } finally {
-        clearTimeout(timer);
+        window.clearTimeout(timer);
         request.signal?.removeEventListener("abort", onAbort);
       }
     }

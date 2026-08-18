@@ -58,7 +58,7 @@ that request; it never grants authority to edit a note. Read the full
 
 ## Install and get started
 
-Obsidian desktop 1.5.0 or later is required. Build the plugin, copy the full
+Obsidian desktop 1.13.0 or later is required. Build the plugin, copy the full
 `dist/vault-steward/` directory to
 `<vault>/.obsidian/plugins/vault-steward/`, enable it in Obsidian, configure a
 provider, and start with **Check vault**. See

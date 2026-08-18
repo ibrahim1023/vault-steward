@@ -10,6 +10,12 @@ const sqliteWasmBase64 = await readFile(
 await esbuild.build({
   entryPoints: ["src/main.ts"],
   bundle: true,
+  alias: {
+    react: "preact/compat",
+    "react-dom": "preact/compat",
+    "react-dom/client": "preact/compat",
+    "react/jsx-runtime": "preact/jsx-runtime"
+  },
   external: ["obsidian", "electron"],
   format: "cjs",
   platform: "node",

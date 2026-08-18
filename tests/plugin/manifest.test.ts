@@ -16,8 +16,8 @@ describe("plugin manifest", () => {
 
     expect(manifest.id).toBe("vault-steward");
     expect(manifest.main).toBe("main.js");
-    expect(manifest.minAppVersion).toBe("1.7.2");
-    expect(manifest.version).toBe("0.1.1");
+    expect(manifest.minAppVersion).toBe("1.13.0");
+    expect(manifest.version).toBe("0.2.0");
     expect(manifest.description).not.toMatch(/Obsidian/i);
   });
 });

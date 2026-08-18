@@ -1,7 +1,13 @@
-import { ItemView, Plugin, PluginSettingTab, Setting, WorkspaceLeaf } from "obsidian";
+import {
+  ItemView,
+  Plugin,
+  PluginSettingTab,
+  type SettingDefinitionItem,
+  WorkspaceLeaf
+} from "obsidian";
 import { createHash } from "node:crypto";
+import { render } from "preact";
 import { createElement } from "react";
-import { createRoot, type Root } from "react-dom/client";
 
 import { registerPluginCommands } from "./plugin/commands.js";
 import { openPluginDatabase, type PluginDatabase } from "./plugin/database.js";
@@ -708,7 +714,7 @@ function parseStoredProposal(source: string, expectedDigest: string) {
 }
 
 class VaultStewardStatusItemView extends ItemView {
-  private root: Root | undefined;
+  private mounted = false;
   constructor(
     leaf: WorkspaceLeaf,
     private readonly plugin: VaultStewardPlugin
@@ -726,8 +732,7 @@ class VaultStewardStatusItemView extends ItemView {
 
   async onOpen(): Promise<void> {
     this.contentEl.empty();
-    this.root = createRoot(this.contentEl);
-    this.root.render(
+    render(
       createElement(
         "div",
         undefined,
@@ -762,13 +767,15 @@ class VaultStewardStatusItemView extends ItemView {
             deleteDiagnosticTraces: () => this.plugin.deleteAllTraceData()
           }
         })
-      )
+      ),
+      this.contentEl
     );
+    this.mounted = true;
   }
 
   async onClose(): Promise<void> {
-    this.root?.unmount();
-    this.root = undefined;
+    if (this.mounted) render(null, this.contentEl);
+    this.mounted = false;
   }
 }
 
@@ -780,247 +787,254 @@ class VaultStewardSettingsTab extends PluginSettingTab {
     super(app, plugin);
   }
 
-  display(): void {
-    this.containerEl.empty();
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    const provider = this.plugin.settings.modelProvider;
+    const cloudProviderKind =
+      provider.kind === "openai" || provider.kind === "hyperfusion" ? provider.kind : null;
+    const cloud = cloudProviderKind !== null;
+    const providerName = cloudProviderKind ? cloudProviderLabel(cloudProviderKind) : "";
+    return [
+      {
+        name: "Vault label fallback",
+        desc: "Used only when Obsidian cannot provide the active vault name.",
+        control: { type: "text", key: "vaultLabel" }
+      },
+      {
+        name: "Scan on load",
+        desc: "Run one governed local scan when the plugin loads.",
+        control: { type: "toggle", key: "autoScanOnLoad" }
+      },
+      {
+        name: "Model provider",
+        desc: "Ollama keeps analysis local. Cloud providers receive bounded selected evidence after acknowledgement.",
+        control: {
+          type: "dropdown",
+          key: "providerKind",
+          options: {
+            ollama: "Ollama (local)",
+            "llama.cpp": "llama.cpp (local)",
+            hyperfusion: "HyperFusion (cloud, experimental)",
+            openai: "OpenAI"
+          }
+        }
+      },
+      {
+        name: cloud ? `${providerName} model` : "Local model",
+        desc: cloud
+          ? `The ${providerName} model used for required semantic analysis.`
+          : "The installed local model used for required semantic analysis.",
+        control: { type: "text", key: "providerModel" }
+      },
+      {
+        name: "Local model endpoint",
+        desc: "A loopback Ollama or llama.cpp-compatible endpoint required for governed scans.",
+        visible: !cloud,
+        control: { type: "text", key: "localEndpoint" }
+      },
+      {
+        name: `${providerName} API key`,
+        desc: `Stored locally in this vault's plugin data and used only for ${providerName} API requests.`,
+        visible: cloud,
+        control: { type: "text", key: "cloudApiKey" }
+      },
+      {
+        name: `Allow ${providerName} to receive selected vault evidence`,
+        desc: `Required. ${providerName} analysis is remote and can send bounded note excerpts to ${providerName}.`,
+        visible: cloud,
+        control: { type: "toggle", key: "cloudAcknowledgement" }
+      },
+      {
+        name: "Scheduled maintenance",
+        desc: "Run local maintenance scans while Obsidian is open. Disabled by default.",
+        control: { type: "toggle", key: "maintenanceEnabled" }
+      },
+      {
+        name: "Maintenance interval (minutes)",
+        desc: "Minimum 5 minutes; scheduled scans never overlap an active scan.",
+        control: {
+          type: "number",
+          key: "maintenanceInterval",
+          validate: (value) =>
+            Number.isInteger(value) && value >= 5 && value <= 1_440
+              ? undefined
+              : "Enter a whole number from 5 to 1440."
+        }
+      },
+      {
+        name: "Event-triggered maintenance",
+        desc: "Coalesce vault changes before a scheduled local scan.",
+        control: { type: "toggle", key: "maintenanceEventTriggered" }
+      },
+      {
+        name: "Trace retention (days)",
+        desc: "Keep local metadata-only scan traces for 1 to 3650 days.",
+        control: {
+          type: "number",
+          key: "traceRetentionDays",
+          validate: (value) =>
+            Number.isInteger(value) && value >= 1 && value <= 3650
+              ? undefined
+              : "Enter a whole number from 1 to 3650."
+        }
+      },
+      {
+        name: "Store redacted prompt snapshots",
+        desc: "Disabled by default. Rejected content is never stored.",
+        control: { type: "toggle", key: "tracePromptSnapshots" }
+      },
+      {
+        name: "Store redacted model-output snapshots",
+        desc: "Disabled by default. Only bounded, redacted structured snapshots can be retained.",
+        control: { type: "toggle", key: "traceModelOutputSnapshots" }
+      },
+      {
+        name: "Excluded trace folders",
+        desc: "Comma-separated vault-relative folders. Folder contents are never stored as trace metadata.",
+        control: { type: "text", key: "traceExcludedFolders" }
+      }
+    ];
+  }
 
-    new Setting(this.containerEl)
-      .setName("Vault label fallback")
-      .setDesc("Used only when Obsidian cannot provide the active vault name.")
-      .addText((text) =>
-        text.setValue(this.plugin.settings.vaultLabel).onChange(async (value) => {
-          await this.plugin.saveSettings({ ...this.plugin.settings, vaultLabel: value });
-        })
-      );
-
-    new Setting(this.containerEl)
-      .setName("Scan on load")
-      .setDesc("Run one governed local scan when the plugin loads.")
-      .addToggle((toggle) =>
-        toggle.setValue(this.plugin.settings.autoScanOnLoad).onChange(async (value) => {
-          await this.plugin.saveSettings({ ...this.plugin.settings, autoScanOnLoad: value });
-        })
-      );
-
-    new Setting(this.containerEl)
-      .setName("Model provider")
-      .setDesc(
-        "Ollama keeps analysis local. Cloud providers receive bounded selected evidence after acknowledgement."
-      )
-      .addDropdown((dropdown) =>
-        dropdown
-          .addOption("ollama", "Ollama (local)")
-          .addOption("llama.cpp", "llama.cpp (local)")
-          .addOption("hyperfusion", "HyperFusion (cloud, experimental)")
-          .addOption("openai", "OpenAI")
-          .setValue(this.plugin.settings.modelProvider.kind)
-          .onChange(async (kind) => {
-            const current = this.plugin.settings.modelProvider;
-            let modelProvider: ModelProviderConfig;
-            if (kind === "openai") {
-              modelProvider = openAIProviderSettings(current);
-            } else if (kind === "hyperfusion") {
-              modelProvider = hyperFusionProviderSettings(current);
-            } else if (current.kind === "openai" || current.kind === "hyperfusion") {
-              modelProvider = {
-                kind: kind as "ollama" | "llama.cpp",
-                endpoint: "http://127.0.0.1:11434",
-                model: "llama3.1:8b",
-                timeoutMs: current.timeoutMs,
-                maxResponseBytes: current.maxResponseBytes
-              };
-            } else {
-              modelProvider = {
-                kind: kind as "ollama" | "llama.cpp",
-                endpoint: current.endpoint,
-                model: current.model,
-                timeoutMs: current.timeoutMs,
-                maxResponseBytes: current.maxResponseBytes
-              };
-            }
-            await this.plugin.saveSettings({ ...this.plugin.settings, modelProvider });
-            this.display();
-          })
-      );
-
-    const configuredProvider = this.plugin.settings.modelProvider;
-    if (!("apiKey" in configuredProvider)) {
-      new Setting(this.containerEl)
-        .setName("Local model endpoint")
-        .setDesc("A loopback Ollama or llama.cpp-compatible endpoint required for governed scans.")
-        .addText((text) =>
-          text.setValue(configuredProvider.endpoint).onChange(async (endpoint) => {
-            await this.plugin.saveSettings({
-              ...this.plugin.settings,
-              modelProvider: { ...configuredProvider, endpoint }
-            });
-          })
+  getControlValue(key: string): unknown {
+    const settings = this.plugin.settings;
+    const trace = this.plugin.getTracePreferences();
+    switch (key) {
+      case "vaultLabel":
+        return settings.vaultLabel;
+      case "autoScanOnLoad":
+        return settings.autoScanOnLoad;
+      case "providerKind":
+        return settings.modelProvider.kind;
+      case "providerModel":
+        return settings.modelProvider.model;
+      case "localEndpoint":
+        return "apiKey" in settings.modelProvider ? "" : settings.modelProvider.endpoint;
+      case "cloudApiKey":
+        return "apiKey" in settings.modelProvider ? settings.modelProvider.apiKey : "";
+      case "cloudAcknowledgement":
+        return (
+          isCloudProvider(settings.modelProvider.kind) &&
+          Boolean(settings.cloudModelConsents[settings.modelProvider.kind])
         );
+      case "maintenanceEnabled":
+        return settings.maintenanceSchedule.enabled;
+      case "maintenanceInterval":
+        return settings.maintenanceSchedule.intervalMinutes;
+      case "maintenanceEventTriggered":
+        return settings.maintenanceSchedule.eventTriggered;
+      case "traceRetentionDays":
+        return trace.retentionDays;
+      case "tracePromptSnapshots":
+        return trace.storePromptSnapshots;
+      case "traceModelOutputSnapshots":
+        return trace.storeModelOutputSnapshots;
+      case "traceExcludedFolders":
+        return trace.excludedFolders.join(", ");
+      default:
+        return undefined;
     }
+  }
 
-    new Setting(this.containerEl)
-      .setName(
-        isCloudProvider(this.plugin.settings.modelProvider.kind)
-          ? `${cloudProviderLabel(this.plugin.settings.modelProvider.kind)} model`
-          : "Local model"
-      )
-      .setDesc(
-        isCloudProvider(this.plugin.settings.modelProvider.kind)
-          ? `The ${cloudProviderLabel(this.plugin.settings.modelProvider.kind)} model used for required semantic analysis.`
-          : "The installed local model used for required semantic analysis."
-      )
-      .addText((text) =>
-        text.setValue(this.plugin.settings.modelProvider.model).onChange(async (model) => {
-          await this.plugin.saveSettings({
-            ...this.plugin.settings,
-            modelProvider: { ...this.plugin.settings.modelProvider, model }
-          });
-        })
-      );
-
-    if ("apiKey" in configuredProvider) {
-      const providerName = cloudProviderLabel(configuredProvider.kind);
-      new Setting(this.containerEl)
-        .setName(`${providerName} API key`)
-        .setDesc(
-          `Stored locally in this vault's plugin data and used only for ${providerName} API requests.`
-        )
-        .addText((text) => {
-          text.inputEl.type = "password";
-          text.inputEl.autocomplete = "off";
-          text.setValue(configuredProvider.apiKey).onChange(async (apiKey) => {
-            await this.plugin.saveSettings({
-              ...this.plugin.settings,
-              modelProvider: { ...configuredProvider, apiKey }
-            });
-          });
-        });
-
-      new Setting(this.containerEl)
-        .setName(`Allow ${providerName} to receive selected vault evidence`)
-        .setDesc(
-          `Required. ${providerName} analysis is remote and can send bounded note excerpts to ${providerName}.`
-        )
-        .addToggle((toggle) =>
-          toggle
-            .setValue(Boolean(this.plugin.settings.cloudModelConsents[configuredProvider.kind]))
-            .onChange(async (acknowledged) => {
-              await this.plugin.saveSettings({
-                ...this.plugin.settings,
-                cloudModelConsents: {
-                  ...this.plugin.settings.cloudModelConsents,
-                  [configuredProvider.kind]: acknowledged
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    const settings = this.plugin.settings;
+    const trace = this.plugin.getTracePreferences();
+    if (key === "vaultLabel" && typeof value === "string")
+      return this.plugin.saveSettings({ ...settings, vaultLabel: value });
+    if (key === "autoScanOnLoad" && typeof value === "boolean")
+      return this.plugin.saveSettings({ ...settings, autoScanOnLoad: value });
+    if (
+      key === "providerKind" &&
+      (value === "ollama" || value === "llama.cpp" || value === "hyperfusion" || value === "openai")
+    ) {
+      const current = settings.modelProvider;
+      const modelProvider: ModelProviderConfig =
+        value === "openai"
+          ? openAIProviderSettings(current)
+          : value === "hyperfusion"
+            ? hyperFusionProviderSettings(current)
+            : "apiKey" in current
+              ? {
+                  kind: value,
+                  endpoint: "http://127.0.0.1:11434",
+                  model: "llama3.1:8b",
+                  timeoutMs: current.timeoutMs,
+                  maxResponseBytes: current.maxResponseBytes
                 }
-              });
-            })
-        );
+              : {
+                  kind: value,
+                  endpoint: current.endpoint,
+                  model: current.model,
+                  timeoutMs: current.timeoutMs,
+                  maxResponseBytes: current.maxResponseBytes
+                };
+      await this.plugin.saveSettings({ ...settings, modelProvider });
+      this.update();
+      return;
     }
-
-    new Setting(this.containerEl)
-      .setName("Scheduled maintenance")
-      .setDesc("Run local maintenance scans while Obsidian is open. Disabled by default.")
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.maintenanceSchedule.enabled)
-          .onChange(async (enabled) => {
-            await this.plugin.saveSettings({
-              ...this.plugin.settings,
-              maintenanceSchedule: { ...this.plugin.settings.maintenanceSchedule, enabled }
-            });
-          })
-      );
-
-    new Setting(this.containerEl)
-      .setName("Maintenance interval (minutes)")
-      .setDesc("Minimum 5 minutes; scheduled scans never overlap an active scan.")
-      .addText((text) =>
-        text
-          .setValue(String(this.plugin.settings.maintenanceSchedule.intervalMinutes))
-          .onChange(async (value) => {
-            const intervalMinutes = Number(value);
-            if (
-              !Number.isInteger(intervalMinutes) ||
-              intervalMinutes < 5 ||
-              intervalMinutes > 1_440
-            )
-              return;
-            await this.plugin.saveSettings({
-              ...this.plugin.settings,
-              maintenanceSchedule: { ...this.plugin.settings.maintenanceSchedule, intervalMinutes }
-            });
-          })
-      );
-
-    new Setting(this.containerEl)
-      .setName("Event-triggered maintenance")
-      .setDesc("Coalesce vault changes before a scheduled local scan.")
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.maintenanceSchedule.eventTriggered)
-          .onChange(async (eventTriggered) => {
-            await this.plugin.saveSettings({
-              ...this.plugin.settings,
-              maintenanceSchedule: { ...this.plugin.settings.maintenanceSchedule, eventTriggered }
-            });
-          })
-      );
-
-    const tracePreferences = this.plugin.getTracePreferences();
-    new Setting(this.containerEl)
-      .setName("Trace retention (days)")
-      .setDesc("Keep local metadata-only scan traces for 1 to 3650 days.")
-      .addText((text) =>
-        text.setValue(String(tracePreferences.retentionDays)).onChange(async (value) => {
-          const retentionDays = Number(value);
-          if (!Number.isInteger(retentionDays) || retentionDays < 1 || retentionDays > 3650) return;
-          await this.plugin.saveTracePreferences({
-            ...this.plugin.getTracePreferences(),
-            retentionDays
-          });
-        })
-      );
-
-    new Setting(this.containerEl)
-      .setName("Store redacted prompt snapshots")
-      .setDesc("Disabled by default. Rejected content is never stored.")
-      .addToggle((toggle) =>
-        toggle.setValue(tracePreferences.storePromptSnapshots).onChange(async (enabled) => {
-          await this.plugin.saveTracePreferences({
-            ...this.plugin.getTracePreferences(),
-            storePromptSnapshots: enabled,
-            redactExcerpts: true
-          });
-        })
-      );
-
-    new Setting(this.containerEl)
-      .setName("Store redacted model-output snapshots")
-      .setDesc("Disabled by default. Only bounded, redacted structured snapshots can be retained.")
-      .addToggle((toggle) =>
-        toggle.setValue(tracePreferences.storeModelOutputSnapshots).onChange(async (enabled) => {
-          await this.plugin.saveTracePreferences({
-            ...this.plugin.getTracePreferences(),
-            storeModelOutputSnapshots: enabled,
-            redactExcerpts: true
-          });
-        })
-      );
-
-    new Setting(this.containerEl)
-      .setName("Excluded trace folders")
-      .setDesc(
-        "Comma-separated vault-relative folders. Folder contents are never stored as trace metadata."
-      )
-      .addText((text) =>
-        text.setValue(tracePreferences.excludedFolders.join(", ")).onChange(async (value) => {
-          const excludedFolders = value
-            .split(",")
-            .map((folder) => folder.trim())
-            .filter(Boolean);
-          await this.plugin.saveTracePreferences({
-            ...this.plugin.getTracePreferences(),
-            excludedFolders
-          });
-        })
-      );
+    if (key === "providerModel" && typeof value === "string")
+      return this.plugin.saveSettings({
+        ...settings,
+        modelProvider: { ...settings.modelProvider, model: value }
+      });
+    if (
+      key === "localEndpoint" &&
+      typeof value === "string" &&
+      !("apiKey" in settings.modelProvider)
+    )
+      return this.plugin.saveSettings({
+        ...settings,
+        modelProvider: { ...settings.modelProvider, endpoint: value }
+      });
+    if (key === "cloudApiKey" && typeof value === "string" && "apiKey" in settings.modelProvider)
+      return this.plugin.saveSettings({
+        ...settings,
+        modelProvider: { ...settings.modelProvider, apiKey: value }
+      });
+    if (
+      key === "cloudAcknowledgement" &&
+      typeof value === "boolean" &&
+      isCloudProvider(settings.modelProvider.kind)
+    )
+      return this.plugin.saveSettings({
+        ...settings,
+        cloudModelConsents: { ...settings.cloudModelConsents, [settings.modelProvider.kind]: value }
+      });
+    if (key === "maintenanceEnabled" && typeof value === "boolean")
+      return this.plugin.saveSettings({
+        ...settings,
+        maintenanceSchedule: { ...settings.maintenanceSchedule, enabled: value }
+      });
+    if (key === "maintenanceInterval" && typeof value === "number")
+      return this.plugin.saveSettings({
+        ...settings,
+        maintenanceSchedule: { ...settings.maintenanceSchedule, intervalMinutes: value }
+      });
+    if (key === "maintenanceEventTriggered" && typeof value === "boolean")
+      return this.plugin.saveSettings({
+        ...settings,
+        maintenanceSchedule: { ...settings.maintenanceSchedule, eventTriggered: value }
+      });
+    if (key === "traceRetentionDays" && typeof value === "number")
+      return this.plugin.saveTracePreferences({ ...trace, retentionDays: value });
+    if (key === "tracePromptSnapshots" && typeof value === "boolean")
+      return this.plugin.saveTracePreferences({
+        ...trace,
+        storePromptSnapshots: value,
+        redactExcerpts: true
+      });
+    if (key === "traceModelOutputSnapshots" && typeof value === "boolean")
+      return this.plugin.saveTracePreferences({
+        ...trace,
+        storeModelOutputSnapshots: value,
+        redactExcerpts: true
+      });
+    if (key === "traceExcludedFolders" && typeof value === "string")
+      return this.plugin.saveTracePreferences({
+        ...trace,
+        excludedFolders: value
+          .split(",")
+          .map((folder) => folder.trim())
+          .filter(Boolean)
+      });
   }
 }

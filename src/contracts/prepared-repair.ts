@@ -103,7 +103,7 @@ function parseIds(value: unknown, label: string, diagnostics: string[]): string[
     diagnostics.push(`${label} must contain only non-empty strings`);
     return [];
   }
-  const ids = value as string[];
+  const ids = value.filter(isNonEmptyString);
   if (new Set(ids).size !== ids.length) diagnostics.push(`${label} must contain unique IDs`);
   return [...ids];
 }

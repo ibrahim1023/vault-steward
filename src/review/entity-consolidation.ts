@@ -221,7 +221,8 @@ function aliasOperation(
   const header = source.content.slice(4, closing);
   const match = /^aliases:[^\n]*\n?/m.exec(header);
   if (!match) return null;
-  const expected = match[0]!;
+  const expected = match[0];
+  if (expected === undefined) return null;
   const replacement = aliases.length > 0 ? `aliases: ${JSON.stringify(aliases)}\n` : "";
   return {
     kind: "replace-range",
