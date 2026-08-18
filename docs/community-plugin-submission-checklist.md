@@ -5,9 +5,11 @@ submission and must not be used to claim marketplace availability.
 
 ## Repository And Package
 
-- [ ] Repository is public and has a clear license.
-- [ ] `manifest.json`, package version, release tag, and changelog agree.
-- [x] `npm run test:plugin-install` passes for the release package. (2026-08-12.)
+- [x] Repository is public and uses the MIT License. (2026-08-18.)
+- [x] `manifest.json`, `versions.json`, package version, `0.1.0` release tag,
+      and changelog agree.
+      (2026-08-18.)
+- [x] `npm run test:plugin-install` passes for the release package. (2026-08-18.)
 - [x] Release artifact contains `main.js`, `manifest.json`, `styles.css`,
       `sql-wasm.wasm`, and `release-manifest.json`.
 - [x] Upgrade and uninstall guidance describes the current package and recovery path.

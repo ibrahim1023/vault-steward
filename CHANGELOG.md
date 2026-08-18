@@ -1,28 +1,35 @@
 # Changelog
 
-## Unreleased
+All notable changes to Vault Steward are documented in this file.
 
-- HyperFusion fixed-origin provider integration, explicit cloud acknowledgement,
-  bounded structured-output recovery, and a passing redacted Northstar corpus
-  report for `qwen/qwen3-32b`. Manual macOS acceptance remains pending, so this
-  is not a support or marketplace claim.
-- Selectable grouped repair batches, conflict warnings, local dismissal reasons,
-  and reviewed local suppression controls. Every selected repair retains an
-  exact preview, approval record, and all-member preflight.
-- Policy-template repair hardening for folder/heading-classified notes and
-  empty frontmatter blocks.
-- Duplicate-entity review with bounded two-note canonical ranking, user-selected
-  canonical notes, and revision-safe inbound-link/exclusive-alias
-  consolidation. The feature never merges or deletes notes.
+## 0.1.0 - 2026-08-18
 
-## 0.1.0 - Pre-release
+Initial public release candidate.
 
-- Local Obsidian vault integrity scanning, evidence-backed review, explicit approval, and revision-safe repair flow.
-- Result-first review with bounded AI target recommendations, exact
-  current/after previews, deterministic expected outcomes, and all-member batch
-  preflight before approved writes.
-- Deterministic governance checks plus bounded loopback-only local-model candidates.
-- Local trace lineage, reproducible fixture evaluation, replay/comparison, synthetic scale generation, retrieval-quality evaluation, and policy coverage reports.
-- Optional OpenAI Responses API provider with explicit cloud-data acknowledgement, a fixed API origin, JSON mode, `store: false`, and redacted API-key handling; Ollama remains the default.
+### Added
 
-This pre-release changelog records repository capabilities; it does not indicate marketplace publication.
+- Local-first Obsidian vault checks for references, tasks, decisions, schemas,
+  policies, stale knowledge, and related integrity signals.
+- Coordinated deterministic and model-assisted review with exact evidence and
+  Current/After previews.
+- Explicit selection and approval before any supported note repair is applied.
+- Ollama and llama.cpp local providers, plus experimental opt-in OpenAI and
+  HyperFusion providers with provider-specific acknowledgement.
+- Local history, diagnostics, review preferences, maintenance checks, and
+  packaged SQLite state.
+
+### Security
+
+- Revision-bound proposals, stale and overlapping edit rejection, conditional
+  rollback, and recovery-required handling protect vault writes.
+- Bounded vault, policy, YAML, provider-output, and structured-output parsing
+  fail closed on malformed or excessive input.
+- Persisted findings are validated against runtime contracts before UI
+  hydration.
+- API keys and diagnostic traces remain local; cloud providers use fixed
+  origins and require explicit per-provider consent.
+
+### Compatibility
+
+- Obsidian desktop 1.5.0 or later.
+- macOS is validated. Windows and Linux remain unvalidated for this release.

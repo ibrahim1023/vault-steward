@@ -72,6 +72,8 @@ accuracy, and its repair families are deliberately narrow. See
 ## Documentation
 
 - [Release readiness](docs/release-readiness.md)
+- [Changelog](CHANGELOG.md)
+- [MIT license](LICENSE)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Upgrade notes](docs/upgrade-notes.md)
 - [Release compatibility](docs/release-compatibility.md)
