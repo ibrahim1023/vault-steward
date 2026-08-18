@@ -32,4 +32,6 @@ Initial public release candidate.
 ### Compatibility
 
 - Obsidian desktop 1.5.0 or later.
+- SQLite WebAssembly is embedded in `main.js` for a self-contained Community
+  Plugins installation.
 - macOS is validated. Windows and Linux remain unvalidated for this release.

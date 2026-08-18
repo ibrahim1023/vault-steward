@@ -1,7 +1,8 @@
 import initSqlJs, { type Database } from "sql.js";
 
 export interface SqliteRuntimeOptions {
-  readonly locateFile: (file: string) => string;
+  readonly locateFile?: (file: string) => string;
+  readonly wasmBinary?: ArrayBuffer;
   readonly databaseBytes?: Uint8Array;
 }
 
@@ -19,7 +20,15 @@ export function getPluginDatabasePath(configDir: string, pluginId: string): stri
 }
 
 export async function createSqliteRuntime(options: SqliteRuntimeOptions): Promise<SqliteRuntime> {
-  const sql = await initSqlJs({ locateFile: options.locateFile });
+  const sql = await initSqlJs(
+    options.wasmBinary
+      ? { wasmBinary: options.wasmBinary }
+      : options.locateFile
+        ? { locateFile: options.locateFile }
+        : (() => {
+            throw new Error("SQLite runtime requires embedded bytes or a file locator");
+          })()
+  );
   if (
     options.databaseBytes &&
     options.databaseBytes.byteLength > 0 &&

@@ -10,8 +10,8 @@ submission and must not be used to claim marketplace availability.
       and changelog agree.
       (2026-08-18.)
 - [x] `npm run test:plugin-install` passes for the release package. (2026-08-18.)
-- [x] Release artifact contains `main.js`, `manifest.json`, `styles.css`,
-      `sql-wasm.wasm`, and `release-manifest.json`.
+- [x] Release artifact contains `main.js`, `manifest.json`, `styles.css`, and
+      `release-manifest.json`; SQLite WebAssembly is embedded in `main.js`.
 - [x] Upgrade and uninstall guidance describes the current package and recovery path.
 
 ## Product Evidence
@@ -22,22 +22,23 @@ submission and must not be used to claim marketplace availability.
 - [x] Northstar OpenAI report passes with explicit acknowledgement. (2026-08-05: `gpt-4o-mini`.)
 - [x] `npm run eval:marketplace:gate` passes against one corpus fingerprint. (2026-08-05.)
 - [x] Full automated completion gate and production dependency audit pass.
-      (2026-08-12: 402 tests; integration, E2E, acceptance, evaluations, and
-      package-install smoke passed; production audit found 0 vulnerabilities.)
+      (2026-08-18: formatting, lint, build, 415-test coverage run, integration,
+      E2E, acceptance, evaluations, marketplace gate, performance, operations,
+      and package-install smoke passed; production audit found 0 vulnerabilities.)
 - [x] Policy loading fails closed for invalid, unreadable, or oversized existing
       files, and failed writes preserve concurrent edits or require recovery.
       (2026-08-15.)
 - [x] The completed deep-security scan found two low-severity findings; both
       have fail-closed policy-loading and conditional-rollback remediations
       with regression coverage. (2026-08-15.)
-- [ ] Release quality report records a **go** decision.
+- [x] Release quality report records a **go** decision. (2026-08-18.)
 
 ## Marketplace Materials
 
 - [x] Public documentation describes current behavior without phase or marketplace claims.
 - [x] Stable macOS screenshots show check, exact preview, approval, and result.
       (2026-08-18: published in `docs/screenshots.md`.)
-- [ ] A short Northstar demonstration shows scan to review to approval.
+- [ ] Optional: a short Northstar demonstration shows scan to review to approval.
 - [x] Visible counts, labels, provider claims, and repair results have been verified.
 - [x] Manual installation and provider-specific troubleshooting are current.
 - [x] macOS is identified as validated; Windows and Linux remain unvalidated.

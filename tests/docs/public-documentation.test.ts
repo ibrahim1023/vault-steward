@@ -105,7 +105,7 @@ describe("public documentation", () => {
     const progress = readFileSync(resolve(root, "docs/progress.md"), "utf8");
 
     expect(manualAcceptance).not.toMatch(/\/(?:Users|home)\//);
-    expect(progress).toContain("Release-owner preparation is the current work.");
+    expect(progress).toContain("Release-owner preparation is complete.");
     expect(progress).toMatch(
       /current macOS manual\s+acceptance matrix and Phase 30 release evidence/
     );

@@ -3,13 +3,7 @@ export function validateReleaseCompatibility(input: {
   packageVersion: string;
   artifacts: readonly string[];
 }): string[] {
-  const required = [
-    "main.js",
-    "manifest.json",
-    "sql-wasm.wasm",
-    "styles.css",
-    "release-manifest.json"
-  ];
+  const required = ["main.js", "manifest.json", "styles.css", "release-manifest.json"];
   return [
     ...(input.manifestVersion === input.packageVersion
       ? []

@@ -3,10 +3,10 @@
 ## Current Phase
 
 Phase 30 security hardening and the complete macOS manual/provider acceptance
-matrix were completed and promoted to `development` on 2026-08-12. The current
-work is release-owner preparation: collect the remaining screenshots,
-demonstration, repository/version materials, and final release-quality
-decision. Upstream submission remains a separate owner action; this status does
+matrix were completed and promoted to `development` on 2026-08-12. The `0.1.0`
+release candidate passed its final automated gate and received a release-quality
+go decision on 2026-08-18. Publishing the GitHub release and making the upstream
+Community Plugins submission remain separate owner actions; this status does
 not claim marketplace availability.
 
 ## Completed Work
@@ -69,11 +69,11 @@ not claim marketplace availability.
 
 ## Current Work
 
-Release-owner preparation is the current work. The remaining actions are to
-confirm the public repository, license, version, tag, and changelog; prepare
-current macOS screenshots and a scan-to-approval demonstration; and record the
-final release-quality decision. Upstream submission is intentionally separate
-from this work.
+Release-owner preparation is complete. The repository, MIT license, version,
+tag, changelog, package, screenshots, manual evidence, and final go decision are
+aligned. Publishing the GitHub release and the upstream Community Plugins
+submission are intentionally separate actions. A scan-to-approval recording is
+optional promotional material.
 
 Phase 25's snapshot-bound duplicate-entity review remains implemented: it
 shows only the two cited notes and bounded evidence, requires the user to
@@ -182,8 +182,8 @@ acceptance matrix and Phase 30 release evidence are recorded below as complete.
   presented as supported until equivalent desktop evidence is recorded.
 - Agent quality thresholds are initial calibration targets and need
   representative local-vault review before a broader release.
-- Current screenshots, a scan-to-approval demonstration, final release-quality
-  sign-off, and any upstream submission remain separate release-owner actions.
+- Windows and Linux validation and optional promotional recording remain future
+  work; neither is part of the current macOS Community Plugins submission gate.
 
 ## Verification Status
 
@@ -191,7 +191,5 @@ The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type che
 
 ## Next Recommended Task
 
-Complete the remaining release-owner actions: confirm the public repository,
-license, version, tag, and changelog; prepare current screenshots and a
-scan-to-approval demonstration; make the final release-quality decision; and
-handle any upstream submission separately.
+Publish the `0.1.0` GitHub release, then prepare the separate upstream Community
+Plugins submission without claiming marketplace availability before acceptance.

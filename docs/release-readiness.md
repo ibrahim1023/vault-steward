@@ -48,14 +48,15 @@ behavior where applicable.
 
 ## Prepare marketplace materials
 
-Prepare current screenshots and a scan-to-approval demonstration as
-release-owner materials. Check that public descriptions accurately state the
-local-first provider path, experimental cloud-provider boundaries, and the
+Prepare current screenshots as release-owner materials. A short
+scan-to-approval demonstration is useful for promotion but is not required for
+Community Plugins submission. Check that public descriptions accurately state
+the local-first provider path, experimental cloud-provider boundaries, and the
 absence of automatic note editing.
 
 ## Release owner sign-off
 
 The release owner confirms the automated gate, package contents, macOS desktop
-evidence, screenshots, demonstration, public repository and license, and
-version/tag/changelog alignment. Upstream submission is a separate owner
-action and must occur only after this sign-off.
+evidence, screenshots, public repository and license, and version/tag/changelog
+alignment. Upstream submission is a separate owner action and must occur only
+after this sign-off.

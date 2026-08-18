@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import { describe, expect, it } from "vitest";
 
 import { createSqliteRuntime, getPluginDatabasePath } from "../../src/storage/sqlite-runtime.js";
@@ -24,5 +26,23 @@ describe("SQLite runtime compatibility spike", () => {
 
     runtime.close();
     expect(() => runtime.exportDatabase()).toThrow("closed");
+  });
+
+  it("initializes from embedded wasm bytes without a file locator", async () => {
+    const wasmBinary = Uint8Array.from(
+      await readFile("node_modules/sql.js/dist/sql-wasm.wasm")
+    ).buffer;
+    const runtime = await createSqliteRuntime({
+      wasmBinary,
+      locateFile: () => {
+        throw new Error("external wasm lookup is forbidden");
+      }
+    });
+
+    expect(runtime.database.exec("SELECT 1 AS ready")).toEqual([
+      { columns: ["ready"], values: [[1]] }
+    ]);
+
+    runtime.close();
   });
 });

@@ -2,7 +2,7 @@
 
 ## 0.1.0
 
-Vault Steward is distributed as a desktop-only Obsidian plugin directory containing `main.js`, `manifest.json`, `sql-wasm.wasm`, `styles.css`, and `release-manifest.json`.
+Vault Steward is distributed as a desktop-only Obsidian plugin directory containing `main.js`, `manifest.json`, `styles.css`, and `release-manifest.json`. The SQLite WebAssembly runtime is embedded in `main.js`, so Community Plugins installation requires no additional runtime file.
 
 ### Install or upgrade
 

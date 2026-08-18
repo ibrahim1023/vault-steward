@@ -10,7 +10,7 @@ import {
 
 const root = resolve(import.meta.dirname, "..");
 const releaseDirectory = resolve(root, "dist", "vault-steward");
-const artifactNames = ["main.js", "manifest.json", "sql-wasm.wasm", "styles.css"] as const;
+const artifactNames = ["main.js", "manifest.json", "styles.css"] as const;
 
 const plugin = JSON.parse(await readFile(resolve(root, "manifest.json"), "utf8")) as PluginManifest;
 const errors = validatePluginManifest(plugin);

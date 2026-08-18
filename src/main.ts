@@ -64,6 +64,7 @@ import { buildChangeAwareFindings } from "./maintenance/change-aware.js";
 import { planIncrementalScan } from "./indexing/plan.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
+declare const __SQLITE_WASM_BASE64__: string;
 
 export default class VaultStewardPlugin extends Plugin {
   settings: PluginSettings = DEFAULT_PLUGIN_SETTINGS;
@@ -79,11 +80,16 @@ export default class VaultStewardPlugin extends Plugin {
   async onload(): Promise<void> {
     this.settings = parsePluginSettings(await this.loadData());
     this.vaultReader = new ObsidianVaultReader(this.app.vault);
+    const wasmBinary = embeddedSqliteWasmBinary();
     this.database = await openPluginDatabase({
       adapter: this.app.vault.adapter,
       databasePath: getPluginDatabasePath(this.app.vault.configDir, this.manifest.id),
-      locateFile: (file) =>
-        this.app.vault.adapter.getResourcePath(`${this.pluginDirectory()}/${file}`)
+      ...(wasmBinary
+        ? { wasmBinary }
+        : {
+            locateFile: (file: string) =>
+              this.app.vault.adapter.getResourcePath(`${this.pluginDirectory()}/${file}`)
+          })
     });
     this.register(this.vaultReader.watchInvalidations());
     this.registerEvent(this.app.vault.on("create", () => this.recordMaintenanceEvent()));
@@ -662,6 +668,11 @@ export default class VaultStewardPlugin extends Plugin {
     await leaf.setViewState({ type: STATUS_VIEW_TYPE, active: true });
     this.app.workspace.revealLeaf(leaf);
   }
+}
+
+function embeddedSqliteWasmBinary(): ArrayBuffer | undefined {
+  if (typeof __SQLITE_WASM_BASE64__ !== "string") return undefined;
+  return Uint8Array.from(Buffer.from(__SQLITE_WASM_BASE64__, "base64")).buffer;
 }
 
 function isCloudProvider(kind: ModelProviderConfig["kind"]): kind is "openai" | "hyperfusion" {

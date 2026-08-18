@@ -10,12 +10,12 @@ Vault Steward requires SQLite as its canonical local state store. The plugin run
 
 ## Decision
 
-Use `sql.js` 1.14.1 as the initial SQLite runtime behind a storage adapter. It compiles SQLite to WebAssembly and uses an in-memory database that can be initialized from and exported to `Uint8Array` bytes. The production bundle copies `sql-wasm.wasm` next to `main.js`; runtime initialization resolves that asset from the installed plugin directory. The canonical database file path is `<configDir>/plugins/vault-steward/vault-steward.sqlite` and will be accessed through Obsidian's `readBinary` and `writeBinary` APIs in the repository task.
+Use `sql.js` 1.14.1 as the initial SQLite runtime behind a storage adapter. It compiles SQLite to WebAssembly and uses an in-memory database that can be initialized from and exported to `Uint8Array` bytes. The production build embeds the WebAssembly bytes in `main.js`, so the runtime does not require an extra file that Obsidian's Community Plugins installer will not download. The canonical database file path is `<configDir>/plugins/vault-steward/vault-steward.sqlite` and is accessed through Obsidian's `readBinary` and `writeBinary` APIs.
 
 ## Evidence From The Spike
 
 - The runtime creates a database, executes parameterized SQL, exports database bytes, and closes deterministically in the TypeScript test environment.
-- The build produces both `main.js` and `sql-wasm.wasm`, avoiding an implicit CDN or network dependency.
+- The build embeds the SQLite WebAssembly bytes in `main.js`, avoiding both an implicit CDN dependency and an unsupported extra install artifact.
 - Obsidian's typed API exposes `Vault.configDir`, `DataAdapter.readBinary`, and `DataAdapter.writeBinary`, which provide the required plugin-local binary-file boundary.
 
 ## Alternatives Considered
@@ -26,7 +26,7 @@ Use `sql.js` 1.14.1 as the initial SQLite runtime behind a storage adapter. It c
 
 ## Consequences
 
-`sql.js` keeps the active database in memory. Every successful write must export the complete database and persist it atomically through the Obsidian adapter; the repository layer must serialize writes and surface failed persistence. Large-vault memory pressure remains a tracked limitation. The storage adapter owns sql.js and the Obsidian binary adapter boundary; core modules continue to depend on repository contracts only.
+`sql.js` keeps the active database in memory. Every successful write must export the complete database and persist it atomically through the Obsidian adapter; the repository layer must serialize writes and surface failed persistence. Embedding increases `main.js` size but makes the official installation self-contained. Large-vault memory pressure remains a tracked limitation. The storage adapter owns sql.js and the Obsidian binary adapter boundary; core modules continue to depend on repository contracts only.
 
 ## Reversal Strategy
 

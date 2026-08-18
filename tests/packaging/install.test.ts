@@ -10,7 +10,6 @@ describe("plugin install harness", () => {
     expect(requiredInstallArtifacts()).toEqual([
       "main.js",
       "manifest.json",
-      "sql-wasm.wasm",
       "styles.css",
       "release-manifest.json"
     ]);

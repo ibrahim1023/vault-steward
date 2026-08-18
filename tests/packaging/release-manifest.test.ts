@@ -37,8 +37,7 @@ describe("release packaging contracts", () => {
         [
           { path: "main.js", sha256: "a".repeat(64) },
           { path: "manifest.json", sha256: "b".repeat(64) },
-          { path: "sql-wasm.wasm", sha256: "c".repeat(64) },
-          { path: "styles.css", sha256: "d".repeat(64) }
+          { path: "styles.css", sha256: "c".repeat(64) }
         ]
       )
     ).toMatchObject({

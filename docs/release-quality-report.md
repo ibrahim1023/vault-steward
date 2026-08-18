@@ -2,11 +2,11 @@
 
 ## Decision
 
-**No-go for Community Plugins submission; development promotion complete.**
-The deterministic Northstar corpus, provider reports, Phase 30 source-security
-hardening, full automated gate, and macOS manual sign-off pass. Submission
-materials and release-owner evidence remain incomplete. HyperFusion and OpenAI
-are experimental opt-in providers, not marketplace support claims.
+**Go for Community Plugins submission.** The deterministic Northstar corpus,
+provider reports, Phase 30 source-security hardening, final automated gate,
+package verification, macOS manual sign-off, and public screenshots pass.
+HyperFusion and OpenAI remain experimental opt-in providers, not marketplace
+support claims.
 
 ## Scope
 
@@ -27,7 +27,7 @@ are experimental opt-in providers, not marketplace support claims.
 | HyperFusion live corpus report               | Passing | `qwen/qwen3-32b`, 2026-08-03                                                                |
 | OpenAI live corpus report                    | Passing | `gpt-4o-mini`, 2026-08-05                                                                   |
 | Marketplace gate                             | Passing | Ollama and OpenAI, same corpus fingerprint, 2026-08-05                                      |
-| Full repository completion gate              | Passing | 402 tests plus integration/E2E/acceptance/evals/package/audit, 2026-08-12                   |
+| Full repository completion gate              | Passing | 415-test coverage run plus integration/E2E/acceptance/evals/package/audit, 2026-08-18       |
 | Phase 30 local source-security review        | Passing | Exact-evidence, write-boundary, parsing, consent, and JSON-recovery regressions, 2026-08-12 |
 
 Provider reports must include precision, recall, F1, evidence validity,
@@ -97,10 +97,11 @@ passed. OpenAI remains experimental.
 ## Manual macOS Evidence
 
 Manual acceptance is signed off in `docs/manual-acceptance-checklist.md` as of
-2026-08-12. The remaining release evidence is:
-
-- release screenshots, demonstration, and package/version/tag evidence;
-- a release-owner review after the final completion gate.
+2026-08-12. Current macOS screenshots are published in `docs/screenshots.md`.
+Package contents, version metadata, changelog, and the local `0.1.0` tag are
+aligned. The release owner completed the final gate and recorded this go
+decision on 2026-08-18. A promotional screen recording is optional and is not
+part of the submission gate.
 
 The completed deep-security scan identified two low-severity findings. Both
 were remediated by fail-closed policy loading and conditional rollback, with

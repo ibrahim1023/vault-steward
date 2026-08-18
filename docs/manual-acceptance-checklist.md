@@ -24,7 +24,7 @@ Obsidian desktop.
 
 ## Installation And Setup
 
-- [x] The package contains `main.js`, `manifest.json`, `styles.css`, and `sql-wasm.wasm`.
+- [x] The package contains `main.js`, `manifest.json`, and `styles.css`; SQLite WebAssembly is embedded in `main.js`.
 - [x] Vault Steward enables without an installation or migration error.
 - [x] The ribbon shield and command-palette entry each open one workspace.
 - [x] Provider configuration is in Obsidian settings, outside the primary path.

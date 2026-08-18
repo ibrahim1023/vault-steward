@@ -6,13 +6,7 @@ describe("release compatibility", () =>
       validateReleaseCompatibility({
         manifestVersion: "0.1.0",
         packageVersion: "0.1.0",
-        artifacts: [
-          "main.js",
-          "manifest.json",
-          "sql-wasm.wasm",
-          "styles.css",
-          "release-manifest.json"
-        ]
+        artifacts: ["main.js", "manifest.json", "styles.css", "release-manifest.json"]
       })
     ).toEqual([]);
     expect(

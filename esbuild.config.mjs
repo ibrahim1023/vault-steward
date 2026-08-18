@@ -1,6 +1,11 @@
 import esbuild from "esbuild";
-import { copyFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+
+const sqliteWasmBase64 = await readFile(
+  resolve("node_modules/sql.js/dist/sql-wasm.wasm"),
+  "base64"
+);
 
 await esbuild.build({
   entryPoints: ["src/main.ts"],
@@ -10,8 +15,7 @@ await esbuild.build({
   platform: "node",
   target: "es2020",
   outfile: "main.js",
+  define: { __SQLITE_WASM_BASE64__: JSON.stringify(sqliteWasmBase64) },
   sourcemap: process.argv.includes("--watch") ? "inline" : false,
   minify: false
 });
-
-await copyFile(resolve("node_modules/sql.js/dist/sql-wasm.wasm"), resolve("sql-wasm.wasm"));

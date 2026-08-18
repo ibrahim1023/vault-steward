@@ -51,13 +51,15 @@ export type PluginDatabase = {
 export async function openPluginDatabase(input: {
   adapter: PluginDatabaseAdapter;
   databasePath: string;
-  locateFile: (file: string) => string;
+  locateFile?: (file: string) => string;
+  wasmBinary?: ArrayBuffer;
 }): Promise<PluginDatabase> {
   const databaseBytes = (await input.adapter.exists(input.databasePath))
     ? new Uint8Array(await input.adapter.readBinary(input.databasePath))
     : undefined;
   const runtime = await createSqliteRuntime({
-    locateFile: input.locateFile,
+    ...(input.locateFile ? { locateFile: input.locateFile } : {}),
+    ...(input.wasmBinary ? { wasmBinary: input.wasmBinary } : {}),
     ...(databaseBytes ? { databaseBytes } : {})
   });
   applyMigrations(runtime.database);
