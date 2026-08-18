@@ -2,7 +2,7 @@
 
 All notable changes to Vault Steward are documented in this file.
 
-## 0.2.0 - 2026-08-18
+## 0.2.1 - 2026-08-18
 
 ### Changed
 
@@ -18,6 +18,8 @@ All notable changes to Vault Steward are documented in this file.
   `styles.css`, and publishes the three official Community Plugins assets.
 - Removed avoidable unsafe casts and promise-returning event handlers from the
   release source.
+- Made the production-bundle test self-contained so a fresh CI worker builds
+  the artifact before inspecting it.
 
 ## 0.1.0 - 2026-08-18
 

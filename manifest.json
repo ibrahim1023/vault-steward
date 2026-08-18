@@ -1,7 +1,7 @@
 {
   "id": "vault-steward",
   "name": "Vault Steward",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "minAppVersion": "1.13.0",
   "description": "Local-first, evidence-backed vault maintenance.",
   "author": "Vault Steward",

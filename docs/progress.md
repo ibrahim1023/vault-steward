@@ -75,7 +75,7 @@ aligned. Publishing the GitHub release and the upstream Community Plugins
 submission are intentionally separate actions. A scan-to-approval recording is
 optional promotional material.
 
-Phase 32 prepares the 0.2.0 release for the Community Directory reviewer. It
+Phase 32 prepares the 0.2.1 release for the Community Directory reviewer. It
 uses Preact compatibility rendering rather than a bundled React DOM runtime,
 registers settings through Obsidian's declarative settings API, and publishes
 attested release assets through GitHub Actions. The required `main` manifest
