@@ -4,5 +4,6 @@ node_modules
 package-lock.json
 evals/reports
 .superpowers/
+.devin/
 spec.md
 starter.md

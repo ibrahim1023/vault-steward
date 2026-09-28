@@ -5,9 +5,10 @@ Vault Steward is a local-first Obsidian plugin that audits a vault for integrity
 ## Read Order
 
 1. `AGENTS.md`
-2. The assigned task plan in `docs/superpowers/plans/`
-3. Only the relevant documents named in `docs/context-map.md`
-4. Relevant source files and tests
+2. `CONTEXT.md`
+3. The assigned task plan in `docs/superpowers/plans/`
+4. Only the relevant documents named in `docs/context-map.md`
+5. Relevant source files and tests
 
 Product behavior is authoritative in `spec.md`. Architecture, contracts, and operating constraints live in `docs/architecture.md`, `docs/interfaces.md`, `docs/ai-system.md`, `docs/security.md`, and `docs/testing-strategy.md`. Record material deviations in `docs/progress.md`.
 
@@ -49,3 +50,12 @@ npm run security:check
 ## Completion Gate
 
 Do not claim a task complete until its acceptance criteria were reviewed, relevant tests/evals and static/build checks were run, documentation is current, and no unresolved critical finding remains. State any unavailable verification explicitly.
+
+## Agent skills
+
+- Vault Steward-specific skills are authoritative over generic workflow advice: `vault-steward-typescript` for TypeScript/Preact/Obsidian/storage/review/apply; `vault-steward-ai-workflows` for providers/agents/prompts/evidence/structured output; `vault-steward-testing-evals` for tests/evals/fixtures/baselines/gates.
+- Use `grill-with-docs` for a new or materially changed product idea, `domain-modeling` when glossary or ADR language changes, and `codebase-design` when selecting a module seam.
+- Use `implement` plus `tdd` for an approved task, `diagnosing-bugs` for a reproduced hard failure, and `code-review` before landing a completed implementation diff.
+- Use `research` for changing external provider/Obsidian facts, `prototype` only for a bounded uncertain design question, `wizard` only for human-only credential/dashboard steps, and `writing-for-agents` for skills/AGENTS changes.
+- This repository does not use the Matt issue-tracker/ticket flow. ADRs live in `docs/decisions/`, not `docs/adr/`. Existing phase plans and branch gates remain authoritative.
+- Installed project skills live under `.devin/skills/`; `skills-lock.json` records upstream provenance.

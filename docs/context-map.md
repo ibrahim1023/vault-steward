@@ -12,4 +12,12 @@ Load the smallest context that permits a correct change. `AGENTS.md`, the assign
 | security-sensitive change | security plus affected contract                      | relevant targeted skill       | unrelated plans                            | planned security + affected suite       |
 | bug fix/review            | task plan, contract, failing test                    | targeted skill                | unrelated architecture                     | exact reproducer + affected checks      |
 
+## Workflow skills
+
+- `grill-with-docs` for a new or materially changed product idea; `domain-modeling` when glossary or ADR language changes; `codebase-design` when selecting a module seam.
+- `implement` plus `tdd` for an approved task; `diagnosing-bugs` for a reproduced hard failure; `code-review` before landing a completed implementation diff.
+- `research` for changing external provider or Obsidian facts; `prototype` only for a bounded uncertain design question; `wizard` only for human-only credential or dashboard steps; `writing-for-agents` for skills and AGENTS changes.
+
+When a workflow skill is used for implementation, evaluation, or provider work, the matching Vault Steward skill (`vault-steward-typescript`, `vault-steward-ai-workflows`, `vault-steward-testing-evals`) is loaded alongside it and remains authoritative over generic workflow advice.
+
 Search symbols before opening large files. Summarize inspected patterns in the task record. Do not repeatedly load unchanged documents, entire repositories, or unrelated skills. Subagents, when used, receive only their bounded objective, listed files/contracts, acceptance criteria, and verification commands.
