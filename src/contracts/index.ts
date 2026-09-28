@@ -25,7 +25,7 @@ export type SuggestedFix = {
   description: string;
 };
 
-export type Finding = {
+export type FindingV1 = {
   schemaVersion: 1;
   id: string;
   scanId: string;
@@ -39,6 +39,15 @@ export type Finding = {
   confidence: number;
   status: FindingStatus;
 };
+
+export type FindingV2 = Omit<FindingV1, "schemaVersion"> & {
+  schemaVersion: 2;
+  stableKey: string;
+  occurrenceId: string;
+  evidenceRevisionKey: string;
+};
+
+export type Finding = FindingV1 | FindingV2;
 
 export type AgentName = "entity" | "contradiction" | "staleness" | "task" | "decision";
 
@@ -75,3 +84,5 @@ export * from "./reference-repair.js";
 export * from "./task-decision-repair.js";
 export * from "./entity-canonical.js";
 export * from "./template-repair.js";
+export * from "./finding-identity.js";
+export * from "./integrity-event.js";
