@@ -2,12 +2,19 @@
 
 ## Current Phase
 
-Phase 30 security hardening and the complete macOS manual/provider acceptance
-matrix were completed and promoted to `development` on 2026-08-12. The `0.1.0`
-release candidate passed its final automated gate and received a release-quality
-go decision on 2026-08-18. Publishing the GitHub release and making the upstream
-Community Plugins submission remain separate owner actions; this status does
-not claim marketplace availability.
+Release `0.2.1` is tagged, published through the attested GitHub Actions
+release workflow, and available through Obsidian Community Plugins. The `0.3.0`
+maintenance foundation is proposed scope recorded in the
+[maintenance roadmap](superpowers/specs/2026-09-14-maintenance-foundation-roadmap.md);
+it is not yet implementation work. Its two foundational decisions,
+[ADR 0008](decisions/0008-stable-finding-identity-and-occurrences.md) (stable
+finding identity and occurrences) and
+[ADR 0009](decisions/0009-integrity-event-store-and-retention.md) (append-only
+integrity events and retention), were accepted for planning on 2026-09-28 and
+are not implemented. The bounded
+[0.3.0 implementation plan](superpowers/plans/2026-09-28-maintenance-foundation.md)
+was approved on 2026-09-28; it is not implemented and no runtime changes have
+started.
 
 ## Completed Work
 
@@ -69,23 +76,30 @@ not claim marketplace availability.
 
 ## Current Work
 
-Release-owner preparation is complete. The repository, MIT license, version,
-tag, changelog, package, screenshots, manual evidence, and final go decision are
-aligned. Publishing the GitHub release and the upstream Community Plugins
-submission are intentionally separate actions. A scan-to-approval recording is
-optional promotional material.
+Release-owner preparation is complete. The `0.2.1` release and its Community
+Plugins publication are complete: the repository, MIT license, version, tag,
+changelog, package, screenshots, manual evidence, attested release assets, and
+final go decision are aligned. The stable finding identity/occurrence ADR
+(0008) and the append-only integrity-event/retention ADR (0009) were accepted
+for `0.3.0` planning on 2026-09-28; they are decisions only and no runtime
+changes have started. The bounded `0.3.0` implementation plan was approved on
+2026-09-28; it is a plan only and nothing is implemented yet.
 
-Phase 32 prepares the 0.2.1 release for the Community Directory reviewer. It
-uses Preact compatibility rendering rather than a bundled React DOM runtime,
-registers settings through Obsidian's declarative settings API, and publishes
-attested release assets through GitHub Actions. The required `main` manifest
-entry and bounded vault enumeration remain intentional product capabilities.
+Completed: Phase 32 prepared the `0.2.1` release for the Community Directory
+reviewer. It uses Preact compatibility rendering rather than a bundled React DOM
+runtime, registers settings through Obsidian's declarative settings API, and
+publishes attested release assets through GitHub Actions. The required `main`
+manifest entry and bounded vault enumeration remain intentional product
+capabilities.
 
-Phase 25's snapshot-bound duplicate-entity review remains implemented: it
-shows only the two cited notes and bounded evidence, requires the user to
-select a canonical note, and prepares only previewed link and alias changes.
-Its earlier manual-acceptance deferral is historical; the current macOS manual
-acceptance matrix and Phase 30 release evidence are recorded below as complete.
+Completed: Phase 25's snapshot-bound duplicate-entity review remains
+implemented: it shows only the two cited notes and bounded evidence, requires
+the user to select a canonical note, and prepares only previewed link and alias
+changes. Its earlier manual-acceptance deferral is historical; the
+current macOS manual acceptance matrix and Phase 30 release evidence are
+recorded below as complete.
+
+Completed release evidence retained from earlier phases:
 
 - Security hardening on 2026-07-20 rejects local-provider redirects, bounds provider configuration and response reads, binds approval/apply to validated persisted proposal digests, and enforces vault-reader/scanner resource and canonical-path limits.
 - Phase 17 adds an explicit OpenAI provider option beside the default loopback Ollama/llama.cpp providers. OpenAI requests use a fixed API origin, bounded JSON-mode Responses API calls with `store: false`, a local API key, and a required cloud-data acknowledgement; keys remain excluded from traces, fingerprints, diagnostics, and portable exports.
@@ -197,5 +211,7 @@ The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type che
 
 ## Next Recommended Task
 
-Publish the `0.1.0` GitHub release, then prepare the separate upstream Community
-Plugins submission without claiming marketplace availability before acceptance.
+Land the approved planning documentation locally, reconcile `development` with
+the released `0.2.1` `main` baseline, create `feat/phase-33-identity-events`
+from the updated `development`, and begin Task 1 test-first. None of that
+branch or runtime work has happened yet.
