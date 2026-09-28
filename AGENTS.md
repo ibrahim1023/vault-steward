@@ -53,9 +53,36 @@ Do not claim a task complete until its acceptance criteria were reviewed, releva
 
 ## Agent skills
 
-- Vault Steward-specific skills are authoritative over generic workflow advice: `vault-steward-typescript` for TypeScript/Preact/Obsidian/storage/review/apply; `vault-steward-ai-workflows` for providers/agents/prompts/evidence/structured output; `vault-steward-testing-evals` for tests/evals/fixtures/baselines/gates.
-- Use `grill-with-docs` for a new or materially changed product idea, `domain-modeling` when glossary or ADR language changes, and `codebase-design` when selecting a module seam.
-- Use `implement` plus `tdd` for an approved task, `diagnosing-bugs` for a reproduced hard failure, and `code-review` before landing a completed implementation diff.
-- Use `research` for changing external provider/Obsidian facts, `prototype` only for a bounded uncertain design question, `wizard` only for human-only credential/dashboard steps, and `writing-for-agents` for skills/AGENTS changes.
-- This repository does not use the Matt issue-tracker/ticket flow. ADRs live in `docs/decisions/`, not `docs/adr/`. Existing phase plans and branch gates remain authoritative.
-- Installed project skills live under `.devin/skills/`; `skills-lock.json` records upstream provenance.
+- Load one workflow skill for the process and the matching Vault Steward skill for repository rules.
+- Vault Steward skills override generic advice on architecture, safety, test/eval placement, commands, and completion gates.
+- If uncertain which workflow applies, invoke `ask-matt`; do not improvise a new process.
+
+| Situation                                                                  | Workflow skill                  | Required companion                                                                       |
+| -------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------- |
+| New or materially changed product idea                                     | `grill-with-docs`               | `domain-modeling` when terms/ADRs change, plus the relevant Vault Steward skill          |
+| Glossary term or hard-to-reverse architecture decision                     | `domain-modeling`               | relevant authoritative docs and `docs/decisions/`                                        |
+| Module interface, seam, testability, or dependency shape                   | `codebase-design`               | `vault-steward-typescript`                                                               |
+| Broad codebase architecture-health survey explicitly requested by the user | `improve-codebase-architecture` | `codebase-design` and `vault-steward-typescript`                                         |
+| Approved TypeScript/Preact/Obsidian/storage/review/apply implementation    | `implement` + `tdd`             | `vault-steward-typescript` and `vault-steward-testing-evals`                             |
+| Approved provider/agent/prompt/evidence/structured-output implementation   | `implement` + `tdd`             | `vault-steward-ai-workflows` and `vault-steward-testing-evals`                           |
+| Hard bug or performance regression with reproducible failure               | `diagnosing-bugs`               | relevant Vault Steward implementation skill and focused test                             |
+| Completed branch, PR, or worktree diff before landing                      | `code-review`                   | originating plan/spec plus relevant Vault Steward skill                                  |
+| Changing Obsidian/provider/API/security fact requiring primary sources     | `research`                      | `vault-steward-ai-workflows` for provider facts, otherwise relevant targeted skill       |
+| One uncertain state-model or UI interaction question                       | `prototype`                     | relevant targeted skill; prototype is evidence, never production authority               |
+| Human-only credential, dashboard, consent, or provider setup               | `wizard`                        | security/privacy docs and `vault-steward-ai-workflows` when a model provider is involved |
+| Skill, `AGENTS.md`, or agent-facing instruction change                     | `writing-for-agents`            | existing project conventions                                                             |
+| Transfer to another session, directory, harness, or collaborator           | `handoff`                       | links to existing spec/plan/ADR rather than copied content                               |
+
+### Repository-specific skills
+
+- `vault-steward-typescript`: TypeScript, Preact, Obsidian, scanner, storage, policy, review, proposal, approval, and apply modules.
+- `vault-steward-ai-workflows`: providers, agents, prompts, evidence bundles, structured output, tool permissions, model recovery.
+- `vault-steward-testing-evals`: deterministic tests, fixtures, eval datasets, graders, baselines, performance/operational/release gates.
+
+### Routing constraints
+
+- The user declined the Matt issue-tracker/ticket flow; do not invoke `to-tickets`, `triage`, `wayfinder`, or tracker setup unless the user later asks.
+- Scoped phase implementation must not trigger `improve-codebase-architecture` or unrelated refactoring; use it only for an explicit architecture-health request.
+- `prototype` output never bypasses contracts, ADRs, tests, or approval gates.
+- ADRs live in `docs/decisions/`, not `docs/adr/`; phase plans and branch gates remain authoritative.
+- Project skills live in `.devin/skills/`; `skills-lock.json` records provenance. Do not edit vendored skills directly; update through the skills CLI or the local source under `skills/`.
