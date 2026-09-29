@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted for 0.3.0 planning on 2026-09-28; not yet implemented.
+Accepted on 2026-09-28. Storage foundation implemented: the append-only event
+store with monotonic sequence and exact-duplicate idempotency, retention
+settings, operational pruning, explicit purge, and the deletion ledger. Runtime
+event emission, UI projections, and scheduled retention remain pending; the
+rest of this ADR's behavior is not yet shipped.
 
 ## Context
 

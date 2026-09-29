@@ -34,8 +34,33 @@ describe("scan snapshot repository", () => {
       configHash: "config-1",
       inputHash: "input-1",
       parserVersion: "parser-1",
+      identityProfileHash: "legacy",
       files: [{ path: "Home.md", revisionHash: "revision-1" }]
     });
+  });
+
+  it("matches reusable snapshots by identity profile hash", async () => {
+    const repository = await createRepository();
+    repository.createSnapshot({
+      id: "scan-profiled",
+      vaultFingerprint: "vault-1",
+      startedAt: "2026-09-28T00:00:00.000Z",
+      configHash: "config-1",
+      inputHash: "input-1",
+      parserVersion: "parser-1",
+      identityProfileHash: "profile-a",
+      files: []
+    });
+    repository.transition("scan-profiled", "completed", "2026-09-28T00:01:00.000Z");
+
+    expect(
+      repository.findReusableCompletedSnapshot("vault-1", "input-1", "parser-1", "profile-a")?.id
+    ).toBe("scan-profiled");
+    expect(
+      repository.findReusableCompletedSnapshot("vault-1", "input-1", "parser-1", "profile-b")
+    ).toBeNull();
+    expect(repository.findReusableCompletedSnapshot("vault-1", "input-1", "parser-1")).toBeNull();
+    expect(repository.getCompletedSnapshot("scan-profiled")?.identityProfileHash).toBe("profile-a");
   });
 
   it("rejects invalid transitions and never changes immutable scan inputs", async () => {

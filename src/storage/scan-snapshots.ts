@@ -21,6 +21,7 @@ export type CreateScanSnapshot = {
   configHash: string;
   inputHash: string;
   parserVersion: string;
+  identityProfileHash?: string;
   files: readonly ScanInput[];
 };
 
@@ -31,6 +32,7 @@ export type CompletedScanSnapshot = {
   configHash: string;
   inputHash: string;
   parserVersion: string;
+  identityProfileHash: string;
   files: ScanInput[];
 };
 
@@ -42,14 +44,15 @@ export class ScanSnapshotRepository {
     this.database.run("BEGIN IMMEDIATE");
     try {
       this.database.run(
-        "INSERT INTO scans (id, vault_fingerprint, started_at, finished_at, status, config_hash, input_hash, parser_version) VALUES (?, ?, ?, NULL, 'running', ?, ?, ?)",
+        "INSERT INTO scans (id, vault_fingerprint, started_at, finished_at, status, config_hash, input_hash, parser_version, identity_profile_hash) VALUES (?, ?, ?, NULL, 'running', ?, ?, ?, ?)",
         [
           snapshot.id,
           snapshot.vaultFingerprint,
           snapshot.startedAt,
           snapshot.configHash,
           snapshot.inputHash,
-          snapshot.parserVersion
+          snapshot.parserVersion,
+          snapshot.identityProfileHash ?? "legacy"
         ]
       );
       for (const file of snapshot.files) {
@@ -88,7 +91,7 @@ export class ScanSnapshotRepository {
 
   getCompletedSnapshot(scanId: string): CompletedScanSnapshot | null {
     return this.getSnapshot(
-      "SELECT id, vault_fingerprint, status, config_hash, input_hash, parser_version FROM scans WHERE id = ? AND status = 'completed'",
+      "SELECT id, vault_fingerprint, status, config_hash, input_hash, parser_version, identity_profile_hash FROM scans WHERE id = ? AND status = 'completed'",
       [scanId]
     );
   }
@@ -96,11 +99,12 @@ export class ScanSnapshotRepository {
   findReusableCompletedSnapshot(
     vaultFingerprint: string,
     inputHash: string,
-    parserVersion: string
+    parserVersion: string,
+    identityProfileHash = "legacy"
   ): CompletedScanSnapshot | null {
     return this.getSnapshot(
-      "SELECT id, vault_fingerprint, status, config_hash, input_hash, parser_version FROM scans WHERE vault_fingerprint = ? AND input_hash = ? AND parser_version = ? AND status = 'completed' ORDER BY finished_at DESC LIMIT 1",
-      [vaultFingerprint, inputHash, parserVersion]
+      "SELECT id, vault_fingerprint, status, config_hash, input_hash, parser_version, identity_profile_hash FROM scans WHERE vault_fingerprint = ? AND input_hash = ? AND parser_version = ? AND identity_profile_hash = ? AND status = 'completed' ORDER BY finished_at DESC LIMIT 1",
+      [vaultFingerprint, inputHash, parserVersion, identityProfileHash]
     );
   }
 
@@ -118,14 +122,15 @@ export class ScanSnapshotRepository {
     if (!row) {
       return null;
     }
-    const [id, vaultFingerprint, status, configHash, inputHash, parserVersion] = row;
+    const [id, vaultFingerprint, status, configHash, inputHash, parserVersion, profileHash] = row;
     if (
       typeof id !== "string" ||
       typeof vaultFingerprint !== "string" ||
       status !== "completed" ||
       typeof configHash !== "string" ||
       typeof inputHash !== "string" ||
-      typeof parserVersion !== "string"
+      typeof parserVersion !== "string" ||
+      typeof profileHash !== "string"
     ) {
       throw new Error("stored scan snapshot is invalid");
     }
@@ -146,6 +151,7 @@ export class ScanSnapshotRepository {
       configHash,
       inputHash,
       parserVersion,
+      identityProfileHash: profileHash,
       files: files ?? []
     };
   }

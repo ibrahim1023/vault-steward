@@ -4,17 +4,21 @@
 
 Release `0.2.1` is tagged, published through the attested GitHub Actions
 release workflow, and available through Obsidian Community Plugins. The `0.3.0`
-maintenance foundation is proposed scope recorded in the
-[maintenance roadmap](superpowers/specs/2026-09-14-maintenance-foundation-roadmap.md);
-it is not yet implementation work. Its two foundational decisions,
+maintenance foundation is approved scope recorded in the
+[maintenance roadmap](superpowers/specs/2026-09-14-maintenance-foundation-roadmap.md)
+and is now in implementation. Its two foundational decisions,
 [ADR 0008](decisions/0008-stable-finding-identity-and-occurrences.md) (stable
 finding identity and occurrences) and
 [ADR 0009](decisions/0009-integrity-event-store-and-retention.md) (append-only
-integrity events and retention), were accepted for planning on 2026-09-28 and
-are not implemented. The bounded
+integrity events and retention), were accepted on 2026-09-28; their storage
+foundations are implemented while runtime wiring remains pending. The bounded
 [0.3.0 implementation plan](superpowers/plans/2026-09-28-maintenance-foundation.md)
-was approved on 2026-09-28; it is not implemented and no runtime changes have
-started.
+was approved on 2026-09-28. On `feat/phase-33-identity-events`, Phase 33 Task 1
+delivered the finding identity/occurrence and integrity-event contracts, and
+Task 2 delivered migration 12 with the maintenance repositories, integrity
+retention, and legacy `v0` backfill. The phase completion gate has not run and
+the branch is not promoted; identity adapters and runtime wiring remain future
+tasks.
 
 ## Completed Work
 
@@ -81,9 +85,18 @@ Plugins publication are complete: the repository, MIT license, version, tag,
 changelog, package, screenshots, manual evidence, attested release assets, and
 final go decision are aligned. The stable finding identity/occurrence ADR
 (0008) and the append-only integrity-event/retention ADR (0009) were accepted
-for `0.3.0` planning on 2026-09-28; they are decisions only and no runtime
-changes have started. The bounded `0.3.0` implementation plan was approved on
-2026-09-28; it is a plan only and nothing is implemented yet.
+for `0.3.0` planning on 2026-09-28; their storage foundations are now
+implemented and runtime wiring remains pending. The bounded `0.3.0`
+implementation plan was approved on 2026-09-28. Phase 33 Tasks 1–2 are
+implemented on `feat/phase-33-identity-events`; later phase tasks, the phase
+gate, and promotion are still open.
+
+Completed: Phase 33 Task 1 added validated finding identity/occurrence and
+append-only integrity-event contracts, and Task 2 added migration 12, note
+subjects, identity/occurrence persistence, dispositions, event append/read with
+exact-duplicate idempotency, retention settings/prune/purge with a deletion
+ledger, migration-ordering validation, and the legacy `v0` occurrence backfill
+wired into database open.
 
 Completed: Phase 32 prepared the `0.2.1` release for the Community Directory
 reviewer. It uses Preact compatibility rendering rather than a bundled React DOM
@@ -211,7 +224,5 @@ The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type che
 
 ## Next Recommended Task
 
-Land the approved planning documentation locally, reconcile `development` with
-the released `0.2.1` `main` baseline, create `feat/phase-33-identity-events`
-from the updated `development`, and begin Task 1 test-first. None of that
-branch or runtime work has happened yet.
+Continue Phase 33 on `feat/phase-33-identity-events` with Task 3, identity
+adapters for every current finding family, test-first.

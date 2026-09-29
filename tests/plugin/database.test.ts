@@ -50,6 +50,52 @@ describe("plugin database lifecycle", () => {
     reopened.close();
   });
 
+  it("backfills v0 occurrences for pre-existing findings when the database opens", async () => {
+    const store = new MemoryBinaryStore();
+    const options = () => ({
+      adapter: store,
+      databasePath: ".obsidian/plugins/vault-steward/vault-steward.sqlite",
+      locateFile: (file: string) => `node_modules/sql.js/dist/${file}`
+    });
+    const first = await openPluginDatabase(options());
+    first.repository.saveScan({
+      id: "scan-1",
+      vaultFingerprint: "vault",
+      startedAt: "2026-09-28T00:00:00.000Z",
+      finishedAt: "2026-09-28T00:00:01.000Z",
+      status: "completed",
+      configHash: "config",
+      inputHash: "input",
+      parserVersion: "parser"
+    });
+    first.repository.saveFinding({
+      id: "finding-1",
+      scanId: "scan-1",
+      type: "broken-reference",
+      severity: "medium",
+      status: "open",
+      evidenceJson: "[]",
+      payloadJson: "{}"
+    });
+    await first.flush();
+    first.close();
+
+    const reopened = await openPluginDatabase(options());
+    expect(reopened.repository.listFindingOccurrences({ scanId: "scan-1" })).toEqual([
+      expect.objectContaining({
+        findingId: "finding-1",
+        identityVersion: 0,
+        stableKey: expect.stringMatching(/^finding:v0:/)
+      })
+    ]);
+    await reopened.flush();
+    reopened.close();
+
+    const third = await openPluginDatabase(options());
+    expect(third.repository.listFindingOccurrences({ scanId: "scan-1" })).toHaveLength(1);
+    third.close();
+  });
+
   it("marks a snapshot failed when persistence after snapshot creation throws", async () => {
     const store = new MemoryBinaryStore();
     const database = await openPluginDatabase({

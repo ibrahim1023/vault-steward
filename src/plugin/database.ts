@@ -64,6 +64,7 @@ export async function openPluginDatabase(input: {
   });
   applyMigrations(runtime.database);
   const repository = new VaultStewardRepository(runtime.database);
+  repository.backfillLegacyFindingOccurrences();
   const snapshots = new ScanSnapshotRepository(runtime.database);
   snapshots.recoverInterruptedScans(new Date().toISOString());
   repository.pruneExpiredTraceData(new Date().toISOString());

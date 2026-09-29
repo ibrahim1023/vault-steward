@@ -43,6 +43,14 @@ flowchart LR
 | `storage`        | SQLite repositories and migrations                            | persisted product state               |
 | `model-provider` | Bounded structured-generation calls                           | model request/response trace metadata |
 
+`storage` additionally owns the maintenance persistence layer introduced for
+the `0.3.0` foundation: migration 12 tables for note subjects and path history,
+finding identities and occurrences, review dispositions, integrity events,
+retention settings, and the deletion ledger. Repositories validate persisted
+contract reads and writes, keep multi-statement mutations transactional, and
+run the idempotent legacy-occurrence backfill when the plugin database opens,
+before scan recovery and trace pruning.
+
 ## Main Workflow
 
 ```mermaid

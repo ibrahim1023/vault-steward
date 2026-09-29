@@ -205,6 +205,98 @@ export const MIGRATIONS: readonly Migration[] = [
       ALTER TABLE reviewer_feedback ADD COLUMN pattern_key TEXT NOT NULL DEFAULT '';
       CREATE INDEX reviewer_feedback_pattern_idx ON reviewer_feedback (pattern_key);
     `
+  },
+  {
+    version: 12,
+    sql: `
+      ALTER TABLE scans ADD COLUMN identity_profile_hash TEXT NOT NULL DEFAULT 'legacy';
+      CREATE TABLE note_subjects(
+        subject_id TEXT PRIMARY KEY,
+        current_path TEXT UNIQUE,
+        created_at TEXT NOT NULL,
+        deleted_at TEXT
+      );
+      CREATE TABLE note_path_history(
+        subject_id TEXT NOT NULL REFERENCES note_subjects(subject_id),
+        path TEXT NOT NULL,
+        observed_at TEXT NOT NULL,
+        retired_at TEXT,
+        PRIMARY KEY(subject_id, path, observed_at)
+      );
+      CREATE TABLE finding_identities(
+        stable_key TEXT PRIMARY KEY,
+        identity_version INTEGER NOT NULL,
+        family TEXT NOT NULL,
+        subtype TEXT NOT NULL,
+        detector_id TEXT NOT NULL,
+        detector_version TEXT NOT NULL,
+        policy_id TEXT,
+        policy_version TEXT,
+        subject_ids_json TEXT NOT NULL,
+        semantic_key TEXT NOT NULL
+      );
+      CREATE TABLE finding_occurrences(
+        occurrence_id TEXT PRIMARY KEY,
+        stable_key TEXT NOT NULL REFERENCES finding_identities(stable_key),
+        finding_id TEXT NOT NULL UNIQUE REFERENCES findings(id),
+        scan_id TEXT NOT NULL REFERENCES scans(id),
+        evidence_revision_key TEXT NOT NULL,
+        identity_version INTEGER NOT NULL,
+        UNIQUE(stable_key, scan_id, evidence_revision_key)
+      );
+      CREATE TABLE review_dispositions(
+        id TEXT PRIMARY KEY,
+        stable_key TEXT NOT NULL,
+        source_occurrence_id TEXT NOT NULL,
+        source_evidence_revision_key TEXT NOT NULL,
+        kind TEXT NOT NULL CHECK(kind IN ('acknowledged','ignored','snoozed','expected','restored')),
+        reason TEXT,
+        created_at TEXT NOT NULL,
+        until_at TEXT,
+        until_evidence_changes INTEGER NOT NULL CHECK(until_evidence_changes IN (0,1)),
+        restores_disposition_id TEXT
+      );
+      CREATE TABLE integrity_events(
+        sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+        id TEXT NOT NULL UNIQUE,
+        schema_version INTEGER NOT NULL,
+        category TEXT NOT NULL CHECK(category IN ('audit','review','operational')),
+        kind TEXT NOT NULL,
+        occurred_at TEXT NOT NULL,
+        scan_id TEXT,
+        stable_key TEXT,
+        occurrence_id TEXT,
+        proposal_id TEXT,
+        approval_id TEXT,
+        safe_metadata_json TEXT NOT NULL
+      );
+      CREATE TABLE integrity_retention_settings(
+        id INTEGER PRIMARY KEY CHECK(id = 1),
+        operational_days INTEGER NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+      CREATE TABLE retention_deletions(
+        sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+        occurred_at TEXT NOT NULL,
+        category TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        deleted_count INTEGER NOT NULL,
+        range_start TEXT,
+        range_end TEXT
+      );
+      INSERT INTO integrity_retention_settings (id, operational_days, updated_at) VALUES (1, 180, '2026-09-28T00:00:00.000Z');
+      CREATE INDEX finding_occurrences_scan_idx ON finding_occurrences (scan_id);
+      CREATE INDEX finding_occurrences_stable_key_idx ON finding_occurrences (stable_key);
+      CREATE INDEX integrity_events_category_occurred_idx ON integrity_events (category, occurred_at);
+      CREATE INDEX integrity_events_scan_idx ON integrity_events (scan_id);
+      CREATE INDEX integrity_events_stable_key_idx ON integrity_events (stable_key);
+      CREATE INDEX integrity_events_occurrence_idx ON integrity_events (occurrence_id);
+      CREATE INDEX integrity_events_proposal_idx ON integrity_events (proposal_id);
+      CREATE INDEX integrity_events_approval_idx ON integrity_events (approval_id);
+      CREATE INDEX review_dispositions_stable_key_created_idx ON review_dispositions (stable_key, created_at);
+      CREATE INDEX note_path_history_subject_idx ON note_path_history (subject_id);
+      CREATE INDEX note_path_history_path_idx ON note_path_history (path);
+    `
   }
 ];
 
@@ -214,16 +306,34 @@ export function applyMigrations(
   database: Database,
   migrations: readonly Migration[] = MIGRATIONS
 ): number {
+  let previousVersion = 0;
+  for (const migration of migrations) {
+    if (!Number.isSafeInteger(migration.version) || migration.version < 1) {
+      throw new Error("migration versions must be positive safe integers");
+    }
+    if (migration.version <= previousVersion) {
+      throw new Error("migration versions must be strictly increasing without duplicates");
+    }
+    previousVersion = migration.version;
+  }
+
   database.run("PRAGMA foreign_keys = ON");
   database.run(
     "CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
   );
-  const appliedVersions = new Set(
-    database.exec("SELECT version FROM schema_migrations")[0]?.values.map(([version]) => version)
-  );
+  const appliedVersions = (
+    database.exec("SELECT version FROM schema_migrations ORDER BY version")[0]?.values ?? []
+  ).flatMap(([version]) => (typeof version === "number" ? [version] : []));
 
+  for (const [index, version] of appliedVersions.entries()) {
+    if (migrations[index]?.version !== version) {
+      throw new Error("applied migrations are not a prefix of the supplied migration sequence");
+    }
+  }
+
+  const applied = new Set(appliedVersions);
   for (const migration of migrations) {
-    if (appliedVersions.has(migration.version)) {
+    if (applied.has(migration.version)) {
       continue;
     }
 

@@ -209,3 +209,45 @@ research. Any future authoring surface must still require parse, zero-write
 preview, and explicit save before activation.
 
 Classification uses only frontmatter `kind`, folder segments, and heading patterns. An explicit known `kind` wins; conflicting or absent bounded signals abstain. Active templates create deterministic missing-field findings. A `TemplateRepairIntent` contains only scan/finding/template/field/candidate IDs. The candidate value must already exist on a same-template note in the immutable snapshot. A repair is prepared only when exactly one safe candidate exists; otherwise it remains review-only. The existing digest-bound preview, approval, preflight, rollback, and re-index path owns application.
+
+## Maintenance Storage Contracts
+
+Finding identities, occurrences, review dispositions, and integrity events are
+persisted through `src/storage/repositories.ts` and validated with the contract
+parsers in `src/contracts/`. Persisted rows are validated on write and on read;
+malformed stored data fails closed. As the one explicit forward-compatibility
+carve-out, integrity event reads omit — rather than throw for or render —
+structurally safe rows whose schema version or kind is unknown to this build.
+
+- `FindingIdentity` is the stable conceptual identity from ADR 0008: a canonical
+  SHA-256 `finding:v1:` key over family, subtype, detector identity and version,
+  optional policy identity, sorted subject IDs, and a semantic key. Scan IDs,
+  row IDs, severity, status, timestamps, and presentation fields never
+  participate. `FindingOccurrence` binds one identity to one scan and one
+  `evidence:v1:` evidence revision through an `occurrence:v1:` key. Saving an
+  existing key with different content is rejected rather than merged. Findings
+  recorded before identity adoption receive isolated `identityVersion: 0`
+  `*:v0:` keys from the transactional repository backfill and are never merged
+  across scans.
+- `IntegrityEvent` is the append-only, metadata-only projection from ADR 0009.
+  SQLite assigns the monotonic sequence; appending an already-persisted event ID
+  returns the stored event only when every field including metadata is exactly
+  equal and fails closed otherwise. Reference columns (`scan_id`,
+  `stable_key`, `occurrence_id`, `proposal_id`, `approval_id`) are validated
+  against canonical rows at append time and intentionally carry no foreign keys
+  so explicit purges can delete projections without touching canonical rows.
+- `ReviewDispositionRecord` is a reversible per-occurrence decision:
+  `acknowledged`, `ignored`, `snoozed`, `expected`, or `restored`. `snoozed`
+  requires exactly one of a bounded `untilAt` or `untilEvidenceChanges`;
+  `restored` must name an existing non-restored disposition for the same stable
+  key. Effective-state evaluation walks newest first, skips reversed targets and
+  expired dated snoozes, and requires an exact evidence-revision match.
+- `note_subjects` and `note_path_history` bind an opaque subject ID to at most
+  one active path; rename and delete retire history rows transactionally, a
+  retired path can later bind only to a different subject, and a deleted subject
+  is never rebound.
+- Integrity retention bounds operational event age (30–3650 days, seeded 180).
+  Operational pruning also preserves events for the latest 50 completed scans
+  and for any scan referenced by a retained audit or review event. Explicit
+  purge removes only audit or review projections. Every deletion appends one
+  aggregate `retention_deletions` ledger row.

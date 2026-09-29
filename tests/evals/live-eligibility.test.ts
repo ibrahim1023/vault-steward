@@ -10,6 +10,7 @@ const snapshot: CompletedScanSnapshot = {
   configHash: "config-1",
   inputHash: "input-1",
   parserVersion: "parser-1",
+  identityProfileHash: "legacy",
   files: [{ path: "Home.md", revisionHash: "revision-1" }]
 };
 

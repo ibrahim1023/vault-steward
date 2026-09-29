@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted for 0.3.0 planning on 2026-09-28; not yet implemented.
+Accepted on 2026-09-28. Storage foundation implemented: the identity and
+occurrence contracts, migration 12 tables, repository persistence, and the
+legacy `v0` backfill. Detector identity adapters and runtime occurrence wiring
+remain pending; the rest of this ADR's behavior is not yet shipped.
 
 ## Context
 
