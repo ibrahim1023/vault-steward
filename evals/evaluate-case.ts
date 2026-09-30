@@ -22,7 +22,7 @@ export async function evaluateFixtureCase(
       severity: finding.severity,
       safeFix: "applicable",
       supported: finding.evidence.length > 0,
-      schemaValid: finding.schemaVersion === 1,
+      schemaValid: finding.schemaVersion === 2,
       routeValid: true,
       terminated: true
     }));

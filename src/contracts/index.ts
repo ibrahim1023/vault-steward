@@ -42,6 +42,7 @@ export type FindingV1 = {
 
 export type FindingV2 = Omit<FindingV1, "schemaVersion"> & {
   schemaVersion: 2;
+  identity: import("./finding-identity.js").FindingIdentity;
   stableKey: string;
   occurrenceId: string;
   evidenceRevisionKey: string;

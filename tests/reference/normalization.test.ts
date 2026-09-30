@@ -30,11 +30,13 @@ describe("context-triggered reference normalization", () => {
       ])
     ).toEqual([
       expect.objectContaining({
+        schemaVersion: 2,
         type: "reference-normalization",
         evidence: [expect.objectContaining({ excerpt: "[[Old Guide|guide]]" })],
         affectedNoteIds: ["One.md", "Work/Two.md"]
       }),
       expect.objectContaining({
+        schemaVersion: 2,
         type: "reference-normalization",
         evidence: [expect.objectContaining({ excerpt: "[Guide](../Old%20Guide.md#plan)" })],
         affectedNoteIds: ["One.md", "Work/Two.md"]

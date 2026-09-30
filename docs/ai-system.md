@@ -42,6 +42,11 @@ The scanner, graph builder, reference integrity checks, task parsing, schema val
   candidates, malformed output, and unsupported operations are rejected.
 - Deterministic code constructs every patch range, expected result, approval
   record, and write operation. Model output never supplies mutation authority.
+- A model candidate contributes only validated evidence citations, type,
+  explanation, and confidence. Stable finding identity is always derived by the
+  deterministic family adapters in `src/findings/identity.ts` from the cited
+  snapshot's opaque subject IDs and fixed detector semantics — never from model
+  labels, explanations, excerpts, or other arbitrary model text.
 
 ## Security and Evidence
 

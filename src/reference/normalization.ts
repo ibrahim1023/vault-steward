@@ -1,6 +1,6 @@
-import { createHash } from "node:crypto";
-
 import type { Finding } from "../contracts/index.js";
+import { createReferenceFindingIdentity } from "../findings/identity.js";
+import { normalizeFinding, type PromotedEvidence } from "../findings/normalize.js";
 import { replaceInternalReference } from "../review/propose.js";
 import type { ScanSnapshot } from "../scanner/scan.js";
 import { resolveInternalReference } from "./resolve.js";
@@ -26,6 +26,8 @@ export function buildContextualNormalizationFindings(
 ): Finding[] {
   const findings: Finding[] = [];
   for (const context of validateContexts(snapshot, contexts)) {
+    const target = snapshot.notes.find((note) => note.path === context.targetPath);
+    if (!target) continue;
     const eligible = snapshot.notes.flatMap((note) =>
       note.references.flatMap((reference) => {
         const resolution = resolveInternalReference(snapshot, reference, note.path);
@@ -41,8 +43,11 @@ export function buildContextualNormalizationFindings(
               {
                 notePath: note.path,
                 locator: reference.locator,
-                excerpt: reference.excerpt
-              }
+                excerpt: reference.excerpt,
+                role: "reference",
+                subjectId: note.subjectId,
+                sourceRevision: note.revision
+              } satisfies PromotedEvidence
             ]
           : [];
       })
@@ -52,26 +57,31 @@ export function buildContextualNormalizationFindings(
       (left, right) => left.localeCompare(right)
     );
     for (const evidence of eligible) {
-      findings.push({
-        schemaVersion: 1,
-        id: `${snapshot.id}:reference-normalization:${shortHash([
-          context.contextId,
-          evidence.notePath,
-          evidence.locator,
-          evidence.excerpt
-        ])}`,
-        scanId: snapshot.id,
-        type: "reference-normalization",
-        severity: "info",
-        evidence: [{ ...evidence }],
-        affectedNoteIds,
-        explanation: `This reference can be normalized to the verified canonical note ${context.targetPath}.`,
-        suggestedFixes: [
-          { description: "Normalize the destination while preserving visible reference syntax." }
-        ],
-        confidence: 1,
-        status: "open"
-      });
+      try {
+        const finding = normalizeFinding({
+          scanId: snapshot.id,
+          type: "reference-normalization",
+          severity: "info",
+          identity: createReferenceFindingIdentity({
+            family: "reference-normalization",
+            subtype: context.kind,
+            sourceSubjectId: evidence.subjectId,
+            targetSubjectId: target.subjectId,
+            normalizedTarget: context.targetPath
+          }),
+          evidence: [evidence],
+          availableEvidence: eligible,
+          affectedNoteIds,
+          explanation: `This reference can be normalized to the verified canonical note ${context.targetPath}.`,
+          confidence: 1,
+          suggestedFixes: [
+            { description: "Normalize the destination while preserving visible reference syntax." }
+          ]
+        });
+        if (finding) findings.push(finding);
+      } catch {
+        continue;
+      }
     }
   }
   return findings;
@@ -110,10 +120,6 @@ function isSafeVaultPath(value: string): boolean {
 
 function isBoundedString(value: string, maximum: number): boolean {
   return value.length > 0 && value.length <= maximum;
-}
-
-function shortHash(values: readonly string[]): string {
-  return createHash("sha256").update(JSON.stringify(values)).digest("hex").slice(0, 16);
 }
 
 function hasControlCharacters(value: string): boolean {

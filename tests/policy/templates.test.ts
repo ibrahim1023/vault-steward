@@ -70,8 +70,18 @@ describe("policy templates", () => {
         ["project"]
       )
     ).toEqual([
-      { field: "owner", message: "Project notes require 'owner'." },
-      { field: "status", message: "Project notes require 'status'." }
+      {
+        field: "owner",
+        message: "Project notes require 'owner'.",
+        templateId: "project",
+        ruleId: "project-owner-required"
+      },
+      {
+        field: "status",
+        message: "Project notes require 'status'.",
+        templateId: "project",
+        ruleId: "project-status-required"
+      }
     ]);
     expect(
       validatePolicyTemplateNote(

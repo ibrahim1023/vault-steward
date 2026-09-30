@@ -2,14 +2,23 @@ import { LocalAgentCoordinator, type CoordinatorResult } from "../agents/coordin
 import type { AgentEvidence } from "../agents/model-assisted.js";
 import type { Finding } from "../contracts/index.js";
 import { checkDecisions, indexDecision } from "../decisions/index.js";
-import { normalizeFinding } from "../findings/normalize.js";
+import {
+  createDecisionFindingIdentity,
+  createEntityAliasFindingIdentity,
+  createContradictionFindingIdentity,
+  createPolicyFindingIdentity,
+  createSchemaFindingIdentity,
+  createSemanticStalenessFindingIdentity,
+  createTaskFindingIdentity
+} from "../findings/identity.js";
+import { normalizeFinding, type PromotedEvidence } from "../findings/normalize.js";
 import type { ModelProvider } from "../model-provider/local-provider.js";
 import type { ModelTrace } from "../model-provider/structured.js";
 import { evaluatePolicies, extractPolicyFacts } from "../policy/evaluate.js";
 import type { Policy } from "../policy/parse.js";
 import { getPolicyTemplate, validatePolicyTemplateNote } from "../policy/templates.js";
 import { checkReferenceIntegrity } from "../reference/check.js";
-import { scanVaultFiles, type ScanSnapshot } from "../scanner/scan.js";
+import { scanVaultFiles, type ScanSnapshot, type ScannedNote } from "../scanner/scan.js";
 import { validateSchema, type SchemaDefinition } from "../schema/check.js";
 import { checkTasks } from "../tasks/check.js";
 import type { VaultFile } from "../vault-adapter/types.js";
@@ -118,18 +127,28 @@ function normalizeFindings(
   const deterministic = [
     ...checkReferenceIntegrity(snapshot),
     ...snapshot.notes.flatMap((note) =>
-      checkTasks(note.content, now).flatMap(
-        (issue) =>
-          normalizeFinding({
+      checkTasks(note.content, now).flatMap((issue) => {
+        const evidenceRef = lineEvidence(note.path, note.content, issue.line);
+        const finding = promote(
+          {
             scanId: snapshot.id,
             type: "task",
             severity: issue.kind === "overdue" ? "medium" : "low",
-            evidence: [lineEvidence(note.path, note.content, issue.line)],
+            evidence: [promoteEvidence(note, evidenceRef, "subject")],
             availableEvidence: evidence,
             explanation: `Task ${issue.id} is ${issue.kind}.`,
             confidence: 1
-          }) ?? []
-      )
+          },
+          () =>
+            createTaskFindingIdentity({
+              subjectId: note.subjectId,
+              issueKind: issue.kind,
+              taskId: issue.id,
+              structuralLocator: evidenceRef.locator
+            })
+        );
+        return finding ? [finding] : [];
+      })
     ),
     ...decisionFindings(snapshot, evidence),
     ...schemaFindings(snapshot, evidence, options.schemas ?? []),
@@ -137,7 +156,7 @@ function normalizeFindings(
     ...policyFindings(snapshot, evidence, options.policies ?? [])
   ];
   const semantic = semanticAnalysis.candidates.flatMap((candidate) =>
-    normalizeSemanticCandidate(snapshot.id, evidence, candidate)
+    normalizeSemanticCandidate(snapshot, evidence, candidate)
   );
   return [...deterministic, ...semantic];
 }
@@ -155,15 +174,29 @@ function templateSchemaFindings(
   if (enabledTemplates.length === 0) return [];
   return snapshot.notes.flatMap((note) =>
     validatePolicyTemplateNote(note, enabledTemplates).flatMap((issue) => {
-      const finding = normalizeFinding({
-        scanId: snapshot.id,
-        type: "schema",
-        severity: "low",
-        evidence: [frontmatterEvidence(note.path, note.frontmatter, `frontmatter:${issue.field}`)],
-        availableEvidence: evidence,
-        explanation: issue.message,
-        confidence: 1
-      });
+      const evidenceRef = frontmatterEvidence(
+        note.path,
+        note.frontmatter,
+        `frontmatter:${issue.field}`
+      );
+      const finding = promote(
+        {
+          scanId: snapshot.id,
+          type: "schema",
+          severity: "low",
+          evidence: [promoteEvidence(note, evidenceRef, "subject")],
+          availableEvidence: evidence,
+          explanation: issue.message,
+          confidence: 1
+        },
+        () =>
+          createSchemaFindingIdentity({
+            subjectId: note.subjectId,
+            template: issue.templateId,
+            field: issue.field,
+            rule: issue.ruleId
+          })
+      );
       return finding ? [finding] : [];
     })
   );
@@ -176,15 +209,25 @@ function schemaFindings(
 ): Finding[] {
   return snapshot.notes.flatMap((note) =>
     validateSchema(note.frontmatter, schemas).flatMap((issue) => {
-      const finding = normalizeFinding({
-        scanId: snapshot.id,
-        type: "schema",
-        severity: "low",
-        evidence: [frontmatterEvidence(note.path, note.frontmatter, issue.locator)],
-        availableEvidence: evidence,
-        explanation: issue.message,
-        confidence: 1
-      });
+      const evidenceRef = frontmatterEvidence(note.path, note.frontmatter, issue.locator);
+      const finding = promote(
+        {
+          scanId: snapshot.id,
+          type: "schema",
+          severity: "low",
+          evidence: [promoteEvidence(note, evidenceRef, "subject")],
+          availableEvidence: evidence,
+          explanation: issue.message,
+          confidence: 1
+        },
+        () =>
+          createSchemaFindingIdentity({
+            subjectId: note.subjectId,
+            template: issue.template,
+            field: issue.field,
+            rule: issue.rule
+          })
+      );
       return finding ? [finding] : [];
     })
   );
@@ -200,17 +243,27 @@ function policyFindings(
   );
   return evaluatePolicies(policies, facts).flatMap((violation) => {
     const note = snapshot.notes.find((item) => item.path === violation.path);
-    if (!note) return [];
-    const finding = normalizeFinding({
-      scanId: snapshot.id,
-      type: "policy",
-      severity: violation.severity,
-      evidence: [toEvidence(note)],
-      availableEvidence: evidence,
-      explanation: `Policy ${violation.policyId} rule ${violation.ruleId} was violated.`,
-      confidence: 1,
-      violatedPolicyId: violation.policyId
-    });
+    const policy = policies.find((item) => item.id === violation.policyId);
+    if (!note || !policy) return [];
+    const finding = promote(
+      {
+        scanId: snapshot.id,
+        type: "policy",
+        severity: violation.severity,
+        evidence: [promoteEvidence(note, toEvidence(note), "subject")],
+        availableEvidence: evidence,
+        explanation: `Policy ${violation.policyId} rule ${violation.ruleId} was violated.`,
+        confidence: 1,
+        violatedPolicyId: violation.policyId
+      },
+      () =>
+        createPolicyFindingIdentity({
+          subjectId: note.subjectId,
+          policyId: violation.policyId,
+          policyVersion: String(policy.version),
+          ruleId: violation.ruleId
+        })
+    );
     return finding ? [finding] : [];
   });
 }
@@ -225,90 +278,184 @@ function decisionFindings(snapshot: ScanSnapshot, evidence: readonly AgentEviden
     snapshot.notes.map((note) => note.path)
   ).flatMap((issue) => {
     const decision = decisions.find((item) => item.id === issue.id);
-    if (!decision) return [];
-    const finding = normalizeFinding({
-      scanId: snapshot.id,
-      type: "decision",
-      severity: "low",
-      evidence: [
-        { notePath: decision.notePath, locator: issue.evidenceLocator, excerpt: decision.excerpt }
-      ],
-      availableEvidence: evidence,
-      explanation: `Decision ${issue.id} has ${issue.kind.replace("-", " ")}.`,
-      confidence: 1
-    });
+    const note = snapshot.notes.find((item) => item.path === decision?.notePath);
+    if (!decision || !note) return [];
+    const evidenceRef = {
+      notePath: decision.notePath,
+      locator: issue.evidenceLocator,
+      excerpt: decision.excerpt
+    };
+    const finding = promote(
+      {
+        scanId: snapshot.id,
+        type: "decision",
+        severity: "low",
+        evidence: [promoteEvidence(note, evidenceRef, "subject")],
+        availableEvidence: evidence,
+        explanation: `Decision ${issue.id} has ${issue.kind.replace("-", " ")}.`,
+        confidence: 1
+      },
+      () =>
+        createDecisionFindingIdentity({
+          subjectId: note.subjectId,
+          issueKind: issue.kind,
+          decisionId: decision.id
+        })
+    );
     return finding ? [finding] : [];
   });
 }
 
 function normalizeSemanticCandidate(
-  scanId: string,
+  snapshot: ScanSnapshot,
   evidence: readonly AgentEvidence[],
   candidate: unknown
 ): Finding[] {
-  if (!isRecord(candidate) || typeof candidate.explanation !== "string") return [];
+  if (!isRecord(candidate)) return [];
+  const noteByPath = new Map(snapshot.notes.map((note) => [note.path, note]));
+  const promoteCited = (entry: AgentEvidence, role: string): PromotedEvidence | null => {
+    const note = noteByPath.get(entry.notePath);
+    return note ? promoteEvidence(note, entry, role) : null;
+  };
+
   if (Array.isArray(candidate.labels) && Array.isArray(candidate.evidence)) {
-    return normalized(
-      scanId,
+    const cited = candidate.evidence.filter(isEvidence);
+    const promoted = cited.map((entry) => promoteCited(entry, "operand"));
+    const subjectIds = [...new Set(promoted.map((entry) => entry?.subjectId))];
+    if (
+      promoted.some((entry) => entry === null) ||
+      promoted.length !== 2 ||
+      subjectIds.length !== 2
+    )
+      return [];
+    return promotedCandidate(
+      snapshot.id,
       "entity-alias",
-      "low",
-      candidate.evidence,
-      candidate.explanation,
-      evidence
+      promoted as PromotedEvidence[],
+      "These notes may describe the same entity.",
+      evidence,
+      () => createEntityAliasFindingIdentity({ subjectIds: subjectIds as [string, string] }),
+      0.8
     );
   }
+  if (typeof candidate.explanation !== "string") return [];
   if (isEvidence(candidate.left) && isEvidence(candidate.right)) {
-    return normalized(
-      scanId,
+    const left = promoteCited(candidate.left, "left");
+    const right = promoteCited(candidate.right, "right");
+    if (!left || !right) return [];
+    return promotedCandidate(
+      snapshot.id,
       "contradiction",
-      "low",
-      [candidate.left, candidate.right],
+      [left, right],
       candidate.explanation,
-      evidence
+      evidence,
+      () =>
+        createContradictionFindingIdentity({
+          left: { subjectId: left.subjectId, structuralLocator: left.locator },
+          right: { subjectId: right.subjectId, structuralLocator: right.locator },
+          symmetric: true
+        }),
+      0.7
     );
   }
   if (isEvidence(candidate.evidence) && typeof candidate.decisionId === "string") {
-    return normalized(
-      scanId,
+    const promoted = promoteCited(candidate.evidence, "subject");
+    const decisionNote =
+      noteByPath.get(candidate.decisionId) ?? noteByPath.get(`${candidate.decisionId}.md`);
+    if (!promoted || !decisionNote) return [];
+    return promotedCandidate(
+      snapshot.id,
       "decision",
-      "low",
-      [candidate.evidence],
+      [promoted],
       candidate.explanation,
-      evidence
+      evidence,
+      () =>
+        createDecisionFindingIdentity({
+          subjectId: promoted.subjectId,
+          issueKind: "semantic-review",
+          decisionId: decisionNote.subjectId
+        }),
+      0.7
     );
   }
   if (isEvidence(candidate.evidence)) {
-    return normalized(
-      scanId,
+    const promoted = promoteCited(candidate.evidence, "subject");
+    if (!promoted) return [];
+    return promotedCandidate(
+      snapshot.id,
       "staleness",
-      "low",
-      [candidate.evidence],
+      [promoted],
       candidate.explanation,
-      evidence
+      evidence,
+      () =>
+        createSemanticStalenessFindingIdentity({
+          subjectId: promoted.subjectId,
+          ruleId: "inactive-90-days"
+        }),
+      0.7
     );
   }
   return [];
 }
 
-function normalized(
+function promotedCandidate(
   scanId: string,
   type: "entity-alias" | "contradiction" | "staleness" | "decision",
-  severity: "low",
-  candidateEvidence: readonly unknown[],
+  promoted: readonly PromotedEvidence[],
   explanation: string,
-  availableEvidence: readonly AgentEvidence[]
+  availableEvidence: readonly AgentEvidence[],
+  identity: () => ReturnType<typeof createEntityAliasFindingIdentity>,
+  confidence: number
 ): Finding[] {
-  if (!candidateEvidence.every(isEvidence)) return [];
-  const finding = normalizeFinding({
-    scanId,
-    type,
-    severity,
-    evidence: candidateEvidence,
-    availableEvidence,
-    explanation,
-    confidence: type === "entity-alias" ? 0.8 : 0.7
-  });
+  if (!promoted.every((entry) => containsEvidence(availableEvidence, entry))) return [];
+  const finding = promote(
+    {
+      scanId,
+      type,
+      severity: "low",
+      evidence: promoted,
+      availableEvidence,
+      explanation,
+      confidence
+    },
+    identity
+  );
   return finding ? [finding] : [];
+}
+
+function promote(
+  input: Omit<Parameters<typeof normalizeFinding>[0], "identity">,
+  identity: () => Parameters<typeof normalizeFinding>[0]["identity"]
+): Finding | null {
+  try {
+    return normalizeFinding({ ...input, identity: identity() });
+  } catch {
+    return null;
+  }
+}
+
+function promoteEvidence(
+  note: ScannedNote,
+  evidence: AgentEvidence,
+  role: string
+): PromotedEvidence {
+  return {
+    notePath: evidence.notePath,
+    locator: evidence.locator,
+    excerpt: evidence.excerpt,
+    role,
+    subjectId: note.subjectId,
+    sourceRevision: note.revision
+  };
+}
+
+function containsEvidence(available: readonly AgentEvidence[], candidate: AgentEvidence): boolean {
+  return available.some(
+    (evidence) =>
+      evidence.notePath === candidate.notePath &&
+      evidence.locator === candidate.locator &&
+      evidence.excerpt === candidate.excerpt
+  );
 }
 
 function toEvidence(note: ScanSnapshot["notes"][number]): AgentEvidence {

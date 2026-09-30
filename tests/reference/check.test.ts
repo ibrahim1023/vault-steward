@@ -22,6 +22,11 @@ describe("reference integrity", () => {
       "broken-reference",
       "invalid-reference"
     ]);
+    expect(
+      findings.every(
+        (finding) => finding.schemaVersion === 2 && finding.stableKey.startsWith("finding:v1:")
+      )
+    ).toBe(true);
     expect(findings.every((finding) => finding.evidence[0]?.notePath === "Home.md")).toBe(true);
   });
 
@@ -123,5 +128,18 @@ describe("reference integrity", () => {
     expect(reused.notes[0]).toBe(cached.notes[0]);
     expect(reparsed.notes[0]).not.toBe(cached.notes[0]);
     expect(reparsed.notes[0]?.content).toBe("# Changed");
+  });
+
+  it("keeps an opaque subject across reusable-note revision changes", () => {
+    const first = scanVaultFiles([{ path: "A.md", content: "# A", revision: "r1" }]);
+    const subjectId = first.notes[0]?.subjectId;
+    const reusable = new Map(first.notes.map((note) => [note.path, note]));
+
+    const revised = scanVaultFiles([{ path: "A.md", content: "# B", revision: "r2" }], reusable);
+    const fresh = scanVaultFiles([{ path: "A.md", content: "# B", revision: "r2" }]);
+
+    expect(subjectId).toBeTypeOf("string");
+    expect(revised.notes[0]?.subjectId).toBe(subjectId);
+    expect(fresh.notes[0]?.subjectId).not.toBe(subjectId);
   });
 });

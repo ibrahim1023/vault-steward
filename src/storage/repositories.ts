@@ -9,6 +9,7 @@ import type {
   FindingType
 } from "../contracts/index.js";
 import {
+  createFindingOccurrence,
   FINDING_TYPES,
   parseFindingIdentity,
   parseFindingOccurrence,
@@ -143,8 +144,7 @@ export function hydrateFinding(record: FindingRecord): Finding | null {
       typeof payload.explanation !== "string"
     )
       return null;
-    return {
-      schemaVersion: 1,
+    const base = {
       id: record.id,
       scanId: record.scanId,
       type: record.type,
@@ -159,6 +159,39 @@ export function hydrateFinding(record: FindingRecord): Finding | null {
       confidence: payload.confidence,
       status: record.status
     };
+    if (
+      payload.identity !== undefined ||
+      payload.stableKey !== undefined ||
+      payload.occurrenceId !== undefined ||
+      payload.evidenceRevisionKey !== undefined
+    ) {
+      const parsedIdentity = parseFindingIdentity(payload.identity);
+      if (!parsedIdentity.ok || parsedIdentity.value.family !== record.type) return null;
+      const identity = parsedIdentity.value;
+      if (
+        payload.stableKey !== identity.stableKey ||
+        typeof payload.evidenceRevisionKey !== "string" ||
+        !/^evidence:v1:[0-9a-f]{64}$/.test(payload.evidenceRevisionKey) ||
+        typeof payload.occurrenceId !== "string"
+      )
+        return null;
+      const occurrence = createFindingOccurrence({
+        stableKey: identity.stableKey,
+        scanId: record.scanId,
+        evidenceRevisionKey: payload.evidenceRevisionKey,
+        findingId: record.id
+      });
+      if (payload.occurrenceId !== occurrence.occurrenceId) return null;
+      return {
+        ...base,
+        schemaVersion: 2,
+        identity,
+        stableKey: identity.stableKey,
+        occurrenceId: occurrence.occurrenceId,
+        evidenceRevisionKey: payload.evidenceRevisionKey
+      };
+    }
+    return { ...base, schemaVersion: 1 };
   } catch {
     return null;
   }

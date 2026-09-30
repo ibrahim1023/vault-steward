@@ -14,8 +14,8 @@ This document owns stable contract shapes. Internal implementation details may c
 ## Core Shapes
 
 ```ts
-type Finding = {
-  schemaVersion: 1;
+type FindingV1 = {
+  schemaVersion: 1; // legacy hydration and history only
   id: string;
   scanId: string;
   type: FindingType;
@@ -29,11 +29,28 @@ type Finding = {
   status: "open" | "dismissed" | "approved" | "applied" | "stale";
 };
 
+type FindingV2 = Omit<FindingV1, "schemaVersion"> & {
+  schemaVersion: 2; // emitted by active scans
+  identity: FindingIdentity;
+  stableKey: string; // finding:v1:<sha256>
+  occurrenceId: string; // occurrence:v1:<sha256>
+  evidenceRevisionKey: string; // evidence:v1:<sha256>
+};
+
+type Finding = FindingV1 | FindingV2;
+
+type PromotedEvidence = EvidenceRef & {
+  role: string;
+  subjectId: string; // opaque scanned-note subject, never path/content-derived
+  sourceRevision: string;
+};
+
 type NormalizedFindingInput = {
   scanId: string;
   type:
     | "broken-reference"
     | "invalid-reference"
+    | "reference-normalization"
     | "entity-alias"
     | "contradiction"
     | "staleness"
@@ -41,11 +58,15 @@ type NormalizedFindingInput = {
     | "schema"
     | "decision"
     | "policy";
-  evidence: EvidenceRef[];
+  identity: FindingIdentity; // from a validated deterministic family adapter
+  evidence: PromotedEvidence[];
   availableEvidence: EvidenceRef[]; // immutable active scan evidence
   confidence: number; // 0..1
   severity: FindingSeverity;
   explanation: string;
+  violatedPolicyId?: string;
+  suggestedFixes?: readonly SuggestedFix[];
+  affectedNoteIds?: readonly string[]; // non-empty, unique, cited in availableEvidence; defaults to evidence paths
 };
 
 type AgentRequest = {
@@ -171,7 +192,7 @@ unsupported fragments fail closed.
 
 ## Unified Finding Normalization
 
-`src/findings/normalize.ts` is the only boundary that promotes deterministic issues or local-model candidates into a unified `Finding`. It accepts only a supported type, finite confidence in the inclusive `0..1` range, a non-empty explanation, and evidence that exactly matches an item in the immutable active scan. Unknown model fields, uncited candidates, and unsupported issue types are discarded. Model output never directly becomes a finding or proposal.
+`src/findings/normalize.ts` is the only boundary that promotes deterministic issues or local-model candidates into a unified `Finding`. Every producer first derives a `FindingIdentity` through the matching family adapter in `src/findings/identity.ts`; the adapter supplies fixed detector IDs and a bounded canonical `semanticKey` (normalized target, task ID or locator fallback, template/field/rule, decision ID, policy ID/version/rule, sorted alias pair, contradiction operands, staleness rule, or maintenance subjects). The boundary revalidates the identity with `parseFindingIdentity`, requires `identity.family` to equal the finding type, requires a supported type, finite confidence in the inclusive `0..1` range, a non-empty explanation, and promoted evidence that exactly matches an item in the immutable active scan. The `evidenceRevisionKey` is derived only from each promoted evidence's role, subject ID, normalized structural locator, and source revision — never from excerpts or prose. A missing, tampered, or non-canonical identity discards the candidate. Model output never directly becomes a finding, identity, or proposal.
 
 ## Versioning and Compatibility
 

@@ -17,6 +17,7 @@ export type ParsedReference = {
 };
 
 export type ScannedNote = {
+  subjectId: string;
   path: string;
   content: string;
   frontmatter: Record<string, unknown>;
@@ -48,12 +49,19 @@ export function scanVaultFiles(
     paths.add(path);
     const revision = file.revision ?? `memory-${index}`;
     const cached = reusableNotes.get(path);
-    return cached?.revision === revision ? cached : scanFile(file, index, limits);
+    return cached?.revision === revision
+      ? cached
+      : scanFile(file, index, limits, cached?.subjectId ?? randomUUID());
   });
   return { id: `scan-${randomUUID()}`, notes };
 }
 
-function scanFile(file: VaultFile, index: number, limits: ScanLimits): ScannedNote {
+function scanFile(
+  file: VaultFile,
+  index: number,
+  limits: ScanLimits,
+  subjectId: string
+): ScannedNote {
   const parsed = parseSafeFrontmatter(file.content);
   const tree = unified().use(remarkParse).use(remarkGfm).parse(parsed.content);
   const headings = tree.children.flatMap((node) => {
@@ -70,6 +78,7 @@ function scanFile(file: VaultFile, index: number, limits: ScanLimits): ScannedNo
     throw new Error("vault exceeds configured processing limits");
 
   return {
+    subjectId,
     path: normalizeVaultPath(file.path),
     content: parsed.content,
     frontmatter: parsed.data,

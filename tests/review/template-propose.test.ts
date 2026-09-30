@@ -23,6 +23,7 @@ const snapshot = {
   id: "scan",
   notes: [
     {
+      subjectId: "subject:atlas",
       path: "Projects/Atlas.md",
       content: "---\nkind: project\n---\n# Atlas",
       frontmatter: { kind: "project" },
@@ -32,6 +33,7 @@ const snapshot = {
       references: []
     },
     {
+      subjectId: "subject:beta",
       path: "Projects/Beta.md",
       content: "",
       frontmatter: { kind: "project", owner: "Maya" },

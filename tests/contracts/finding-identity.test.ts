@@ -365,6 +365,7 @@ describe("finding schema compatibility", () => {
     const v2: FindingV2 = {
       ...v1,
       schemaVersion: 2,
+      identity,
       stableKey: identity.stableKey,
       occurrenceId: occurrence.occurrenceId,
       evidenceRevisionKey

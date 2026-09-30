@@ -4,8 +4,8 @@ export type SchemaDefinition = {
   enums?: Record<string, readonly string[]>;
   types?: Record<string, "string" | "boolean" | "string[]">;
 };
-export type SchemaIssue = { field: string; message: string };
-export type SchemaValidation = SchemaIssue & { locator: string };
+export type SchemaIssue = { field: string; message: string; rule: string };
+export type SchemaValidation = SchemaIssue & { locator: string; template: string };
 
 export function checkFrontmatter(
   frontmatter: Record<string, unknown>,
@@ -13,13 +13,13 @@ export function checkFrontmatter(
 ): SchemaIssue[] {
   const issues = (schema.required ?? []).flatMap((field) =>
     frontmatter[field] === undefined || frontmatter[field] === ""
-      ? [{ field, message: `${field} is required` }]
+      ? [{ field, message: `${field} is required`, rule: "required" }]
       : []
   );
   for (const [field, values] of Object.entries(schema.enums ?? {})) {
     const value = frontmatter[field];
     if (value !== undefined && (typeof value !== "string" || !values.includes(value))) {
-      issues.push({ field, message: `${field} must be one of the approved values` });
+      issues.push({ field, message: `${field} must be one of the approved values`, rule: "enum" });
     }
   }
   return issues;
@@ -37,10 +37,14 @@ export function validateSchema(
   for (const [field, type] of Object.entries(schema.types ?? {})) {
     const value = frontmatter[field];
     if (value !== undefined && !matchesType(value, type)) {
-      issues.push({ field, message: `${field} must be a ${type}` });
+      issues.push({ field, message: `${field} must be a ${type}`, rule: "type" });
     }
   }
-  return issues.map((issue) => ({ ...issue, locator: `frontmatter:${issue.field}` }));
+  return issues.map((issue) => ({
+    ...issue,
+    locator: `frontmatter:${issue.field}`,
+    template: schema.template ?? ""
+  }));
 }
 
 function matchesType(

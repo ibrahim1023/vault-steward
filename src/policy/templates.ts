@@ -22,7 +22,12 @@ export type TemplateClassification = {
   provenance: TemplateClassificationProvenance;
 };
 
-export type TemplateSchemaIssue = { field: string; message: string };
+export type TemplateSchemaIssue = {
+  field: string;
+  message: string;
+  templateId: PolicyTemplateId;
+  ruleId: string;
+};
 
 const TEMPLATES: readonly PolicyTemplate[] = [
   {
@@ -177,7 +182,14 @@ export function validatePolicyTemplateNote(
     const field = rule.fact.slice(`${template.id}.`.length);
     const value = input.frontmatter[field];
     return value === undefined || value === ""
-      ? [{ field, message: `${template.label} notes require '${field}'.` }]
+      ? [
+          {
+            field,
+            message: `${template.label} notes require '${field}'.`,
+            templateId: template.id,
+            ruleId: rule.id
+          }
+        ]
       : [];
   });
 }

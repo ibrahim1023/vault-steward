@@ -4,6 +4,7 @@ import { buildChangeAwareFindings } from "../../src/maintenance/change-aware.js"
 import type { ScannedNote } from "../../src/scanner/scan.js";
 
 const note = (path: string, frontmatter: Record<string, unknown> = {}): ScannedNote => ({
+  subjectId: `subject:${path}`,
   path,
   content: "",
   frontmatter,
@@ -38,6 +39,7 @@ describe("change-aware maintenance", () => {
     });
     expect(result).toEqual([
       expect.objectContaining({
+        schemaVersion: 2,
         type: "staleness",
         explanation: "This note cites a superseded decision and should be reviewed.",
         evidence: [expect.objectContaining({ notePath: "Plans/Launch.md", locator: "line:4" })]
@@ -64,10 +66,38 @@ describe("change-aware maintenance", () => {
       snapshot: { id: "scan", notes: [source] }
     });
     expect(result[0]).toMatchObject({
+      schemaVersion: 2,
       type: "staleness",
       status: "open",
       explanation: "This note cites a deleted note and should be reviewed for context.",
       suggestedFixes: []
     });
+  });
+
+  it("throws when identical events produce a duplicate v2 occurrence", () => {
+    const source = {
+      ...note("Plans/Launch.md"),
+      references: [
+        {
+          kind: "wiki" as const,
+          rawTarget: "Decisions/ADR-1",
+          locator: "line:3",
+          excerpt: "[[Decisions/ADR-1]]"
+        }
+      ]
+    };
+    const event = {
+      schemaVersion: 1 as const,
+      kind: "delete" as const,
+      path: "Decisions/ADR-1.md"
+    };
+    expect(() =>
+      buildChangeAwareFindings({
+        scanId: "scan",
+        events: [event, event],
+        previousNotes: [source, note("Decisions/ADR-1.md")],
+        snapshot: { id: "scan", notes: [source] }
+      })
+    ).toThrow("duplicate finding occurrence");
   });
 });

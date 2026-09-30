@@ -1,7 +1,10 @@
-import { createHash } from "node:crypto";
-
 import type { Finding } from "../contracts/index.js";
 import type { VaultEvent } from "../contracts/incremental.js";
+import {
+  createMaintenanceFindingIdentity,
+  type MaintenanceIdentityInput
+} from "../findings/identity.js";
+import { normalizeFinding, type PromotedEvidence } from "../findings/normalize.js";
 import type { ScanSnapshot, ScannedNote } from "../scanner/scan.js";
 import { analyzeChangeImpact, type VaultChange } from "../indexing/impact.js";
 
@@ -42,34 +45,61 @@ export function buildChangeAwareFindings(input: {
 }
 
 function impactFindings(scanId: string, change: VaultChange, previous: ScanSnapshot): Finding[] {
+  const targetNote = previous.notes.find(
+    (note) => note.path === (change.kind === "rename" ? change.oldPath : change.path)
+  );
+  if (!targetNote) return [];
+  const subtype: MaintenanceIdentityInput["subtype"] = change.kind;
   const impact = analyzeChangeImpact(change, previous);
-  const referenceFindings = impact.inboundReferences.map((reference) =>
-    finding(
+  const referenceFindings = impact.inboundReferences.flatMap((reference) => {
+    const source = previous.notes.find((note) => note.path === reference.sourcePath);
+    if (!source) return [];
+    return promoteMaintenance(
       scanId,
       {
         notePath: reference.sourcePath,
         locator: reference.locator,
-        excerpt: reference.excerpt
+        excerpt: reference.excerpt,
+        role: "citing",
+        subjectId: source.subjectId,
+        sourceRevision: source.revision
+      },
+      {
+        subtype,
+        sourceSubjectId: source.subjectId,
+        targetSubjectId: targetNote.subjectId,
+        dependencyKind: "reference"
       },
       change.kind === "rename"
         ? `This note cites a renamed note and should be reviewed for context.`
         : `This note cites a deleted note and should be reviewed for context.`
-    )
-  );
+    );
+  });
   const dependencyFindings = [
-    ...impact.taskDependents.map((path) => ({ path, kind: "task" })),
-    ...impact.decisionDependents.map((path) => ({ path, kind: "decision" })),
-    ...impact.policyDependents.map((path) => ({ path, kind: "policy" }))
+    ...impact.taskDependents.map((path) => ({ path, kind: "task" as const })),
+    ...impact.decisionDependents.map((path) => ({ path, kind: "decision" as const })),
+    ...impact.policyDependents.map((path) => ({ path, kind: "policy" as const }))
   ].flatMap(({ path, kind }) => {
     const note = previous.notes.find((item) => item.path === path);
     if (!note) return [];
-    return [
-      finding(
-        scanId,
-        { notePath: path, locator: "frontmatter:dependency", excerpt: kind },
-        `This ${kind} depends on a ${change.kind === "rename" ? "renamed" : "deleted"} note and should be reviewed.`
-      )
-    ];
+    return promoteMaintenance(
+      scanId,
+      {
+        notePath: path,
+        locator: "frontmatter:dependency",
+        excerpt: kind,
+        role: "citing",
+        subjectId: note.subjectId,
+        sourceRevision: note.revision
+      },
+      {
+        subtype,
+        sourceSubjectId: note.subjectId,
+        targetSubjectId: targetNote.subjectId,
+        dependencyKind: kind
+      },
+      `This ${kind} depends on a ${change.kind === "rename" ? "renamed" : "deleted"} note and should be reviewed.`
+    );
   });
   return [...referenceFindings, ...dependencyFindings];
 }
@@ -90,18 +120,49 @@ function supersededDecisionFindings(
       .filter(
         (reference) => withoutExtension(reference.rawTarget.split("#", 1)[0] ?? "") === target
       )
-      .map((reference) =>
-        finding(
+      .flatMap((reference) =>
+        promoteMaintenance(
           scanId,
           {
             notePath: note.path,
             locator: reference.locator,
-            excerpt: reference.excerpt
+            excerpt: reference.excerpt,
+            role: "citing",
+            subjectId: note.subjectId,
+            sourceRevision: note.revision
+          },
+          {
+            subtype: "superseded-decision",
+            sourceSubjectId: note.subjectId,
+            targetSubjectId: after.subjectId
           },
           "This note cites a superseded decision and should be reviewed."
         )
       )
   );
+}
+
+function promoteMaintenance(
+  scanId: string,
+  evidence: PromotedEvidence,
+  identity: MaintenanceIdentityInput,
+  explanation: string
+): Finding[] {
+  try {
+    const finding = normalizeFinding({
+      scanId,
+      type: "staleness",
+      severity: "low",
+      identity: createMaintenanceFindingIdentity(identity),
+      evidence: [evidence],
+      availableEvidence: [evidence],
+      explanation,
+      confidence: 1
+    });
+    return finding ? [finding] : [];
+  } catch {
+    return [];
+  }
 }
 
 function isNewlySuperseded(before: ScannedNote | undefined, after: ScannedNote): boolean {
@@ -113,33 +174,19 @@ function isNewlySuperseded(before: ScannedNote | undefined, after: ScannedNote):
   return afterState && !beforeState;
 }
 
-function finding(
-  scanId: string,
-  evidence: Finding["evidence"][number],
-  explanation: string
-): Finding {
-  const id = createHash("sha256")
-    .update(`${scanId}:${evidence.notePath}:${evidence.locator}:${explanation}`)
-    .digest("hex")
-    .slice(0, 20);
-  return {
-    schemaVersion: 1,
-    id: `${scanId}:maintenance:${id}`,
-    scanId,
-    type: "staleness",
-    severity: "low",
-    evidence: [evidence],
-    affectedNoteIds: [evidence.notePath],
-    explanation,
-    suggestedFixes: [],
-    confidence: 1,
-    status: "open"
-  };
-}
-
 function unique(findings: readonly Finding[]): Finding[] {
   const seen = new Set<string>();
-  return findings.filter((finding) => !seen.has(finding.id) && (seen.add(finding.id), true));
+  const output: Finding[] = [];
+  for (const finding of findings) {
+    const key = finding.schemaVersion === 2 ? finding.occurrenceId : finding.id;
+    if (seen.has(key)) {
+      if (finding.schemaVersion === 2) throw new Error("duplicate finding occurrence");
+      continue;
+    }
+    seen.add(key);
+    output.push(finding);
+  }
+  return output;
 }
 
 function withoutExtension(value: string): string {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { LocalAgentCoordinator } from "../../src/agents/coordinator.js";
 import { runGovernedScan } from "../../src/core/governed-scan.js";
 import type { ModelProvider } from "../../src/model-provider/local-provider.js";
 
@@ -36,6 +37,7 @@ describe("snapshot-derived governed scan", () => {
     expect(result.findings.map((finding) => finding.type)).toEqual(
       expect.arrayContaining(["broken-reference", "task"])
     );
+    expect(result.findings.every((finding) => finding.schemaVersion === 2)).toBe(true);
     expect(result.completed).toBe(true);
     expect(result.modelTraces).toEqual([
       expect.objectContaining({ provider: "ollama", outcome: "success" })
@@ -103,6 +105,46 @@ describe("snapshot-derived governed scan", () => {
         expect.objectContaining({ type: "schema", explanation: "Project notes require 'status'." })
       ])
     );
+  });
+
+  it("promotes a validated entity candidate with a deterministic explanation", async () => {
+    const files = [
+      { path: "Ada.md", content: "# Ada Lovelace" },
+      { path: "Notes/AL.md", content: "# A. Lovelace" }
+    ];
+    const snapshot = files.map((file) => ({
+      notePath: file.path,
+      locator: "line:1:column:1",
+      excerpt: file.content
+    }));
+    const coordinator = {
+      run: async () => ({
+        completed: true,
+        limitations: [],
+        traces: [],
+        candidates: [
+          {
+            kind: "alias",
+            labels: ["Ada Lovelace", "A. Lovelace"],
+            evidence: [snapshot[0], snapshot[1]]
+          }
+        ]
+      })
+    } as unknown as LocalAgentCoordinator;
+
+    const result = await runGovernedScan(files, [provider], "2026-07-14T00:00:00Z", {
+      coordinator
+    });
+
+    expect(result.findings).toEqual([
+      expect.objectContaining({
+        schemaVersion: 2,
+        type: "entity-alias",
+        explanation: "These notes may describe the same entity."
+      })
+    ]);
+    const finding = result.findings[0];
+    expect(finding?.schemaVersion === 2 && finding.stableKey.startsWith("finding:v1:")).toBe(true);
   });
 
   it("does not report a completed scan when the required local model stage fails", async () => {
