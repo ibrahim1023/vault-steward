@@ -12,6 +12,7 @@ Local correctness takes precedence over scan throughput. All externally visible 
 - Deduplicate work by scan and input hashes; cap parser/model queue depth; process model calls serially at first.
 - Normalize event bursts before scan scheduling. Empty, overflowed, malformed, create, rename, and delete batches are full-scan boundaries; only exact safe modify events can qualify for incremental parser reuse.
 - Recover after restart by marking interrupted scans failed/canceled, retaining their diagnostics, and resuming only from a safe checkpoint.
+- Snapshot the in-memory database before subject-binding mutations; if a mutation or `writeBinary` flush fails during event processing, restore the runtime from the pre-mutation bytes, report the batch as persistence-failed (forcing a conservative full scan), and let synchronization rebind the new path to a fresh subject. Subject synchronization failure aborts the scan rather than emitting findings on unpersisted identity.
 - Reject non-SQLite persisted bytes as corruption; rebuild derived local state through the recovery runbook rather than silently replacing the database.
 - Join prepared batches to persisted digest-bound proposals and recheck every
   source revision before apply. Any stale, altered, missing, conflicting, or

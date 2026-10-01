@@ -58,7 +58,7 @@ export class ObsidianVaultReader implements VaultReader {
       }
       const content = file.extension === "md" ? await this.vault.read(file) : "";
       throwIfAborted(signal);
-      files.push({ path, content, revision: revisionFor(path, content) });
+      files.push({ path, content, revision: revisionFor(content) });
     }
     assertScanLimits(files, this.limits);
     return files;
@@ -118,7 +118,7 @@ export class ObsidianVaultWriter implements WritableVault {
   async read(path: string): Promise<{ content: string; revision: string }> {
     const file = this.findMarkdownFile(path);
     const content = await this.vault.read(file);
-    return { content, revision: revisionFor(path, content) };
+    return { content, revision: revisionFor(content) };
   }
 
   async write(path: string, content: string): Promise<void> {
@@ -183,8 +183,8 @@ function hasControlCharacters(value: string): boolean {
   });
 }
 
-function revisionFor(path: string, content: string): string {
-  return createHash("sha256").update(path).update("\0").update(content).digest("hex");
+function revisionFor(content: string): string {
+  return createHash("sha256").update(content).digest("hex");
 }
 
 function throwIfAborted(signal: AbortSignal | undefined): void {

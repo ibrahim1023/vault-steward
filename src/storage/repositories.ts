@@ -1260,6 +1260,17 @@ export class VaultStewardRepository {
     return row ? toNoteSubjectRecord(row) : null;
   }
 
+  listActiveNoteSubjects(): NoteSubjectRecord[] {
+    return (
+      this.database.exec(
+        "SELECT subject_id, current_path, created_at, deleted_at FROM note_subjects WHERE deleted_at IS NULL ORDER BY current_path"
+      )[0]?.values ?? []
+    ).flatMap((row) => {
+      const record = toNoteSubjectRecord(row);
+      return record && record.currentPath !== null ? [record] : [];
+    });
+  }
+
   listNotePathHistory(subjectId: string): NotePathHistoryRecord[] {
     return (
       this.database.exec(

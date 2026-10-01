@@ -49,9 +49,10 @@ export function scanVaultFiles(
     paths.add(path);
     const revision = file.revision ?? `memory-${index}`;
     const cached = reusableNotes.get(path);
-    return cached?.revision === revision
+    const subjectId = file.subjectId ?? cached?.subjectId ?? randomUUID();
+    return cached?.revision === revision && cached.subjectId === subjectId
       ? cached
-      : scanFile(file, index, limits, cached?.subjectId ?? randomUUID());
+      : scanFile(file, index, limits, subjectId);
   });
   return { id: `scan-${randomUUID()}`, notes };
 }

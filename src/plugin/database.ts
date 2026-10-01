@@ -1,4 +1,11 @@
+import { randomUUID } from "node:crypto";
+
 import type { Finding } from "../contracts/index.js";
+import type {
+  ProcessedVaultEventBatch,
+  VaultEvent,
+  VerifiedRename
+} from "../contracts/incremental.js";
 import { persistReviewQueue } from "../coordinator/normalize.js";
 import { ScanSnapshotRepository } from "../storage/scan-snapshots.js";
 import { applyMigrations } from "../storage/migrations.js";
@@ -9,7 +16,12 @@ import {
   VaultStewardRepository
 } from "../storage/repositories.js";
 import type { ModelTrace } from "../model-provider/structured.js";
-import { createSqliteRuntime, type SqliteRuntime } from "../storage/sqlite-runtime.js";
+import {
+  createSqliteRuntime,
+  type SqliteRuntime,
+  type SqliteRuntimeOptions
+} from "../storage/sqlite-runtime.js";
+import { normalizeVaultPath } from "../scanner/scan.js";
 import type { VaultFile } from "../vault-adapter/types.js";
 import { validateFindingLineage } from "../contracts/trace.js";
 
@@ -20,7 +32,7 @@ export type PluginDatabaseAdapter = {
 };
 
 export type PluginDatabase = {
-  repository: VaultStewardRepository;
+  readonly repository: VaultStewardRepository;
   saveCompletedScan(input: {
     id: string;
     vaultFingerprint: string;
@@ -44,6 +56,14 @@ export type PluginDatabase = {
     lifecycle: ReturnType<VaultStewardRepository["listFindingLifecycle"]>;
   };
   loadObservability(scanId?: string): ObservabilitySnapshot;
+  processVaultEvents(
+    events: readonly VaultEvent[],
+    observedAt: string
+  ): Promise<ProcessedVaultEventBatch>;
+  synchronizeNoteSubjects(
+    paths: readonly string[],
+    observedAt: string
+  ): Promise<ReadonlyMap<string, string>>;
   flush(): Promise<void>;
   close(): void;
 };
@@ -53,25 +73,144 @@ export async function openPluginDatabase(input: {
   databasePath: string;
   locateFile?: (file: string) => string;
   wasmBinary?: ArrayBuffer;
+  createSubjectId?: () => string;
 }): Promise<PluginDatabase> {
+  const runtimeOptions: SqliteRuntimeOptions = {
+    ...(input.locateFile ? { locateFile: input.locateFile } : {}),
+    ...(input.wasmBinary ? { wasmBinary: input.wasmBinary } : {})
+  };
   const databaseBytes = (await input.adapter.exists(input.databasePath))
     ? new Uint8Array(await input.adapter.readBinary(input.databasePath))
     : undefined;
-  const runtime = await createSqliteRuntime({
-    ...(input.locateFile ? { locateFile: input.locateFile } : {}),
-    ...(input.wasmBinary ? { wasmBinary: input.wasmBinary } : {}),
+  const createSubjectId = input.createSubjectId ?? randomUUID;
+  let runtime = await createSqliteRuntime({
+    ...runtimeOptions,
     ...(databaseBytes ? { databaseBytes } : {})
   });
   applyMigrations(runtime.database);
-  const repository = new VaultStewardRepository(runtime.database);
+  let repository = new VaultStewardRepository(runtime.database);
   repository.backfillLegacyFindingOccurrences();
-  const snapshots = new ScanSnapshotRepository(runtime.database);
+  let snapshots = new ScanSnapshotRepository(runtime.database);
   snapshots.recoverInterruptedScans(new Date().toISOString());
   repository.pruneExpiredTraceData(new Date().toISOString());
   await writeRuntime(input.adapter, input.databasePath, runtime);
 
+  async function restoreRuntime(bytes: Uint8Array): Promise<void> {
+    runtime.close();
+    runtime = await createSqliteRuntime({ ...runtimeOptions, databaseBytes: bytes });
+    repository = new VaultStewardRepository(runtime.database);
+    snapshots = new ScanSnapshotRepository(runtime.database);
+  }
+
+  function safeSubjectPath(path: string): string | null {
+    const normalized = normalizeVaultPath(path);
+    return isSafeSubjectPath(normalized) ? normalized : null;
+  }
+
+  async function processVaultEvents(
+    events: readonly VaultEvent[],
+    observedAt: string
+  ): Promise<ProcessedVaultEventBatch> {
+    const backup = runtime.exportDatabase();
+    const verifiedRenames: VerifiedRename[] = [];
+    try {
+      for (const event of events) {
+        if (event.kind === "create") {
+          const path = safeSubjectPath(event.path);
+          if (path && !repository.findNoteSubjectByPath(path)) {
+            repository.bindNoteSubject({ subjectId: createSubjectId(), path, observedAt });
+          }
+        } else if (event.kind === "delete") {
+          const path = safeSubjectPath(event.path);
+          const record = path ? repository.findNoteSubjectByPath(path) : null;
+          if (path && record) {
+            repository.deleteNoteSubject({
+              subjectId: record.subjectId,
+              path,
+              deletedAt: observedAt
+            });
+          }
+        } else if (event.kind === "rename") {
+          const oldPath = event.oldPath ? safeSubjectPath(event.oldPath) : null;
+          const newPath = safeSubjectPath(event.path);
+          const source = oldPath ? repository.findNoteSubjectByPath(oldPath) : null;
+          const destination = newPath ? repository.findNoteSubjectByPath(newPath) : null;
+          if (oldPath && newPath && source && !destination) {
+            repository.renameNoteSubject({
+              subjectId: source.subjectId,
+              oldPath,
+              newPath,
+              observedAt
+            });
+            verifiedRenames.push({ oldPath, path: newPath, subjectId: source.subjectId });
+          } else {
+            if (source) {
+              repository.deleteNoteSubject({
+                subjectId: source.subjectId,
+                path: source.currentPath!,
+                deletedAt: observedAt
+              });
+            }
+            if (destination && destination.subjectId !== source?.subjectId) {
+              repository.deleteNoteSubject({
+                subjectId: destination.subjectId,
+                path: destination.currentPath!,
+                deletedAt: observedAt
+              });
+            }
+          }
+        }
+      }
+      await writeRuntime(input.adapter, input.databasePath, runtime);
+    } catch {
+      await restoreRuntime(backup);
+      return { events, verifiedRenames: [], subjectPersistenceFailed: true };
+    }
+    return { events, verifiedRenames, subjectPersistenceFailed: false };
+  }
+
+  async function synchronizeNoteSubjects(
+    paths: readonly string[],
+    observedAt: string
+  ): Promise<ReadonlyMap<string, string>> {
+    const current = new Set<string>();
+    for (const path of paths) {
+      const normalized = safeSubjectPath(path);
+      if (!normalized) throw new Error("vault path is unsafe");
+      current.add(normalized);
+    }
+    const backup = runtime.exportDatabase();
+    try {
+      for (const record of repository.listActiveNoteSubjects()) {
+        if (record.currentPath !== null && !current.has(record.currentPath)) {
+          repository.deleteNoteSubject({
+            subjectId: record.subjectId,
+            path: record.currentPath,
+            deletedAt: observedAt
+          });
+        }
+      }
+      const subjects = new Map<string, string>();
+      for (const path of [...current].sort((left, right) => left.localeCompare(right))) {
+        const existing = repository.findNoteSubjectByPath(path);
+        subjects.set(
+          path,
+          existing?.subjectId ??
+            repository.bindNoteSubject({ subjectId: createSubjectId(), path, observedAt }).subjectId
+        );
+      }
+      await writeRuntime(input.adapter, input.databasePath, runtime);
+      return subjects;
+    } catch (error) {
+      await restoreRuntime(backup);
+      throw error;
+    }
+  }
+
   return {
-    repository,
+    get repository() {
+      return repository;
+    },
     saveCompletedScan(scan) {
       snapshots.createSnapshot({
         id: scan.id,
@@ -186,9 +325,26 @@ export async function openPluginDatabase(input: {
       lifecycle: repository.listFindingLifecycle()
     }),
     loadObservability: (scanId) => repository.getObservabilitySnapshot(scanId),
+    processVaultEvents,
+    synchronizeNoteSubjects,
     flush: () => writeRuntime(input.adapter, input.databasePath, runtime),
     close: () => runtime.close()
   };
+}
+
+function isSafeSubjectPath(path: string): boolean {
+  return (
+    path.length >= 1 &&
+    path.length <= 1024 &&
+    !/^[\\/]/.test(path) &&
+    !/^[A-Za-z]:[\\/]/.test(path) &&
+    !/(?:^|[\\/])\.{2}(?:[\\/]|$)/.test(path) &&
+    !path.split("/").some((segment) => segment === "" || segment === ".") &&
+    ![...path].some((character) => {
+      const code = character.charCodeAt(0);
+      return code <= 31 || code === 127;
+    })
+  );
 }
 
 function recordStageSpans(

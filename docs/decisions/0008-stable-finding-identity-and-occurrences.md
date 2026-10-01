@@ -4,8 +4,10 @@
 
 Accepted on 2026-09-28. Storage foundation implemented: the identity and
 occurrence contracts, migration 12 tables, repository persistence, and the
-legacy `v0` backfill. Detector identity adapters and runtime occurrence wiring
-remain pending; the rest of this ADR's behavior is not yet shipped.
+legacy `v0` backfill. Runtime wiring implemented: per-family identity adapters,
+v2 promotion, occurrence persistence, and durable note subjects with
+verified-rename continuity and content-only revisions. Scan comparison and
+finding transitions remain pending.
 
 ## Context
 

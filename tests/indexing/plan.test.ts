@@ -28,5 +28,24 @@ describe("incremental scan planner", () => {
     expect(
       planIncrementalScan([{ schemaVersion: 1, kind: "modify", path: "A.md" }], { maxEvents: 0 })
     ).toMatchObject({ mode: "full", reasons: ["event-overflow"] });
+    expect(
+      planIncrementalScan([{ schemaVersion: 1, kind: "modify", path: "A//B.md" }], {
+        maxEvents: 50
+      })
+    ).toMatchObject({ mode: "full", reasons: ["unsafe-event"] });
+    expect(
+      planIncrementalScan([{ schemaVersion: 1, kind: "modify", path: "A/./B.md" }], {
+        maxEvents: 50
+      })
+    ).toMatchObject({ mode: "full", reasons: ["unsafe-event"] });
+  });
+
+  it("forces a conservative full scan when subject persistence failed", () => {
+    expect(
+      planIncrementalScan([{ schemaVersion: 1, kind: "modify", path: "A.md" }], {
+        maxEvents: 50,
+        subjectPersistenceFailed: true
+      })
+    ).toEqual({ mode: "full", reasons: ["subject-persistence-failed"] });
   });
 });

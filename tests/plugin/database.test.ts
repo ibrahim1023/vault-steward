@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { openPluginDatabase } from "../../src/plugin/database.js";
+import { planIncrementalScan } from "../../src/indexing/plan.js";
 
 class MemoryBinaryStore {
   private value: Uint8Array | undefined;
@@ -17,6 +18,26 @@ class MemoryBinaryStore {
   async writeBinary(_path: string, data: ArrayBuffer): Promise<void> {
     this.value = new Uint8Array(data.slice(0));
   }
+}
+
+class FailableBinaryStore extends MemoryBinaryStore {
+  failNextWrite = false;
+
+  override async writeBinary(path: string, data: ArrayBuffer): Promise<void> {
+    if (this.failNextWrite) {
+      this.failNextWrite = false;
+      throw new Error("writeBinary failed");
+    }
+    await super.writeBinary(path, data);
+  }
+}
+
+const DATABASE_PATH = ".obsidian/plugins/vault-steward/vault-steward.sqlite";
+const LOCATE = (file: string) => `node_modules/sql.js/dist/${file}`;
+
+function deterministicSubjects() {
+  let next = 0;
+  return () => `subject-${++next}`;
 }
 
 describe("plugin database lifecycle", () => {
@@ -320,5 +341,287 @@ describe("plugin database lifecycle", () => {
     expect(database.loadFindings()).toEqual([]);
     expect(database.loadObservability("scan-incomplete-lineage").lineage).toEqual([]);
     database.close();
+  });
+});
+
+describe("note subject persistence", () => {
+  it("assigns a UUID on create, retains it on modify, and does not rebind an active path", async () => {
+    const database = await openPluginDatabase({
+      adapter: new MemoryBinaryStore(),
+      databasePath: DATABASE_PATH,
+      locateFile: LOCATE,
+      createSubjectId: deterministicSubjects()
+    });
+
+    const created = await database.processVaultEvents(
+      [
+        { schemaVersion: 1, kind: "create", path: "A.md" },
+        { schemaVersion: 1, kind: "create", path: "A.md" }
+      ],
+      "2026-09-29T00:00:00.000Z"
+    );
+    expect(created).toMatchObject({ verifiedRenames: [], subjectPersistenceFailed: false });
+    expect(database.repository.findNoteSubjectByPath("A.md")?.subjectId).toBe("subject-1");
+
+    await database.processVaultEvents(
+      [{ schemaVersion: 1, kind: "modify", path: "A.md" }],
+      "2026-09-29T00:01:00.000Z"
+    );
+    expect(database.repository.findNoteSubjectByPath("A.md")?.subjectId).toBe("subject-1");
+    database.close();
+  });
+
+  it("preserves the subject across an observed safe rename and records path history", async () => {
+    const database = await openPluginDatabase({
+      adapter: new MemoryBinaryStore(),
+      databasePath: DATABASE_PATH,
+      locateFile: LOCATE,
+      createSubjectId: deterministicSubjects()
+    });
+    await database.processVaultEvents(
+      [{ schemaVersion: 1, kind: "create", path: "A.md" }],
+      "2026-09-29T00:00:00.000Z"
+    );
+
+    const batch = await database.processVaultEvents(
+      [{ schemaVersion: 1, kind: "rename", path: "B.md", oldPath: "A.md" }],
+      "2026-09-29T00:02:00.000Z"
+    );
+    expect(batch.verifiedRenames).toEqual([
+      { oldPath: "A.md", path: "B.md", subjectId: "subject-1" }
+    ]);
+    expect(database.repository.findNoteSubjectByPath("A.md")).toBeNull();
+    expect(database.repository.findNoteSubjectByPath("B.md")?.subjectId).toBe("subject-1");
+    expect(database.repository.listNotePathHistory("subject-1")).toEqual([
+      {
+        subjectId: "subject-1",
+        path: "A.md",
+        observedAt: "2026-09-29T00:00:00.000Z",
+        retiredAt: "2026-09-29T00:02:00.000Z"
+      },
+      {
+        subjectId: "subject-1",
+        path: "B.md",
+        observedAt: "2026-09-29T00:02:00.000Z",
+        retiredAt: null
+      }
+    ]);
+    database.close();
+  });
+
+  it("forks identity for an unobserved rename handled by synchronization", async () => {
+    const database = await openPluginDatabase({
+      adapter: new MemoryBinaryStore(),
+      databasePath: DATABASE_PATH,
+      locateFile: LOCATE,
+      createSubjectId: deterministicSubjects()
+    });
+    await database.processVaultEvents(
+      [{ schemaVersion: 1, kind: "create", path: "A.md" }],
+      "2026-09-29T00:00:00.000Z"
+    );
+
+    const subjects = await database.synchronizeNoteSubjects(["B.md"], "2026-09-29T00:03:00.000Z");
+    expect(subjects.get("B.md")).toBe("subject-2");
+    expect(database.repository.findNoteSubjectByPath("A.md")).toBeNull();
+    expect(database.repository.listNotePathHistory("subject-1")).toEqual([
+      expect.objectContaining({ path: "A.md", retiredAt: "2026-09-29T00:03:00.000Z" })
+    ]);
+    database.close();
+  });
+
+  it("does not preserve a rename with an occupied destination or missing old binding", async () => {
+    const database = await openPluginDatabase({
+      adapter: new MemoryBinaryStore(),
+      databasePath: DATABASE_PATH,
+      locateFile: LOCATE,
+      createSubjectId: deterministicSubjects()
+    });
+    await database.processVaultEvents(
+      [
+        { schemaVersion: 1, kind: "create", path: "A.md" },
+        { schemaVersion: 1, kind: "create", path: "B.md" }
+      ],
+      "2026-09-29T00:00:00.000Z"
+    );
+
+    const occupied = await database.processVaultEvents(
+      [{ schemaVersion: 1, kind: "rename", path: "B.md", oldPath: "A.md" }],
+      "2026-09-29T00:04:00.000Z"
+    );
+    expect(occupied.verifiedRenames).toEqual([]);
+    expect(occupied.subjectPersistenceFailed).toBe(false);
+    expect(database.repository.findNoteSubjectByPath("A.md")).toBeNull();
+    expect(database.repository.findNoteSubjectByPath("B.md")).toBeNull();
+
+    const rebound = await database.synchronizeNoteSubjects(["B.md"], "2026-09-29T00:05:00.000Z");
+    expect(rebound.get("B.md")).toBe("subject-3");
+
+    await database.processVaultEvents(
+      [{ schemaVersion: 1, kind: "create", path: "E.md" }],
+      "2026-09-29T00:05:30.000Z"
+    );
+    const missingSourceOccupied = await database.processVaultEvents(
+      [{ schemaVersion: 1, kind: "rename", path: "E.md", oldPath: "Gone.md" }],
+      "2026-09-29T00:06:00.000Z"
+    );
+    expect(missingSourceOccupied.verifiedRenames).toEqual([]);
+    expect(database.repository.findNoteSubjectByPath("E.md")).toBeNull();
+
+    const missing = await database.processVaultEvents(
+      [{ schemaVersion: 1, kind: "rename", path: "C.md", oldPath: "Gone.md" }],
+      "2026-09-29T00:07:00.000Z"
+    );
+    expect(missing.verifiedRenames).toEqual([]);
+    expect(database.repository.findNoteSubjectByPath("C.md")).toBeNull();
+
+    const noOldPath = await database.processVaultEvents(
+      [{ schemaVersion: 1, kind: "rename", path: "D.md" }],
+      "2026-09-29T00:08:00.000Z"
+    );
+    expect(noOldPath.verifiedRenames).toEqual([]);
+
+    const synced = await database.synchronizeNoteSubjects(
+      ["B.md", "C.md", "D.md", "E.md"],
+      "2026-09-29T00:09:00.000Z"
+    );
+    expect(synced.get("B.md")).toBe("subject-3");
+    expect(synced.get("C.md")).toBe("subject-5");
+    expect(synced.get("D.md")).toBe("subject-6");
+    expect(synced.get("E.md")).toBe("subject-7");
+    database.close();
+  });
+
+  it("retires on delete and assigns a fresh UUID when the path is created again", async () => {
+    const database = await openPluginDatabase({
+      adapter: new MemoryBinaryStore(),
+      databasePath: DATABASE_PATH,
+      locateFile: LOCATE,
+      createSubjectId: deterministicSubjects()
+    });
+    await database.processVaultEvents(
+      [{ schemaVersion: 1, kind: "create", path: "A.md" }],
+      "2026-09-29T00:00:00.000Z"
+    );
+    await database.processVaultEvents(
+      [{ schemaVersion: 1, kind: "delete", path: "A.md" }],
+      "2026-09-29T00:06:00.000Z"
+    );
+    expect(database.repository.findNoteSubjectByPath("A.md")).toBeNull();
+
+    await database.processVaultEvents(
+      [{ schemaVersion: 1, kind: "create", path: "A.md" }],
+      "2026-09-29T00:07:00.000Z"
+    );
+    expect(database.repository.findNoteSubjectByPath("A.md")?.subjectId).toBe("subject-2");
+    database.close();
+  });
+
+  it("restores database state and flags failure when the rename flush fails", async () => {
+    const store = new FailableBinaryStore();
+    const database = await openPluginDatabase({
+      adapter: store,
+      databasePath: DATABASE_PATH,
+      locateFile: LOCATE,
+      createSubjectId: deterministicSubjects()
+    });
+    await database.processVaultEvents(
+      [{ schemaVersion: 1, kind: "create", path: "A.md" }],
+      "2026-09-29T00:00:00.000Z"
+    );
+
+    store.failNextWrite = true;
+    const batch = await database.processVaultEvents(
+      [{ schemaVersion: 1, kind: "rename", path: "B.md", oldPath: "A.md" }],
+      "2026-09-29T00:08:00.000Z"
+    );
+    expect(batch.subjectPersistenceFailed).toBe(true);
+    expect(batch.verifiedRenames).toEqual([]);
+    expect(database.repository.findNoteSubjectByPath("A.md")?.subjectId).toBe("subject-1");
+    expect(database.repository.findNoteSubjectByPath("B.md")).toBeNull();
+    expect(
+      planIncrementalScan(batch.events, {
+        maxEvents: 50,
+        subjectPersistenceFailed: batch.subjectPersistenceFailed
+      })
+    ).toEqual({ mode: "full", reasons: ["subject-persistence-failed"] });
+
+    const subjects = await database.synchronizeNoteSubjects(["B.md"], "2026-09-29T00:09:00.000Z");
+    expect(subjects.get("B.md")).toBe("subject-2");
+    expect(database.repository.findNoteSubjectByPath("A.md")).toBeNull();
+
+    database.saveCompletedScan({
+      id: "scan-after-restore",
+      vaultFingerprint: "vault",
+      configHash: "config",
+      inputHash: "input",
+      parserVersion: "parser",
+      startedAt: "2026-09-29T00:09:30.000Z",
+      finishedAt: "2026-09-29T00:09:31.000Z",
+      files: [],
+      parseProducts: [],
+      findings: [],
+      modelTraces: []
+    });
+    await database.flush();
+    database.close();
+
+    const reopened = await openPluginDatabase({
+      adapter: store,
+      databasePath: DATABASE_PATH,
+      locateFile: LOCATE
+    });
+    expect(reopened.repository.listScanHistory(10)).toEqual([
+      expect.objectContaining({ id: "scan-after-restore", status: "completed" })
+    ]);
+    reopened.close();
+  });
+
+  it("ignores events whose normalized paths are unsafe", async () => {
+    const database = await openPluginDatabase({
+      adapter: new MemoryBinaryStore(),
+      databasePath: DATABASE_PATH,
+      locateFile: LOCATE,
+      createSubjectId: deterministicSubjects()
+    });
+
+    const batch = await database.processVaultEvents(
+      [
+        { schemaVersion: 1, kind: "create", path: "A//B.md" },
+        { schemaVersion: 1, kind: "create", path: "A/./B.md" },
+        { schemaVersion: 1, kind: "rename", path: "A//C.md", oldPath: "Old.md" }
+      ],
+      "2026-09-29T00:09:30.000Z"
+    );
+    expect(batch.subjectPersistenceFailed).toBe(false);
+    expect(batch.verifiedRenames).toEqual([]);
+    expect(database.repository.listActiveNoteSubjects()).toEqual([]);
+    database.close();
+  });
+
+  it("retains subjects and path history across reopen", async () => {
+    const store = new MemoryBinaryStore();
+    const options = () => ({
+      adapter: store,
+      databasePath: DATABASE_PATH,
+      locateFile: LOCATE,
+      createSubjectId: deterministicSubjects()
+    });
+    const first = await openPluginDatabase(options());
+    await first.processVaultEvents(
+      [{ schemaVersion: 1, kind: "create", path: "A.md" }],
+      "2026-09-29T00:00:00.000Z"
+    );
+    await first.processVaultEvents(
+      [{ schemaVersion: 1, kind: "rename", path: "B.md", oldPath: "A.md" }],
+      "2026-09-29T00:10:00.000Z"
+    );
+    await first.flush();
+    first.close();
+
+    const reopened = await openPluginDatabase(options());
+    expect(reopened.repository.findNoteSubjectByPath("B.md")?.subjectId).toBe("subject-1");
+    expect(reopened.repository.listNotePathHistory("subject-1")).toHaveLength(2);
+    reopened.close();
   });
 });

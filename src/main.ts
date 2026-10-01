@@ -152,18 +152,25 @@ export default class VaultStewardPlugin extends Plugin {
     const provider = this.createSelectedModelProvider();
     // Consume events here so a subsequent incremental worker can operate from a bounded batch.
     // The governed scan remains vault-wide: reference and semantic checks need global context.
-    const events = this.vaultReader.consumeInvalidatedEvents();
-    if (events.length > 0) {
-      const scanPlan = planIncrementalScan(events, { maxEvents: 50 });
-      this.maintenanceState = {
-        ...this.maintenanceState,
-        lastPlanMode: scanPlan.mode,
-        lastPlanReason: scanPlan.reasons.join(", ")
-      };
-    }
+    const rawEvents = this.vaultReader.consumeInvalidatedEvents();
+    const eventBatch = await this.database.processVaultEvents(rawEvents, new Date().toISOString());
+    const scanPlan = planIncrementalScan(eventBatch.events, {
+      maxEvents: 50,
+      subjectPersistenceFailed: eventBatch.subjectPersistenceFailed
+    });
+    this.maintenanceState = {
+      ...this.maintenanceState,
+      lastPlanMode: scanPlan.mode,
+      lastPlanReason: scanPlan.reasons.join(", ")
+    };
     const previousNotes = [...this.parsedNotes.values()];
     const files = await this.vaultReader.listFiles();
-    const snapshot = scanVaultFiles(files, this.parsedNotes);
+    const subjects = await this.database.synchronizeNoteSubjects(
+      files.map((file) => file.path),
+      new Date().toISOString()
+    );
+    const subjectFiles = files.map((file) => ({ ...file, subjectId: subjects.get(file.path)! }));
+    const snapshot = scanVaultFiles(subjectFiles, this.parsedNotes);
     const policySource = await this.loadPolicyDraft();
     const parsedPolicy = parsePolicy(policySource);
     if (!parsedPolicy.ok) throw new Error("The active policy file is invalid.");
@@ -180,16 +187,17 @@ export default class VaultStewardPlugin extends Plugin {
     const configHash = configurationFingerprint(traceConfiguration);
     const startedAt = new Date().toISOString();
     const result = await createGovernedIntegritySession([provider], this.agentResultCache).scan(
-      files,
+      subjectFiles,
       snapshot,
       [parsedPolicy.value]
     );
     this.parsedNotes.clear();
     for (const note of snapshot.notes) this.parsedNotes.set(note.path, note);
     this.activeSnapshot = snapshot;
-    this.recentRenames = events.flatMap((event) =>
-      event.kind === "rename" && event.oldPath ? [{ oldPath: event.oldPath, path: event.path }] : []
-    );
+    this.recentRenames = eventBatch.verifiedRenames.map((rename) => ({
+      oldPath: rename.oldPath,
+      path: rename.path
+    }));
     const normalizationFindings = buildContextualNormalizationFindings(
       snapshot,
       this.recentRenames.map((rename, index) => ({
@@ -202,7 +210,7 @@ export default class VaultStewardPlugin extends Plugin {
     );
     const maintenanceFindings = buildChangeAwareFindings({
       scanId: snapshot.id,
-      events,
+      events: eventBatch.events,
       previousNotes,
       snapshot
     });
@@ -214,11 +222,11 @@ export default class VaultStewardPlugin extends Plugin {
       id: result.scanId,
       vaultFingerprint: this.app.vault.getName(),
       configHash,
-      inputHash: files.map((file) => `${file.path}:${file.revision}`).join("|"),
+      inputHash: subjectFiles.map((file) => `${file.path}:${file.revision}`).join("|"),
       parserVersion: "scanner-v1",
       startedAt,
       finishedAt: new Date().toISOString(),
-      files,
+      files: subjectFiles,
       parseProducts: snapshot.notes.map((note) => ({
         path: note.path,
         revisionHash: note.revision,

@@ -112,6 +112,16 @@ integrity and normalization, tasks, schema/templates, decisions, policy,
 semantic candidates, and change-aware maintenance — now emit schema v2
 findings.
 
+Completed: Phase 33 Task 4 replaced ephemeral scan subjects with
+repository-backed opaque note subjects. `processVaultEvents` binds/retires/
+renames subjects per event and flushes before the scan consumes the batch;
+only an observed unambiguous rename to a safe unused path preserves the
+subject, while a failed flush restores the in-memory database from
+pre-mutation bytes and flags `subject-persistence-failed` (forcing a full
+plan). `synchronizeNoteSubjects` reconciles listed paths each scan and aborts
+on failure so v2 findings never carry unpersisted identity. File revisions now
+hash content only, so a path-only rename keeps `evidenceRevisionKey`.
+
 Completed: Phase 32 prepared the `0.2.1` release for the Community Directory
 reviewer. It uses Preact compatibility rendering rather than a bundled React DOM
 runtime, registers settings through Obsidian's declarative settings API, and
@@ -238,5 +248,5 @@ The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type che
 
 ## Next Recommended Task
 
-Continue Phase 33 on `feat/phase-33-identity-events` with Task 4, durable note
-subject persistence and remaining maintenance runtime wiring, test-first.
+Continue Phase 33 on `feat/phase-33-identity-events` with Task 5, completed-scan
+comparison, finding transitions, and transactional integrity events, test-first.

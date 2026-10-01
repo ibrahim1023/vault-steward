@@ -4,6 +4,8 @@ export function planIncrementalScan(
   events: readonly VaultEvent[],
   options: ScanPlanOptions
 ): ScanPlan {
+  if (options.subjectPersistenceFailed)
+    return { mode: "full", reasons: ["subject-persistence-failed"] };
   if (events.length === 0 || events.length > options.maxEvents)
     return { mode: "full", reasons: ["event-overflow"] };
   if (
@@ -28,6 +30,6 @@ function isSafePath(path: string): boolean {
     path.endsWith(".md") &&
     !path.startsWith("/") &&
     !path.includes("\\") &&
-    !path.split("/").includes("..")
+    !path.split("/").some((segment) => segment === "" || segment === "." || segment === "..")
   );
 }

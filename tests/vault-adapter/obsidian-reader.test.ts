@@ -6,7 +6,8 @@ import {
   type VaultEventSource,
   type VaultFileHandle
 } from "../../src/vault-adapter/obsidian-reader.js";
-import { scanVaultFiles } from "../../src/scanner/scan.js";
+import { scanVaultFiles, type ScannedNote } from "../../src/scanner/scan.js";
+import { createEvidenceRevisionKey } from "../../src/contracts/finding-identity.js";
 
 class FakeVault implements VaultEventSource {
   readonly listeners = new Map<string, Array<(...args: unknown[]) => void>>();
@@ -162,6 +163,63 @@ describe("ObsidianVaultReader", () => {
     stopWatching();
     vault.emit("delete", { path: "Renamed.md", extension: "md" });
     expect(reader.consumeInvalidatedPaths()).toEqual([]);
+  });
+
+  it("keeps the same revision and evidence revision key across a path-only rename", async () => {
+    const content = "# Same content\n\nSee [[Target]]";
+    const before = new FakeVault(
+      [{ path: "Old.md", extension: "md" }],
+      new Map([["Old.md", content]])
+    );
+    const revisionBefore = (await new ObsidianVaultReader(before).listFiles())[0]?.revision;
+
+    const after = new FakeVault(
+      [{ path: "Renamed.md", extension: "md" }],
+      new Map([["Renamed.md", content]])
+    );
+    const revisionAfter = (await new ObsidianVaultReader(after).listFiles())[0]?.revision;
+
+    expect(revisionAfter).toBe(revisionBefore);
+    const locator = "line:3:column:5";
+    expect(
+      createEvidenceRevisionKey([
+        {
+          role: "reference",
+          subjectId: "subject-1",
+          locator,
+          sourceRevision: revisionBefore!
+        }
+      ])
+    ).toBe(
+      createEvidenceRevisionKey([
+        { role: "reference", subjectId: "subject-1", locator, sourceRevision: revisionAfter! }
+      ])
+    );
+  });
+
+  it("does not reuse a cached note when the path is rebound to a different subject", () => {
+    const cached: ScannedNote = {
+      subjectId: "subject-old",
+      path: "A.md",
+      content: "body",
+      frontmatter: {},
+      revision: "r1",
+      headings: [],
+      blockIds: [],
+      references: []
+    };
+    const snapshot = scanVaultFiles(
+      [{ path: "A.md", content: "body", revision: "r1", subjectId: "subject-new" }],
+      new Map([["A.md", cached]])
+    );
+    expect(snapshot.notes[0]).toMatchObject({ subjectId: "subject-new", path: "A.md" });
+    expect(snapshot.notes[0]).not.toBe(cached);
+
+    const reused = scanVaultFiles(
+      [{ path: "A.md", content: "body", revision: "r1", subjectId: "subject-new" }],
+      new Map([["A.md", snapshot.notes[0]!]])
+    );
+    expect(reused.notes[0]).toBe(snapshot.notes[0]);
   });
 
   it("produces a new revision after a changed file is read again", async () => {
