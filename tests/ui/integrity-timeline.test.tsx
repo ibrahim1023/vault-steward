@@ -38,6 +38,39 @@ describe("IntegrityTimeline", () => {
     expect(screen.getByRole("status")).toHaveTextContent("copied");
   });
 
+  it("groups events by canonical references without revealing path-like identifiers", () => {
+    const related: IntegrityEvent[] = [
+      {
+        schemaVersion: 1,
+        sequence: 9,
+        id: "evt-9",
+        category: "audit",
+        kind: "apply-started",
+        occurredAt: event.occurredAt,
+        proposalId: "Private/Diary.md",
+        safeMetadata: {}
+      },
+      {
+        schemaVersion: 1,
+        sequence: 10,
+        id: "evt-10",
+        category: "audit",
+        kind: "apply-succeeded",
+        occurredAt: event.occurredAt,
+        proposalId: "Private/Diary.md",
+        safeMetadata: {}
+      }
+    ];
+    render(<IntegrityTimeline events={related} onExport={async () => undefined} />);
+    const rows = screen.getAllByRole("listitem");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent("Proposal 1");
+    expect(rows[1]).toHaveTextContent("Proposal 1");
+    expect(screen.getByRole("region", { name: "Integrity Timeline" })).not.toHaveTextContent(
+      "Private/Diary.md"
+    );
+  });
+
   it("pages through older retained events and exports only the visible page", async () => {
     const newer = Array.from({ length: 100 }, (_, index) => ({
       ...event,

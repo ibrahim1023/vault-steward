@@ -40,6 +40,7 @@ export type PluginDatabaseAdapter = {
 
 export type PluginDatabase = {
   readonly repository: VaultStewardRepository;
+  hasPendingInboxActions(): boolean;
   saveCompletedScan(input: {
     id: string;
     vaultFingerprint: string;
@@ -132,15 +133,34 @@ export async function openPluginDatabase(input: {
     snapshots = new ScanSnapshotRepository(runtime.database);
   }
 
-  async function persistInboxAction(operation: () => void): Promise<void> {
-    const backup = runtime.exportDatabase();
-    try {
-      operation();
-      await writeRuntime(input.adapter, input.databasePath, runtime);
-    } catch (error) {
-      await restoreRuntime(backup);
-      throw error;
-    }
+  let inboxPersistenceQueue: Promise<void> = Promise.resolve();
+  let inboxPending = 0;
+
+  function assertNoPendingInboxAction(): void {
+    if (inboxPending > 0) throw new Error("An Inbox decision is still being persisted");
+  }
+
+  function persistInboxAction(operation: () => void): Promise<void> {
+    inboxPending += 1;
+    const result = inboxPersistenceQueue.then(async () => {
+      const backup = runtime.exportDatabase();
+      try {
+        operation();
+        await writeRuntime(input.adapter, input.databasePath, runtime);
+      } catch (error) {
+        await restoreRuntime(backup);
+        throw error;
+      }
+    });
+    inboxPersistenceQueue = result.then(
+      () => {
+        inboxPending -= 1;
+      },
+      () => {
+        inboxPending -= 1;
+      }
+    );
+    return result;
   }
 
   function safeSubjectPath(path: string): string | null {
@@ -152,6 +172,7 @@ export async function openPluginDatabase(input: {
     events: readonly VaultEvent[],
     observedAt: string
   ): Promise<ProcessedVaultEventBatch> {
+    assertNoPendingInboxAction();
     const backup = runtime.exportDatabase();
     const verifiedRenames: VerifiedRename[] = [];
     try {
@@ -220,6 +241,7 @@ export async function openPluginDatabase(input: {
       if (!normalized) throw new Error("vault path is unsafe");
       current.add(normalized);
     }
+    assertNoPendingInboxAction();
     const backup = runtime.exportDatabase();
     try {
       for (const record of repository.listActiveNoteSubjects()) {
@@ -252,7 +274,9 @@ export async function openPluginDatabase(input: {
     get repository() {
       return repository;
     },
+    hasPendingInboxActions: () => inboxPending > 0,
     saveCompletedScan(scan) {
+      assertNoPendingInboxAction();
       const correlationId = `scan-${scan.id}`;
       repository.withTransaction(() => {
         snapshots.createSnapshotInTransaction({
@@ -460,7 +484,8 @@ export async function openPluginDatabase(input: {
     loadObservability: (scanId) => repository.getObservabilitySnapshot(scanId),
     processVaultEvents,
     synchronizeNoteSubjects,
-    flush: () => writeRuntime(input.adapter, input.databasePath, runtime),
+    flush: () =>
+      inboxPersistenceQueue.then(() => writeRuntime(input.adapter, input.databasePath, runtime)),
     close: () => runtime.close()
   };
 }

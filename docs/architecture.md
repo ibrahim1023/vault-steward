@@ -76,11 +76,12 @@ bodies or granting any write authority.
 `review/dispositions` projects latest completed v2 occurrences into the
 Steward Inbox, independently of finding status and pattern suppression. It
 validates selected occurrence IDs and atomically appends each reviewer decision
-and its metadata-only integrity event. The plugin database snapshots its
-pre-action runtime and restores it if disk persistence fails. A changed
-evidence revision or expired snooze returns an occurrence to due; a restore reverses the targeted decision
-without rewriting history. Inbox actions are review-only and cannot reach the
-vault writer or apply workflow. The Inbox keeps critical counts visible under
+and its metadata-only integrity event. The plugin database serializes Inbox
+writes, snapshots the pre-action runtime, and restores it if disk persistence
+fails; scans and active review mutations cannot overlap that rollback window.
+A changed evidence revision or expired snooze returns an occurrence to due; a
+restore reverses the targeted decision without rewriting history. Inbox actions
+are review-only and cannot reach the vault writer or apply workflow. The Inbox keeps critical counts visible under
 filters, labels supported repair-family preparation `Review fix` even when a
 finding has no suggested-fix prose, and uses explicit selections for bulk
 actions. Preparing a fix remains separate from explicit Apply approval.
@@ -89,11 +90,12 @@ The maintenance workspace has four keyboard-accessible destinations: Health
 retains the existing scan and explicit-approval review flow, Inbox contains
 revision-bound dispositions and selected-finding Ask Why/duplicate review,
 Changes reads only comparable completed scans, and Timeline pages through
-known integrity events via a bounded sequence cursor. The Timeline never uses
-optional diagnostic trace spans as history authority. Export requires an
-explicit click for the visible page and strips entity IDs, note paths,
-excerpts, prompts, string metadata, and unvalidated fields before handing
-bounded JSON to the desktop clipboard;
+known integrity events via a bounded sequence cursor. It groups references
+under local numbered scan/finding/occurrence/proposal/approval labels without
+showing raw IDs. The Timeline never uses optional diagnostic trace spans as
+history authority. Export requires an explicit click for the visible page and
+strips entity IDs, note paths, excerpts, prompts, string metadata, and
+unvalidated fields before handing bounded JSON to the desktop clipboard;
 clipboard failures display a generic message without leaking contents.
 
 ## Main Workflow

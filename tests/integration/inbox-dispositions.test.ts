@@ -77,6 +77,98 @@ function save(db: PluginDatabase, scanId: string, findings: ReturnType<typeof fi
 }
 
 describe("Steward Inbox dispositions", () => {
+  it("preserves a later review when an overlapping earlier disk write fails", async () => {
+    let bytes: Uint8Array | undefined;
+    let blockNextWrite = false;
+    let rejectFirst!: (error: Error) => void;
+    let notifyFirst!: () => void;
+    const firstStarted = new Promise<void>((resolve) => {
+      notifyFirst = resolve;
+    });
+    const db = await openPluginDatabase({
+      adapter: {
+        exists: async () => bytes !== undefined,
+        readBinary: async () => bytes!.slice().buffer,
+        writeBinary: async (_path, value) => {
+          if (blockNextWrite) {
+            blockNextWrite = false;
+            notifyFirst();
+            await new Promise<void>((_resolve, reject) => {
+              rejectFirst = reject;
+            });
+          }
+          bytes = new Uint8Array(value.slice(0));
+        }
+      },
+      databasePath: "vault-steward.sqlite",
+      locateFile: (file) => `node_modules/sql.js/dist/${file}`
+    });
+    const firstFinding = finding("scan-1", "First", "r1");
+    const secondFinding = finding("scan-1", "Second", "r1");
+    save(db, "scan-1", [firstFinding, secondFinding]);
+    await db.flush();
+    blockNextWrite = true;
+    const first = db.saveInboxReview({
+      occurrenceIds: [firstFinding.occurrenceId],
+      kind: "ignored",
+      createdAt: NOW
+    });
+    await firstStarted;
+    const second = db.saveInboxReview({
+      occurrenceIds: [secondFinding.occurrenceId],
+      kind: "acknowledged",
+      createdAt: NOW
+    });
+    rejectFirst(new Error("disk unavailable"));
+    await expect(first).rejects.toThrow("disk unavailable");
+    await expect(second).resolves.toBeUndefined();
+    const inbox = loadStewardInbox(db.repository, NOW);
+    expect(inbox.items.find((item) => item.finding.id === firstFinding.id)?.disposition).toBeNull();
+    expect(
+      inbox.items.find((item) => item.finding.id === secondFinding.id)?.disposition?.kind
+    ).toBe("acknowledged");
+    db.close();
+  });
+
+  it("fails closed if scan completion overlaps an unflushed Inbox decision", async () => {
+    let block = false;
+    let rejectWrite!: (error: Error) => void;
+    let notifyStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      notifyStarted = resolve;
+    });
+    const db = await openPluginDatabase({
+      adapter: {
+        exists: async () => false,
+        readBinary: async () => new ArrayBuffer(0),
+        writeBinary: async () => {
+          if (!block) return;
+          block = false;
+          notifyStarted();
+          await new Promise<void>((_resolve, reject) => {
+            rejectWrite = reject;
+          });
+        }
+      },
+      databasePath: "vault-steward.sqlite",
+      locateFile: (file) => `node_modules/sql.js/dist/${file}`
+    });
+    const current = finding("scan-1", "Missing", "r1");
+    save(db, "scan-1", [current]);
+    block = true;
+    const pending = db.saveInboxReview({
+      occurrenceIds: [current.occurrenceId],
+      kind: "ignored",
+      createdAt: NOW
+    });
+    await started;
+    expect(() => save(db, "scan-2", [finding("scan-2", "Other", "r2")])).toThrow("Inbox decision");
+    rejectWrite(new Error("disk unavailable"));
+    await expect(pending).rejects.toThrow("disk unavailable");
+    expect(db.loadHistory().scans.map((scan) => scan.id)).toEqual(["scan-1"]);
+    db.close();
+  });
+
   it("restores the pre-action database when persisting an Inbox decision fails", async () => {
     let bytes: Uint8Array | undefined;
     let failWrites = false;

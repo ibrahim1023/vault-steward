@@ -142,10 +142,11 @@ It compares the latest completed scan with a retained compatible baseline,
 excludes legacy, failed, and incompatible scans, and permits selecting an
 earlier compatible baseline. The workspace displays transition counts and
 persisted finding-family/subtype and structural-descriptor labels without
-reconstructing historical note bodies or acquiring write authority. Task 7 adds a read-only Steward Inbox
-whose review dispositions are revision-bound, reversible, and committed with
-metadata-only integrity events; filters and exact bulk selection do not hide
-the critical count or write vault files. Task 8 adds four keyboard-focusable
+reconstructing historical note bodies or acquiring write authority. Task 7
+adds a read-only Steward Inbox whose review dispositions are revision-bound,
+reversible, and committed with metadata-only integrity events. Inbox writes
+are serialized and isolated from concurrent scans/review mutations; filters
+and exact bulk selection do not hide the critical count or write vault files. Task 8 adds four keyboard-focusable
 Health, Inbox, Changes, and Timeline destinations; Inbox-selected findings
 reuse cited Ask Why and duplicate canonical review. The Timeline reads only
 known integrity events, never diagnostic traces. Its explicit clipboard export
@@ -282,8 +283,11 @@ The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type che
 
 Phase 33 was promoted to `development` and pushed with explicit approval.
 Phase 34 Tasks 6–8 are implemented on `feat/phase-34-maintenance-workspace`.
-The completion gate passed on 2026-10-03: formatting, lint, typecheck, build,
-474 unit tests, 108 integration tests, 3 end-to-end tests, 3 acceptance tests,
-performance and operational smokes, security audit, and plugin-install smoke.
-Final whole-branch review and promotion remain pending; the owner requested a
-stop after Task 8. Do not merge or push without separate approval.
+The completion gate passed again after the whole-branch review fixes:
+formatting, lint, typecheck, build, 479 unit tests, 110 integration tests,
+3 end-to-end tests, 3 acceptance tests, performance and operational smokes,
+security audit, and plugin-install smoke. The local self-review found and fixed
+overlapping Inbox writes and scan/review persistence, and added safe local
+reference grouping to Timeline rows. An independent review and live Obsidian
+clipboard interaction remain unverified; do not merge or push without
+separate approval.

@@ -86,6 +86,7 @@ export default class VaultStewardPlugin extends Plugin {
   private readonly agentResultCache = new AgentResultCache();
   private maintenanceState: MaintenanceScheduleState = { runsInWindow: 0, scanInProgress: false };
   private activeScan = false;
+  private activeReviewMutations = 0;
 
   async onload(): Promise<void> {
     this.settings = parsePluginSettings(await this.loadData());
@@ -147,6 +148,9 @@ export default class VaultStewardPlugin extends Plugin {
 
   async scanVault(): Promise<GovernedIntegrityResult> {
     if (this.activeScan) throw new Error("A vault scan is already running.");
+    if (this.database?.hasPendingInboxActions()) {
+      throw new Error("An Inbox decision is still being saved. Try the scan again.");
+    }
     this.activeScan = true;
     try {
       return await this.scanVaultInternal();
@@ -324,45 +328,53 @@ export default class VaultStewardPlugin extends Plugin {
   async prepareEntityConsolidation(finding: Finding, candidateId: string) {
     if (!this.database || !this.activeSnapshot)
       throw new Error("Run Check vault before preparing duplicate consolidation.");
-    const writer = new ObsidianVaultWriter(this.app.vault);
-    const prepared = await prepareEntityConsolidation({
-      snapshot: this.activeSnapshot,
-      finding,
-      intent: {
-        schemaVersion: 1,
-        kind: "select-canonical",
-        scanId: this.activeSnapshot.id,
-        findingId: finding.id,
-        candidateId
-      },
-      activeFindingCount: this.loadFindings().filter((item) => item.status === "open").length,
-      readSource: (path) => writer.read(path),
-      persistProposal: (proposal) => {
-        const existing = this.database!.repository.findProposal(proposal.id);
-        if (existing) {
-          const persisted = parseStoredProposal(existing.patchJson, existing.proposalDigest);
-          if (
-            existing.status === "pending" &&
-            proposalDigest(persisted) === proposalDigest(proposal)
-          )
-            return;
-          throw new Error("A previous proposal for this finding must be reviewed first.");
+    if (this.database.hasPendingInboxActions()) {
+      throw new Error("An Inbox decision is still being persisted.");
+    }
+    this.activeReviewMutations += 1;
+    try {
+      const writer = new ObsidianVaultWriter(this.app.vault);
+      const prepared = await prepareEntityConsolidation({
+        snapshot: this.activeSnapshot,
+        finding,
+        intent: {
+          schemaVersion: 1,
+          kind: "select-canonical",
+          scanId: this.activeSnapshot.id,
+          findingId: finding.id,
+          candidateId
+        },
+        activeFindingCount: this.loadFindings().filter((item) => item.status === "open").length,
+        readSource: (path) => writer.read(path),
+        persistProposal: (proposal) => {
+          const existing = this.database!.repository.findProposal(proposal.id);
+          if (existing) {
+            const persisted = parseStoredProposal(existing.patchJson, existing.proposalDigest);
+            if (
+              existing.status === "pending" &&
+              proposalDigest(persisted) === proposalDigest(proposal)
+            )
+              return;
+            throw new Error("A previous proposal for this finding must be reviewed first.");
+          }
+          this.database!.repository.saveProposal(
+            {
+              id: proposal.id,
+              findingId: proposal.findingId,
+              patchJson: JSON.stringify(proposal),
+              sourceRevisionsJson: "{}",
+              status: "pending",
+              proposalDigest: proposalDigest(proposal)
+            },
+            this.proposalPreparedEvent(proposal.id)
+          );
         }
-        this.database!.repository.saveProposal(
-          {
-            id: proposal.id,
-            findingId: proposal.findingId,
-            patchJson: JSON.stringify(proposal),
-            sourceRevisionsJson: "{}",
-            status: "pending",
-            proposalDigest: proposalDigest(proposal)
-          },
-          this.proposalPreparedEvent(proposal.id)
-        );
-      }
-    });
-    await this.database.flush();
-    return prepared;
+      });
+      await this.database.flush();
+      return prepared;
+    } finally {
+      this.activeReviewMutations -= 1;
+    }
   }
 
   loadHistory() {
@@ -398,6 +410,9 @@ export default class VaultStewardPlugin extends Plugin {
     kind: InboxDispositionRequest["kind"],
     snooze?: { untilAt: string } | { untilEvidenceChanges: true }
   ): Promise<void> {
+    if (this.activeScan || this.activeReviewMutations > 0) {
+      throw new Error("A scan or review transition is in progress. Try reviewing again.");
+    }
     if (!this.database) throw new Error("Vault Steward database is unavailable.");
     await this.database.saveInboxReview({
       occurrenceIds,
@@ -408,6 +423,9 @@ export default class VaultStewardPlugin extends Plugin {
   }
 
   async restoreInbox(occurrenceId: string): Promise<void> {
+    if (this.activeScan || this.activeReviewMutations > 0) {
+      throw new Error("A scan or review transition is in progress. Try reviewing again.");
+    }
     if (!this.database) throw new Error("Vault Steward database is unavailable.");
     await this.database.restoreInboxReview({
       occurrenceId,
@@ -470,55 +488,84 @@ export default class VaultStewardPlugin extends Plugin {
 
   async saveTracePreferences(preferences: TracePreferences): Promise<void> {
     if (!this.database) throw new Error("Vault Steward database is unavailable.");
-    this.database.repository.setTracePreferences(preferences, new Date().toISOString());
-    await this.database.flush();
+    if (this.database.hasPendingInboxActions())
+      throw new Error("An Inbox decision is still being persisted.");
+    this.activeReviewMutations += 1;
+    try {
+      this.database.repository.setTracePreferences(preferences, new Date().toISOString());
+      await this.database.flush();
+    } finally {
+      this.activeReviewMutations -= 1;
+    }
   }
 
   async deleteScanTrace(scanId: string): Promise<void> {
     if (!this.database) throw new Error("Vault Steward database is unavailable.");
-    this.database.repository.deleteTraceForScan(
-      scanId,
-      new Date().toISOString(),
-      crypto.randomUUID()
-    );
-    await this.database.flush();
+    if (this.database.hasPendingInboxActions())
+      throw new Error("An Inbox decision is still being persisted.");
+    this.activeReviewMutations += 1;
+    try {
+      this.database.repository.deleteTraceForScan(
+        scanId,
+        new Date().toISOString(),
+        crypto.randomUUID()
+      );
+      await this.database.flush();
+    } finally {
+      this.activeReviewMutations -= 1;
+    }
   }
 
   async deleteAllTraceData(): Promise<void> {
     if (!this.database) throw new Error("Vault Steward database is unavailable.");
-    this.database.repository.deleteAllTraceData(new Date().toISOString(), crypto.randomUUID());
-    await this.database.flush();
+    if (this.database.hasPendingInboxActions())
+      throw new Error("An Inbox decision is still being persisted.");
+    this.activeReviewMutations += 1;
+    try {
+      this.database.repository.deleteAllTraceData(new Date().toISOString(), crypto.randomUUID());
+      await this.database.flush();
+    } finally {
+      this.activeReviewMutations -= 1;
+    }
   }
 
   async createReferenceProposal(findingId: string, target: string) {
     const finding = this.loadFindings().find((item) => item.id === findingId);
     if (!finding || !this.database) throw new Error("Finding is unavailable.");
-    const writer = new ObsidianVaultWriter(this.app.vault);
-    const source = await writer.read(finding.evidence[0]?.notePath ?? "");
-    const result = proposeFix(
-      finding,
-      { path: finding.evidence[0]?.notePath ?? "", ...source },
-      target
-    );
-    if (!result.applicable) throw new Error(result.reason);
-    const parsed = parseProposal(result.proposal);
-    if (!parsed.ok) throw new Error("Generated proposal is invalid.");
-    this.database.repository.saveProposal(
-      {
-        id: result.proposal.id,
-        findingId: result.proposal.findingId,
-        patchJson: JSON.stringify(result.proposal),
-        sourceRevisionsJson: "{}",
-        status: "pending",
-        proposalDigest: proposalDigest(parsed.value)
-      },
-      this.proposalPreparedEvent(result.proposal.id)
-    );
-    await this.database.flush();
-    return {
-      proposal: result.proposal,
-      sources: { [sourcePath(result.proposal)]: source.content }
-    };
+    if (this.database.hasPendingInboxActions()) {
+      throw new Error("An Inbox decision is still being persisted.");
+    }
+    this.activeReviewMutations += 1;
+    try {
+      const writer = new ObsidianVaultWriter(this.app.vault);
+      const source = await writer.read(finding.evidence[0]?.notePath ?? "");
+      const result = proposeFix(
+        finding,
+        { path: finding.evidence[0]?.notePath ?? "", ...source },
+        target
+      );
+      if (!result.applicable) throw new Error(result.reason);
+      const parsed = parseProposal(result.proposal);
+      if (!parsed.ok) throw new Error("Generated proposal is invalid.");
+      this.database.repository.saveProposal(
+        {
+          id: result.proposal.id,
+          findingId: result.proposal.findingId,
+          patchJson: JSON.stringify(result.proposal),
+          sourceRevisionsJson: "{}",
+          status: "pending",
+          proposalDigest: proposalDigest(parsed.value)
+        },
+        this.proposalPreparedEvent(result.proposal.id)
+      );
+      await this.database.flush();
+      return {
+        proposal: result.proposal,
+        sources: { [sourcePath(result.proposal)]: source.content }
+      };
+    } finally {
+      this.activeReviewMutations -= 1;
+    }
   }
 
   private proposalPreparedEvent(proposalId: string): NewIntegrityEvent {
@@ -537,108 +584,124 @@ export default class VaultStewardPlugin extends Plugin {
   async prepareRecommendedRepairBatch() {
     if (!this.database || !this.activeSnapshot)
       throw new Error("Run Check vault before preparing repairs.");
-    const findings = this.loadFindings();
+    if (this.database.hasPendingInboxActions()) {
+      throw new Error("An Inbox decision is still being persisted.");
+    }
+    this.activeReviewMutations += 1;
+    try {
+      const findings = this.loadFindings();
 
-    const provider = this.createSelectedModelProvider();
-    const writer = new ObsidianVaultWriter(this.app.vault);
-    const referencePrepared = await prepareReferenceRepairBatch({
-      snapshot: this.activeSnapshot,
-      findings,
-      renames: this.recentRenames,
-      readSource: (path) => writer.read(path),
-      selectCandidate: (request) => selectReferenceCandidateWithProviders([provider], request),
-      persistProposal: (proposal) => {
-        const existing = this.database!.repository.findProposal(proposal.id);
-        if (existing) {
-          const persisted = parseStoredProposal(existing.patchJson, existing.proposalDigest);
-          if (
-            existing.status === "pending" &&
-            proposalDigest(persisted) === proposalDigest(proposal)
-          )
-            return;
-          throw new Error("A previous proposal for this finding must be reviewed first.");
+      const provider = this.createSelectedModelProvider();
+      const writer = new ObsidianVaultWriter(this.app.vault);
+      const referencePrepared = await prepareReferenceRepairBatch({
+        snapshot: this.activeSnapshot,
+        findings,
+        renames: this.recentRenames,
+        readSource: (path) => writer.read(path),
+        selectCandidate: (request) => selectReferenceCandidateWithProviders([provider], request),
+        persistProposal: (proposal) => {
+          const existing = this.database!.repository.findProposal(proposal.id);
+          if (existing) {
+            const persisted = parseStoredProposal(existing.patchJson, existing.proposalDigest);
+            if (
+              existing.status === "pending" &&
+              proposalDigest(persisted) === proposalDigest(proposal)
+            )
+              return;
+            throw new Error("A previous proposal for this finding must be reviewed first.");
+          }
+          this.database!.repository.saveProposal(
+            {
+              id: proposal.id,
+              findingId: proposal.findingId,
+              patchJson: JSON.stringify(proposal),
+              sourceRevisionsJson: "{}",
+              status: "pending",
+              proposalDigest: proposalDigest(proposal)
+            },
+            this.proposalPreparedEvent(proposal.id)
+          );
         }
-        this.database!.repository.saveProposal(
-          {
-            id: proposal.id,
-            findingId: proposal.findingId,
-            patchJson: JSON.stringify(proposal),
-            sourceRevisionsJson: "{}",
-            status: "pending",
-            proposalDigest: proposalDigest(proposal)
-          },
-          this.proposalPreparedEvent(proposal.id)
-        );
-      }
-    });
-    const taskDecisionPrepared = await prepareTaskDecisionRepairBatch({
-      snapshot: this.activeSnapshot,
-      findings,
-      readSource: (path) => writer.read(path),
-      selectIntent: (request) => selectTaskDecisionRepairWithProviders([provider], request),
-      persistProposal: (proposal) => {
-        const existing = this.database!.repository.findProposal(proposal.id);
-        if (existing) {
-          const persisted = parseStoredProposal(existing.patchJson, existing.proposalDigest);
-          if (
-            existing.status === "pending" &&
-            proposalDigest(persisted) === proposalDigest(proposal)
-          )
-            return;
-          throw new Error("A previous proposal for this finding must be reviewed first.");
+      });
+      const taskDecisionPrepared = await prepareTaskDecisionRepairBatch({
+        snapshot: this.activeSnapshot,
+        findings,
+        readSource: (path) => writer.read(path),
+        selectIntent: (request) => selectTaskDecisionRepairWithProviders([provider], request),
+        persistProposal: (proposal) => {
+          const existing = this.database!.repository.findProposal(proposal.id);
+          if (existing) {
+            const persisted = parseStoredProposal(existing.patchJson, existing.proposalDigest);
+            if (
+              existing.status === "pending" &&
+              proposalDigest(persisted) === proposalDigest(proposal)
+            )
+              return;
+            throw new Error("A previous proposal for this finding must be reviewed first.");
+          }
+          this.database!.repository.saveProposal(
+            {
+              id: proposal.id,
+              findingId: proposal.findingId,
+              patchJson: JSON.stringify(proposal),
+              sourceRevisionsJson: "{}",
+              status: "pending",
+              proposalDigest: proposalDigest(proposal)
+            },
+            this.proposalPreparedEvent(proposal.id)
+          );
         }
-        this.database!.repository.saveProposal(
-          {
-            id: proposal.id,
-            findingId: proposal.findingId,
-            patchJson: JSON.stringify(proposal),
-            sourceRevisionsJson: "{}",
-            status: "pending",
-            proposalDigest: proposalDigest(proposal)
-          },
-          this.proposalPreparedEvent(proposal.id)
-        );
-      }
-    });
-    const templatePrepared = await prepareTemplateRepairBatch({
-      snapshot: this.activeSnapshot,
-      findings,
-      readSource: (path) => writer.read(path),
-      persistProposal: (proposal) => {
-        const existing = this.database!.repository.findProposal(proposal.id);
-        if (existing) return;
-        this.database!.repository.saveProposal(
-          {
-            id: proposal.id,
-            findingId: proposal.findingId,
-            patchJson: JSON.stringify(proposal),
-            sourceRevisionsJson: "{}",
-            status: "pending",
-            proposalDigest: proposalDigest(proposal)
-          },
-          this.proposalPreparedEvent(proposal.id)
-        );
-      }
-    });
-    const prepared = combinePreparedRepairs(
-      this.activeSnapshot.id,
-      findings.filter((finding) => finding.status === "open").length,
-      [referencePrepared, taskDecisionPrepared, templatePrepared]
-    );
-    await this.database.flush();
-    return prepared;
+      });
+      const templatePrepared = await prepareTemplateRepairBatch({
+        snapshot: this.activeSnapshot,
+        findings,
+        readSource: (path) => writer.read(path),
+        persistProposal: (proposal) => {
+          const existing = this.database!.repository.findProposal(proposal.id);
+          if (existing) return;
+          this.database!.repository.saveProposal(
+            {
+              id: proposal.id,
+              findingId: proposal.findingId,
+              patchJson: JSON.stringify(proposal),
+              sourceRevisionsJson: "{}",
+              status: "pending",
+              proposalDigest: proposalDigest(proposal)
+            },
+            this.proposalPreparedEvent(proposal.id)
+          );
+        }
+      });
+      const prepared = combinePreparedRepairs(
+        this.activeSnapshot.id,
+        findings.filter((finding) => finding.status === "open").length,
+        [referencePrepared, taskDecisionPrepared, templatePrepared]
+      );
+      await this.database.flush();
+      return prepared;
+    } finally {
+      this.activeReviewMutations -= 1;
+    }
   }
 
   async reviewProposal(proposalId: string, action: ReviewAction) {
-    const record = this.database?.repository.findProposal(proposalId);
-    if (!record || !this.database) throw new Error("Proposal is unavailable.");
-    const proposal = parseStoredProposal(record.patchJson, record.proposalDigest);
-    new ReviewWorkflow(this.database.repository, new ObsidianVaultWriter(this.app.vault)).act(
-      proposal,
-      action,
-      new Date().toISOString()
-    );
-    await this.database.flush();
+    if (this.database?.hasPendingInboxActions()) {
+      throw new Error("An Inbox decision is still being persisted.");
+    }
+    this.activeReviewMutations += 1;
+    try {
+      const record = this.database?.repository.findProposal(proposalId);
+      if (!record || !this.database) throw new Error("Proposal is unavailable.");
+      const proposal = parseStoredProposal(record.patchJson, record.proposalDigest);
+      new ReviewWorkflow(this.database.repository, new ObsidianVaultWriter(this.app.vault)).act(
+        proposal,
+        action,
+        new Date().toISOString()
+      );
+      await this.database.flush();
+    } finally {
+      this.activeReviewMutations -= 1;
+    }
   }
 
   async loadPolicyDraft(): Promise<string> {
@@ -665,16 +728,23 @@ export default class VaultStewardPlugin extends Plugin {
       ...(label ? { label } : {})
     });
     if (diagnostic) throw new Error(diagnostic);
-    this.database.repository.saveReviewerFeedback({
-      id: crypto.randomUUID(),
-      findingId: finding.id,
-      proposalId: null,
-      verdict,
-      label: label || null,
-      patternKey: findingFeedbackPattern(finding),
-      createdAt: new Date().toISOString()
-    });
-    await this.database.flush();
+    if (this.database.hasPendingInboxActions())
+      throw new Error("An Inbox decision is still being persisted.");
+    this.activeReviewMutations += 1;
+    try {
+      this.database.repository.saveReviewerFeedback({
+        id: crypto.randomUUID(),
+        findingId: finding.id,
+        proposalId: null,
+        verdict,
+        label: label || null,
+        patternKey: findingFeedbackPattern(finding),
+        createdAt: new Date().toISOString()
+      });
+      await this.database.flush();
+    } finally {
+      this.activeReviewMutations -= 1;
+    }
   }
 
   listReviewerFeedback() {
@@ -692,46 +762,62 @@ export default class VaultStewardPlugin extends Plugin {
   }
 
   async applyProposal(proposalId: string) {
-    const record = this.database?.repository.findProposal(proposalId);
-    if (!record || !this.database) throw new Error("Proposal is unavailable.");
-    const proposal = parseStoredProposal(record.patchJson, record.proposalDigest);
-    const result = await new ReviewWorkflow(
-      this.database.repository,
-      new ObsidianVaultWriter(this.app.vault)
-    ).apply(proposal, new Date().toISOString(), {
-      onReindex: () => {
-        void this.scanVault();
-      }
-    });
-    await this.database.flush();
-    return result;
+    if (this.database?.hasPendingInboxActions()) {
+      throw new Error("An Inbox decision is still being persisted.");
+    }
+    this.activeReviewMutations += 1;
+    try {
+      const record = this.database?.repository.findProposal(proposalId);
+      if (!record || !this.database) throw new Error("Proposal is unavailable.");
+      const proposal = parseStoredProposal(record.patchJson, record.proposalDigest);
+      const result = await new ReviewWorkflow(
+        this.database.repository,
+        new ObsidianVaultWriter(this.app.vault)
+      ).apply(proposal, new Date().toISOString(), {
+        onReindex: () => {
+          void this.scanVault();
+        }
+      });
+      await this.database.flush();
+      return result;
+    } finally {
+      this.activeReviewMutations -= 1;
+    }
   }
 
   async applyPreparedRepairBatch(batch: PreparedRepairBatch) {
-    if (!this.database) throw new Error("Vault Steward database is unavailable.");
-    const parsedBatch = parsePreparedRepairBatch(batch);
-    if (!parsedBatch.ok) throw new Error("Prepared repair batch is invalid.");
-    const proposals = parsedBatch.value.proposalIds.map((proposalId, index) => {
-      const record = this.database!.repository.findProposal(proposalId);
-      if (!record) throw new Error("A prepared proposal is unavailable.");
-      const proposal = parseStoredProposal(record.patchJson, record.proposalDigest);
-      if (
-        proposal.scanId !== parsedBatch.value.scanId ||
-        proposal.findingId !== parsedBatch.value.findingIds[index]
-      )
-        throw new Error("Prepared repair batch integrity validation failed.");
-      return proposal;
-    });
-    const result = await new ReviewWorkflow(
-      this.database.repository,
-      new ObsidianVaultWriter(this.app.vault)
-    ).approveAndApplyBatch(proposals, new Date().toISOString(), {
-      onReindex: async () => {
-        await this.scanVault();
-      }
-    });
-    await this.database.flush();
-    return result;
+    if (this.database?.hasPendingInboxActions()) {
+      throw new Error("An Inbox decision is still being persisted.");
+    }
+    this.activeReviewMutations += 1;
+    try {
+      if (!this.database) throw new Error("Vault Steward database is unavailable.");
+      const parsedBatch = parsePreparedRepairBatch(batch);
+      if (!parsedBatch.ok) throw new Error("Prepared repair batch is invalid.");
+      const proposals = parsedBatch.value.proposalIds.map((proposalId, index) => {
+        const record = this.database!.repository.findProposal(proposalId);
+        if (!record) throw new Error("A prepared proposal is unavailable.");
+        const proposal = parseStoredProposal(record.patchJson, record.proposalDigest);
+        if (
+          proposal.scanId !== parsedBatch.value.scanId ||
+          proposal.findingId !== parsedBatch.value.findingIds[index]
+        )
+          throw new Error("Prepared repair batch integrity validation failed.");
+        return proposal;
+      });
+      const result = await new ReviewWorkflow(
+        this.database.repository,
+        new ObsidianVaultWriter(this.app.vault)
+      ).approveAndApplyBatch(proposals, new Date().toISOString(), {
+        onReindex: async () => {
+          await this.scanVault();
+        }
+      });
+      await this.database.flush();
+      return result;
+    } finally {
+      this.activeReviewMutations -= 1;
+    }
   }
 
   async openVaultNote(path: string): Promise<void> {

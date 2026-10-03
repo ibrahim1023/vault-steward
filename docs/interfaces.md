@@ -270,9 +270,10 @@ structurally safe rows whose schema version or kind is unknown to this build.
   distinct current occurrence IDs before transactionally appending disposition
   records and metadata-only review events; `restoreInboxDisposition` reverses
   an effective decision with a matching event. Plugin database review/restore
-  methods flush before reporting success and restore the pre-action runtime on
-  disk-write failure. Neither operation changes finding status nor writes a
-  vault file.
+  methods serialize Inbox writes, flush before reporting success, and restore
+  the pre-action runtime on disk-write failure. Scans and active review writes
+  cannot overlap this rollback window. Neither operation changes finding status
+  nor writes a vault file.
 - `note_subjects` and `note_path_history` bind an opaque subject ID to at most
   one active path; rename and delete retire history rows transactionally, a
   retired path can later bind only to a different subject, and a deleted subject

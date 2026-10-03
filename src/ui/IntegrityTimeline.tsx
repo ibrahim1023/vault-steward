@@ -19,6 +19,29 @@ export function IntegrityTimeline({
   const [loading, setLoading] = useState(false);
   const [exportStatus, setExportStatus] = useState<"idle" | "busy" | "copied" | "failed">("idle");
   const current = pages.at(-1) ?? events;
+  const referenceGroups = new Map<string, number>();
+  const referenceCounts = new Map<string, number>();
+  const referenceLabels = new Map<number, string[]>();
+  for (const event of [...current].sort((a, b) => a.sequence - b.sequence)) {
+    const labels: string[] = [];
+    for (const [kind, id] of [
+      ["Scan", event.scanId],
+      ["Finding", event.stableKey],
+      ["Occurrence", event.occurrenceId],
+      ["Proposal", event.proposalId],
+      ["Approval", event.approvalId]
+    ] as const) {
+      if (!id) continue;
+      const key = `${kind}:${id}`;
+      if (!referenceGroups.has(key)) {
+        const count = (referenceCounts.get(kind) ?? 0) + 1;
+        referenceCounts.set(kind, count);
+        referenceGroups.set(key, count);
+      }
+      labels.push(`${kind} ${referenceGroups.get(key)}`);
+    }
+    referenceLabels.set(event.sequence, labels);
+  }
   const oldest = current[0]?.sequence;
   const newest = current.at(-1)?.sequence;
   const loadOlder = async () => {
@@ -73,6 +96,9 @@ export function IntegrityTimeline({
                   {typeof event.safeMetadata.count === "number"
                     ? ` · ${event.safeMetadata.count}`
                     : null}
+                  {referenceLabels.get(event.sequence)?.map((label) => (
+                    <span key={label}> · {label}</span>
+                  ))}
                 </li>
               ))}
           </ol>
