@@ -2,14 +2,14 @@
 
 ## Status
 
-Accepted on 2026-09-28. Storage foundation implemented: the append-only event
-store with monotonic sequence and exact-duplicate idempotency, retention
-settings, operational pruning, explicit purge, and the deletion ledger. Runtime
-event emission implemented: operational scan events, review transition events,
-and proposal/apply audit events commit transactionally with their canonical
-transitions, and interrupted scans and applies record truthful recovery
-outcomes at startup. UI projections, disposition events, and scheduled
-retention remain pending under later tasks.
+Implemented (Phase 33 event-store foundation); accepted on 2026-09-28. The
+append-only event store, monotonic sequence, exact-duplicate idempotency,
+retention settings and repository operations, explicit purge, and deletion
+ledger are implemented. Operational scan events, review transition events, and
+proposal/apply audit events commit with their canonical transitions;
+interrupted scans and applies record recovery outcomes at startup. Timeline UI
+projections, disposition events, and scheduled retention wiring remain pending
+under later tasks.
 
 ## Context
 

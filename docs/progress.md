@@ -263,6 +263,8 @@ The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type che
 
 ## Next Recommended Task
 
-Continue Phase 33 on `feat/phase-33-identity-events`: Task 5 passed review,
-its fixes, and the phase completion gate; commit and then proceed to the next
-task in `docs/superpowers/plans/2026-09-28-maintenance-foundation.md`.
+Phase 33 is committed on `feat/phase-33-identity-events` and passed its
+completion gate. Promotion to `development` and the subsequent push require
+explicit approval before Phase 34 starts on `feat/phase-34-maintenance-workspace`.
+The next planned work is Task 6 (Changes service and view) in
+`docs/superpowers/plans/2026-09-28-maintenance-foundation.md`.

@@ -2,16 +2,14 @@
 
 ## Status
 
-Accepted on 2026-09-28. Storage foundation implemented: the identity and
-occurrence contracts, migration 12 tables, repository persistence, and the
-legacy `v0` backfill. Runtime wiring implemented: per-family identity adapters,
-v2 promotion, occurrence persistence, and durable note subjects with
-verified-rename continuity and content-only revisions. Completed-scan
-comparison and finding transitions implemented: identical-profile completed
-scans compare per `stableKey`, review events commit atomically with scan
-persistence, and the first v1-identity scan is baseline-only. Disposition
-lifecycle behavior (snooze expiry, changed-evidence recurrence, restore
-reversal) remains pending under the Phase 34 maintenance-workspace tasks.
+Implemented (Phase 33 foundation); accepted on 2026-09-28. Identity and
+occurrence contracts, migration 12 tables, legacy `v0` backfill, per-family
+adapters, v2 promotion, durable note subjects with verified-rename continuity,
+and content-only revisions are implemented. Identical-profile completed scans
+compare per `stableKey`, review events commit atomically with scan persistence,
+and the first v1-identity scan is baseline-only. Disposition lifecycle behavior
+(snooze expiry, changed-evidence recurrence, restore reversal) remains pending
+under the Phase 34 maintenance-workspace tasks.
 
 ## Context
 
