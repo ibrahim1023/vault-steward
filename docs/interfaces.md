@@ -261,8 +261,16 @@ structurally safe rows whose schema version or kind is unknown to this build.
   `acknowledged`, `ignored`, `snoozed`, `expected`, or `restored`. `snoozed`
   requires exactly one of a bounded `untilAt` or `untilEvidenceChanges`;
   `restored` must name an existing non-restored disposition for the same stable
-  key. Effective-state evaluation walks newest first, skips reversed targets and
-  expired dated snoozes, and requires an exact evidence-revision match.
+  key. Effective-state evaluation walks newest first, skips reversed targets,
+  requires an exact evidence-revision match, and treats an expired newer dated
+  snooze as due rather than reviving an older disposition on that revision.
+  `loadStewardInbox(repository, now)` projects the latest completed v2 finding
+  occurrences and their effective dispositions, keeping the critical count
+  visible regardless of queue filters. `reviewInboxOccurrences` validates
+  distinct current occurrence IDs before transactionally appending disposition
+  records and metadata-only review events; `restoreInboxDisposition` reverses
+  an effective decision with a matching event. Neither operation changes
+  finding status nor writes a vault file.
 - `note_subjects` and `note_path_history` bind an opaque subject ID to at most
   one active path; rename and delete retire history rows transactionally, a
   retired path can later bind only to a different subject, and a deleted subject

@@ -142,8 +142,11 @@ It compares the latest completed scan with a retained compatible baseline,
 excludes legacy, failed, and incompatible scans, and permits selecting an
 earlier compatible baseline. The workspace displays transition counts and
 persisted finding-family/subtype labels without reconstructing historical note
-bodies or acquiring write authority. Inbox dispositions and the Timeline
-remain Phase 34 work.
+bodies or acquiring write authority. Task 7 adds a read-only Steward Inbox
+whose review dispositions are revision-bound, reversible, and committed with
+metadata-only integrity events; filters and exact bulk selection do not hide
+the critical count or write vault files. The four-destination Timeline and
+workspace integration remain Phase 34 work.
 
 Completed: Phase 32 prepared the `0.2.1` release for the Community Directory
 reviewer. It uses Preact compatibility rendering rather than a bundled React DOM

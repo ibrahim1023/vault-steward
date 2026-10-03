@@ -73,7 +73,8 @@
 .steward-result,
 .judgment-view,
 .steward-error,
-.changes-view {
+.changes-view,
+.steward-inbox {
   display: grid;
   gap: 12px;
   padding: 18px;
@@ -84,7 +85,8 @@
 .steward-start h2,
 .steward-result h2,
 .judgment-view h2,
-.changes-view h2 {
+.changes-view h2,
+.steward-inbox h2 {
   margin-bottom: 0;
   font-size: 1.3rem;
   line-height: 1.35;
@@ -95,7 +97,8 @@
 .judgment-view p,
 .steward-error p,
 .steward-progress p,
-.changes-view p {
+.changes-view p,
+.steward-inbox p {
   margin-bottom: 0;
 }
 
@@ -114,6 +117,27 @@
   gap: 8px 20px;
   margin: 0;
   padding-left: 20px;
+}
+
+.steward-inbox > ul {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.steward-inbox > ul > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.steward-inbox select {
+  max-width: 100%;
 }
 
 .last-check,

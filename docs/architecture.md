@@ -71,6 +71,16 @@ legacy, and incompatible scans cannot become baselines. The workspace renders
 new, changed, recurring, resolved, and unchanged counts without rebuilding
 historic note bodies or granting any write authority.
 
+`review/dispositions` projects latest completed v2 occurrences into the
+Steward Inbox, independently of finding status and pattern suppression. It
+validates selected occurrence IDs and atomically appends each reviewer decision
+and its metadata-only integrity event. A changed evidence revision or expired
+snooze returns an occurrence to due; a restore reverses the targeted decision
+without rewriting history. Inbox actions are review-only and cannot reach the
+vault writer or apply workflow. The Inbox keeps critical counts visible under
+filters, labels repair preparation `Review fix`, and uses explicit selections
+for bulk actions.
+
 ## Main Workflow
 
 ```mermaid

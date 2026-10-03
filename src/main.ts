@@ -26,6 +26,12 @@ import { AgentResultCache } from "./agents/coordinator.js";
 import { proposeFix } from "./review/propose.js";
 import { parseProposal, proposalDigest } from "./contracts/proposal.js";
 import { ReviewWorkflow, type ReviewAction } from "./review/workflow.js";
+import {
+  loadStewardInbox,
+  restoreInboxDisposition,
+  reviewInboxOccurrences,
+  type InboxDispositionRequest
+} from "./review/dispositions.js";
 import { parsePreparedRepairBatch, type PreparedRepairBatch } from "./contracts/prepared-repair.js";
 import {
   combinePreparedRepairs,
@@ -374,6 +380,36 @@ export default class VaultStewardPlugin extends Plugin {
         currentScanId: null
       }
     );
+  }
+
+  loadInbox() {
+    return this.database
+      ? loadStewardInbox(this.database.repository, new Date().toISOString())
+      : { items: [], criticalCount: 0 };
+  }
+
+  async reviewInbox(
+    occurrenceIds: string[],
+    kind: InboxDispositionRequest["kind"],
+    snooze?: { untilAt: string } | { untilEvidenceChanges: true }
+  ): Promise<void> {
+    if (!this.database) throw new Error("Vault Steward database is unavailable.");
+    reviewInboxOccurrences(this.database.repository, {
+      occurrenceIds,
+      kind,
+      createdAt: new Date().toISOString(),
+      ...(snooze ?? {})
+    });
+    await this.database.flush();
+  }
+
+  async restoreInbox(occurrenceId: string): Promise<void> {
+    if (!this.database) throw new Error("Vault Steward database is unavailable.");
+    restoreInboxDisposition(this.database.repository, {
+      occurrenceId,
+      createdAt: new Date().toISOString()
+    });
+    await this.database.flush();
   }
 
   loadObservability(scanId?: string) {
@@ -799,6 +835,9 @@ class VaultStewardStatusItemView extends ItemView {
           loadFindings: () => this.plugin.loadFindings(),
           loadHistory: () => this.plugin.loadHistory(),
           loadChangesSummary: (baselineScanId) => this.plugin.loadChangesSummary(baselineScanId),
+          loadInbox: () => this.plugin.loadInbox(),
+          reviewInbox: (ids, kind, snooze) => this.plugin.reviewInbox(ids, kind, snooze),
+          restoreInbox: (id) => this.plugin.restoreInbox(id),
           prepareRepairs: () => this.plugin.prepareRecommendedRepairBatch(),
           applyRepairs: (batch) => this.plugin.applyPreparedRepairBatch(batch),
           openNote: (path) => this.plugin.openVaultNote(path),

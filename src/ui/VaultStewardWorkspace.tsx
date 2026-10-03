@@ -21,6 +21,8 @@ import {
   type EntityCanonicalRecommendation
 } from "../review/entity-canonical-recommendation.js";
 import type { BatchApplyResult } from "../review/workflow.js";
+import type { loadStewardInbox, InboxDispositionRequest } from "../review/dispositions.js";
+import { StewardInbox } from "./StewardInbox.js";
 import type { ChangesSummary } from "../maintenance/changes.js";
 import type {
   FindingLifecycleRecord,
@@ -66,6 +68,9 @@ export function VaultStewardWorkspace({
   openProviderSettings,
   loadHistory,
   loadChangesSummary,
+  loadInbox,
+  reviewInbox,
+  restoreInbox,
   diagnostics
 }: {
   vaultLabel: string;
@@ -89,6 +94,13 @@ export function VaultStewardWorkspace({
   openProviderSettings?: () => void;
   loadHistory?: () => { scans: ScanHistoryRecord[]; lifecycle: FindingLifecycleRecord[] };
   loadChangesSummary?: (baselineScanId?: string) => ChangesSummary;
+  loadInbox?: () => ReturnType<typeof loadStewardInbox>;
+  reviewInbox?: (
+    ids: string[],
+    kind: InboxDispositionRequest["kind"],
+    snooze?: { untilAt: string } | { untilEvidenceChanges: true }
+  ) => Promise<void>;
+  restoreInbox?: (id: string) => Promise<void>;
   diagnostics?: WorkspaceDiagnostics;
 }) {
   const [mode, setMode] = useState<WorkspaceMode>("ready");
@@ -106,8 +118,10 @@ export function VaultStewardWorkspace({
     ...(diagnostics?.suppressedPatterns ?? [])
   ]);
   const [baselineScanId, setBaselineScanId] = useState<string>();
+  const [, setInboxRevision] = useState(0);
   const history = loadHistory?.();
   const changes = loadChangesSummary?.(baselineScanId);
+  const inbox = loadInbox?.();
   const reviewerFeedback = diagnostics?.loadFeedback() ?? [];
   const activeFindings = rankDashboardFindings(
     findings.filter(
@@ -418,6 +432,28 @@ export function VaultStewardWorkspace({
       ) : null}
 
       <IssueList findings={listedFindings} />
+
+      {inbox && reviewInbox ? (
+        <StewardInbox
+          snapshot={inbox}
+          onDisposition={async (ids, kind, snooze) => {
+            await reviewInbox(ids, kind, snooze);
+            setInboxRevision((revision) => revision + 1);
+          }}
+          {...(restoreInbox
+            ? {
+                onRestore: async (id: string) => {
+                  await restoreInbox(id);
+                  setInboxRevision((revision) => revision + 1);
+                }
+              }
+            : {})}
+          onReviewFix={(finding) => {
+            setJudgment(finding);
+            setMode("judgment");
+          }}
+        />
+      ) : null}
 
       {changes ? <ChangesView summary={changes} onSelectBaseline={setBaselineScanId} /> : null}
 

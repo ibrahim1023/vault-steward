@@ -1852,7 +1852,7 @@ export class VaultStewardRepository {
       if (reversed.has(record.id)) continue;
       if (record.sourceEvidenceRevisionKey !== input.evidenceRevisionKey) continue;
       if (record.kind === "snoozed" && record.untilAt !== null && record.untilAt <= input.now) {
-        continue;
+        return null;
       }
       return record;
     }

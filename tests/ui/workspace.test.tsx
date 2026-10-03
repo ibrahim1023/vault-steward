@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { Finding } from "../../src/contracts/index.js";
+import type { Finding, FindingV2 } from "../../src/contracts/index.js";
 import type { PreparedReferenceRepair } from "../../src/review/prepare-repair-batch.js";
 import type { DuplicateEntityReview } from "../../src/review/entity-duplicate-review.js";
 import { buildEntityCanonicalCandidates } from "../../src/review/entity-canonical-recommendation.js";
@@ -170,6 +170,48 @@ const duplicateReview: DuplicateEntityReview = {
 
 describe("VaultStewardWorkspace", () => {
   afterEach(cleanup);
+
+  it("routes Inbox dispositions without scanning or applying vault edits", async () => {
+    const scan = vi.fn(async () => ({ scanId: "scan-1", findings: [] }));
+    const applyRepairs = vi.fn();
+    const reviewInbox = vi.fn(async () => undefined);
+    const current: FindingV2 = {
+      ...finding,
+      schemaVersion: 2,
+      stableKey: `finding:v1:${"a".repeat(64)}`,
+      occurrenceId: `occurrence:v1:${"b".repeat(64)}`,
+      evidenceRevisionKey: `evidence:v1:${"c".repeat(64)}`,
+      identity: {
+        schemaVersion: 1,
+        identityVersion: 1,
+        stableKey: `finding:v1:${"a".repeat(64)}`,
+        family: "broken-reference",
+        subtype: "missing",
+        detectorId: "reference",
+        detectorVersion: "1",
+        subjectIds: ["subject-home"],
+        semanticKey: "missing"
+      }
+    };
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={scan}
+        applyRepairs={applyRepairs}
+        loadInbox={() => ({
+          items: [{ finding: current, occurrenceId: current.occurrenceId, disposition: null }],
+          criticalCount: 0
+        })}
+        reviewInbox={reviewInbox}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Acknowledge" }));
+    await waitFor(() =>
+      expect(reviewInbox).toHaveBeenCalledWith([current.occurrenceId], "acknowledged", undefined)
+    );
+    expect(scan).not.toHaveBeenCalled();
+    expect(applyRepairs).not.toHaveBeenCalled();
+  });
 
   it("shows Changes and recomputes the summary when a baseline is selected", () => {
     const loadChangesSummary = vi.fn((selected?: string) => ({

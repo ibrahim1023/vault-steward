@@ -774,8 +774,8 @@ describe("review dispositions", () => {
         stableKey: base.stableKey,
         evidenceRevisionKey: base.sourceEvidenceRevisionKey,
         now: "2026-09-29T00:00:00.000Z"
-      })?.id
-    ).toBe("disp-future");
+      })
+    ).toBeNull();
 
     repository.appendReviewDisposition({
       ...base,
