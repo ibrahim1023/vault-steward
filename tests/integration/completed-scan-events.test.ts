@@ -325,6 +325,35 @@ describe("completed scan comparison and events", () => {
     db.close();
   });
 
+  it("loads integrity events for Timeline independently of diagnostic traces", async () => {
+    const db = await database();
+    saveScan(db, "scan-1", [v2Finding("scan-1", "Missing")]);
+    expect(db.loadObservability("scan-1").timeline.length).toBeGreaterThan(0);
+    expect(db.loadIntegrityTimeline().map((event) => event.kind)).toEqual([
+      "scan-started",
+      "scan-completed"
+    ]);
+    db.repository.appendIntegrityEvent({
+      schemaVersion: 1,
+      id: "provider-event",
+      category: "operational",
+      kind: "provider-ready",
+      occurredAt: "2026-09-29T00:00:03.000Z",
+      safeMetadata: {}
+    });
+    expect(db.loadIntegrityTimeline(3).map((event) => event.kind)).toEqual([
+      "scan-started",
+      "scan-completed"
+    ]);
+    db.repository.deleteAllTraceData("2026-09-29T00:00:05.000Z", "trace-delete");
+    expect(db.loadIntegrityTimeline().map((event) => event.kind)).toEqual([
+      "scan-started",
+      "scan-completed",
+      "provider-ready"
+    ]);
+    db.close();
+  });
+
   it("persists scan events across close and reopen", async () => {
     const store = new MemoryBinaryStore();
     const db = await openPluginDatabase({

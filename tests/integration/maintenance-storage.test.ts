@@ -548,6 +548,36 @@ describe("integrity events", () => {
     expect(repository.listIntegrityEvents({ scanId: "scan-2" })).toEqual([]);
   });
 
+  it("lists the newest bounded integrity events in monotonic order", async () => {
+    const { repository } = await createRepository();
+    for (const id of ["event-1", "event-2", "event-3"]) {
+      repository.appendIntegrityEvent(newEvent({ id }));
+    }
+    expect(repository.listIntegrityEvents({ limit: 2 }).map((event) => event.id)).toEqual([
+      "event-2",
+      "event-3"
+    ]);
+    expect(
+      repository.listIntegrityEvents({ limit: 2, beforeSequence: 3 }).map((event) => event.id)
+    ).toEqual(["event-1", "event-2"]);
+    expect(() => repository.listIntegrityEvents({ limit: 2, beforeSequence: 0 })).toThrow();
+    expect(() => repository.listIntegrityEvents({ limit: 0 })).toThrow();
+    expect(() => repository.listIntegrityEvents({ limit: 501 })).toThrow();
+  });
+
+  it("fills a bounded page past safe unknown event kinds without losing known history", async () => {
+    const { database, repository } = await createRepository();
+    repository.appendIntegrityEvent(newEvent({ id: "known-1" }));
+    repository.appendIntegrityEvent(newEvent({ id: "known-2" }));
+    database.run(
+      "INSERT INTO integrity_events (id, schema_version, category, kind, occurred_at, safe_metadata_json) VALUES ('future', 1, 'operational', 'future-event', '2026-09-28T12:00:00.000Z', '{}')"
+    );
+    expect(repository.listIntegrityEvents({ limit: 2 }).map((event) => event.id)).toEqual([
+      "known-1",
+      "known-2"
+    ]);
+  });
+
   it("returns the persisted event for an exact duplicate and rejects a mismatch", async () => {
     const { repository } = await createRepository();
 

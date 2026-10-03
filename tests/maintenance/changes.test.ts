@@ -83,7 +83,11 @@ describe("Changes Since Last Check", () => {
     expect([summary.baselineScanId, summary.currentScanId]).toEqual(["scan-1", "scan-2"]);
     expect(summary.availableBaselineScanIds).toEqual(["scan-1"]);
     expect(summary.new.map((item) => item.stableKey)).toEqual([finding("scan-2", "New").stableKey]);
-    expect(summary.new[0]).toMatchObject({ family: "broken-reference", subtype: "missing" });
+    expect(summary.new[0]).toMatchObject({
+      family: "broken-reference",
+      subtype: "missing",
+      detail: "New.md"
+    });
     expect(summary.resolved.map((item) => item.stableKey)).toEqual([
       finding("scan-1", "Old").stableKey
     ]);

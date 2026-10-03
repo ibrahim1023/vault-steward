@@ -26,12 +26,7 @@ import { AgentResultCache } from "./agents/coordinator.js";
 import { proposeFix } from "./review/propose.js";
 import { parseProposal, proposalDigest } from "./contracts/proposal.js";
 import { ReviewWorkflow, type ReviewAction } from "./review/workflow.js";
-import {
-  loadStewardInbox,
-  restoreInboxDisposition,
-  reviewInboxOccurrences,
-  type InboxDispositionRequest
-} from "./review/dispositions.js";
+import { loadStewardInbox, type InboxDispositionRequest } from "./review/dispositions.js";
 import { parsePreparedRepairBatch, type PreparedRepairBatch } from "./contracts/prepared-repair.js";
 import {
   combinePreparedRepairs,
@@ -49,7 +44,7 @@ import { MAX_POLICY_BYTES, parsePolicy } from "./policy/parse.js";
 import { explainFinding, type FindingExplanation } from "./agents/finding-explanation.js";
 import { checkModelReadiness } from "./model-provider/readiness.js";
 import type { Finding } from "./contracts/index.js";
-import type { NewIntegrityEvent } from "./contracts/integrity-event.js";
+import type { IntegrityEvent, NewIntegrityEvent } from "./contracts/integrity-event.js";
 import {
   dismissalReasonVerdict,
   validateReviewerFeedback,
@@ -74,6 +69,7 @@ import {
 } from "./review/entity-canonical-recommendation.js";
 import { prepareEntityConsolidation } from "./review/entity-consolidation.js";
 import { buildChangeAwareFindings } from "./maintenance/change-aware.js";
+import { exportIntegrityTimeline as serializeIntegrityTimeline } from "./maintenance/timeline.js";
 import { planIncrementalScan } from "./indexing/plan.js";
 import { FINDING_IDENTITY_PROFILE_HASH } from "./findings/identity.js";
 
@@ -388,28 +384,35 @@ export default class VaultStewardPlugin extends Plugin {
       : { items: [], criticalCount: 0 };
   }
 
+  loadIntegrityTimeline(beforeSequence?: number) {
+    return this.database?.loadIntegrityTimeline(beforeSequence) ?? [];
+  }
+
+  exportIntegrityTimeline(events: readonly IntegrityEvent[]): string {
+    if (!this.database) throw new Error("Vault Steward database is unavailable.");
+    return serializeIntegrityTimeline(events);
+  }
+
   async reviewInbox(
     occurrenceIds: string[],
     kind: InboxDispositionRequest["kind"],
     snooze?: { untilAt: string } | { untilEvidenceChanges: true }
   ): Promise<void> {
     if (!this.database) throw new Error("Vault Steward database is unavailable.");
-    reviewInboxOccurrences(this.database.repository, {
+    await this.database.saveInboxReview({
       occurrenceIds,
       kind,
       createdAt: new Date().toISOString(),
       ...(snooze ?? {})
     });
-    await this.database.flush();
   }
 
   async restoreInbox(occurrenceId: string): Promise<void> {
     if (!this.database) throw new Error("Vault Steward database is unavailable.");
-    restoreInboxDisposition(this.database.repository, {
+    await this.database.restoreInboxReview({
       occurrenceId,
       createdAt: new Date().toISOString()
     });
-    await this.database.flush();
   }
 
   loadObservability(scanId?: string) {
@@ -838,6 +841,14 @@ class VaultStewardStatusItemView extends ItemView {
           loadInbox: () => this.plugin.loadInbox(),
           reviewInbox: (ids, kind, snooze) => this.plugin.reviewInbox(ids, kind, snooze),
           restoreInbox: (id) => this.plugin.restoreInbox(id),
+          loadIntegrityTimeline: () => this.plugin.loadIntegrityTimeline(),
+          loadOlderIntegrityEvents: (beforeSequence) =>
+            this.plugin.loadIntegrityTimeline(beforeSequence),
+          exportIntegrityTimeline: async (visibleEvents) => {
+            if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+            await navigator.clipboard.writeText(this.plugin.exportIntegrityTimeline(visibleEvents));
+          },
+          explainFinding: (finding) => this.plugin.explainFinding(finding),
           prepareRepairs: () => this.plugin.prepareRecommendedRepairBatch(),
           applyRepairs: (batch) => this.plugin.applyPreparedRepairBatch(batch),
           openNote: (path) => this.plugin.openVaultNote(path),

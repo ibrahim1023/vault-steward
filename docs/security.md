@@ -46,3 +46,11 @@ post-write re-index controls.
 The completed deep-security scan identified two low-severity findings. Both
 were remediated by fail-closed policy loading and conditional rollback, and
 regression coverage protects both paths.
+
+The Phase 34 Integrity Timeline reads metadata-only events from the canonical
+SQLite store, not diagnostic traces. An explicit export revalidates event
+schema and metadata, omits event and entity IDs and all string metadata,
+and rejects exports above 500 events or 256 KiB; only the currently visible
+bounded page is copied after the user clicks Export.
+Inbox dispositions append metadata-only review events in the same transaction
+as their canonical record and never gain vault-write authority.

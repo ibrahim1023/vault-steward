@@ -77,6 +77,57 @@ function save(db: PluginDatabase, scanId: string, findings: ReturnType<typeof fi
 }
 
 describe("Steward Inbox dispositions", () => {
+  it("restores the pre-action database when persisting an Inbox decision fails", async () => {
+    let bytes: Uint8Array | undefined;
+    let failWrites = false;
+    const db = await openPluginDatabase({
+      adapter: {
+        exists: async () => bytes !== undefined,
+        readBinary: async () => bytes!.slice().buffer,
+        writeBinary: async (_path, value) => {
+          if (failWrites) throw new Error("disk unavailable");
+          bytes = new Uint8Array(value.slice(0));
+        }
+      },
+      databasePath: "vault-steward.sqlite",
+      locateFile: (file) => `node_modules/sql.js/dist/${file}`
+    });
+    const current = finding("scan-1", "Missing", "r1");
+    save(db, "scan-1", [current]);
+    await db.flush();
+    failWrites = true;
+    await expect(
+      db.saveInboxReview({
+        occurrenceIds: [current.occurrenceId],
+        kind: "ignored",
+        createdAt: NOW
+      })
+    ).rejects.toThrow("disk unavailable");
+    expect(loadStewardInbox(db.repository, NOW).items[0]?.disposition).toBeNull();
+    expect(db.repository.listIntegrityEvents({ category: "review" })).toEqual([]);
+    failWrites = false;
+    await db.saveInboxReview({
+      occurrenceIds: [current.occurrenceId],
+      kind: "ignored",
+      createdAt: NOW
+    });
+    expect(loadStewardInbox(db.repository, NOW).items[0]?.disposition?.kind).toBe("ignored");
+    failWrites = true;
+    await expect(
+      db.restoreInboxReview({
+        occurrenceId: current.occurrenceId,
+        createdAt: "2026-09-29T00:00:06.000Z"
+      })
+    ).rejects.toThrow("disk unavailable");
+    expect(
+      loadStewardInbox(db.repository, "2026-09-29T00:00:07.000Z").items[0]?.disposition?.kind
+    ).toBe("ignored");
+    expect(
+      db.repository.listIntegrityEvents({ category: "review" }).map((event) => event.kind)
+    ).toEqual(["disposition-ignored"]);
+    db.close();
+  });
+
   it("persists an acknowledged occurrence with an append-only event, without changing finding status", async () => {
     const db = await fixture();
     const critical = finding("scan-1", "Missing", "r1", "critical");

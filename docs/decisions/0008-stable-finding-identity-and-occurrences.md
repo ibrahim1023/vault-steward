@@ -7,9 +7,9 @@ occurrence contracts, migration 12 tables, legacy `v0` backfill, per-family
 adapters, v2 promotion, durable note subjects with verified-rename continuity,
 and content-only revisions are implemented. Identical-profile completed scans
 compare per `stableKey`, review events commit atomically with scan persistence,
-and the first v1-identity scan is baseline-only. Disposition lifecycle behavior
-(snooze expiry, changed-evidence recurrence, restore reversal) remains pending
-under the Phase 34 maintenance-workspace tasks.
+and the first v1-identity scan is baseline-only. Phase 34 implements the
+revision-bound Steward Inbox disposition lifecycle, including snooze expiry,
+wake on evidence change, and append-only restore reversal.
 
 ## Context
 

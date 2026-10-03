@@ -8,6 +8,11 @@ import type {
 } from "../contracts/incremental.js";
 import { persistReviewQueueInTransaction } from "../coordinator/normalize.js";
 import { compareFindingOccurrences, type FindingTransition } from "../findings/compare.js";
+import {
+  restoreInboxDisposition,
+  reviewInboxOccurrences,
+  type InboxDispositionRequest
+} from "../review/dispositions.js";
 import { buildChangesSummary, type ChangesSummary } from "../maintenance/changes.js";
 import { ScanSnapshotRepository } from "../storage/scan-snapshots.js";
 import { applyMigrations } from "../storage/migrations.js";
@@ -55,6 +60,11 @@ export type PluginDatabase = {
   }): void;
   loadFindings(): Finding[];
   loadChangesSummary(baselineScanId?: string): ChangesSummary;
+  loadIntegrityTimeline(
+    beforeSequence?: number
+  ): ReturnType<VaultStewardRepository["listIntegrityEvents"]>;
+  saveInboxReview(request: InboxDispositionRequest): Promise<void>;
+  restoreInboxReview(request: { occurrenceId: string; createdAt: string }): Promise<void>;
   loadHistory(): {
     scans: ReturnType<VaultStewardRepository["listScanHistory"]>;
     lifecycle: ReturnType<VaultStewardRepository["listFindingLifecycle"]>;
@@ -120,6 +130,17 @@ export async function openPluginDatabase(input: {
     runtime = await createSqliteRuntime({ ...runtimeOptions, databaseBytes: bytes });
     repository = new VaultStewardRepository(runtime.database);
     snapshots = new ScanSnapshotRepository(runtime.database);
+  }
+
+  async function persistInboxAction(operation: () => void): Promise<void> {
+    const backup = runtime.exportDatabase();
+    try {
+      operation();
+      await writeRuntime(input.adapter, input.databasePath, runtime);
+    } catch (error) {
+      await restoreRuntime(backup);
+      throw error;
+    }
   }
 
   function safeSubjectPath(path: string): string | null {
@@ -423,6 +444,15 @@ export async function openPluginDatabase(input: {
     },
     loadChangesSummary: (baselineScanId) =>
       buildChangesSummary(repository, snapshots, baselineScanId),
+    loadIntegrityTimeline: (beforeSequence) =>
+      repository.listIntegrityEvents({
+        limit: 100,
+        ...(beforeSequence !== undefined ? { beforeSequence } : {})
+      }),
+    saveInboxReview: (request) =>
+      persistInboxAction(() => reviewInboxOccurrences(repository, request)),
+    restoreInboxReview: (request) =>
+      persistInboxAction(() => restoreInboxDisposition(repository, request)),
     loadHistory: () => ({
       scans: repository.listScanHistory(20),
       lifecycle: repository.listFindingLifecycle()

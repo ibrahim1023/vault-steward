@@ -6,6 +6,15 @@ import type { InboxDispositionRequest, StewardInboxItem } from "../review/dispos
 type Action = InboxDispositionRequest["kind"];
 type SnoozeBound = { untilAt: string } | { untilEvidenceChanges: true };
 type Filter = "all" | "due" | Action;
+const REPAIR_REVIEW_TYPES = new Set([
+  "broken-reference",
+  "invalid-reference",
+  "reference-normalization",
+  "task",
+  "decision",
+  "schema",
+  "entity-alias"
+]);
 
 function isFutureDate(value: string | undefined): boolean {
   if (!value) return false;
@@ -183,7 +192,9 @@ export function StewardInbox({
                   </button>
                 </>
               )}
-              {item.finding.suggestedFixes.length > 0 && onReviewFix ? (
+              {(item.finding.suggestedFixes.length > 0 ||
+                REPAIR_REVIEW_TYPES.has(item.finding.type)) &&
+              onReviewFix ? (
                 <button type="button" onClick={() => onReviewFix(item.finding)}>
                   Review fix
                 </button>

@@ -67,6 +67,7 @@ export function restoreInboxDisposition(
     (candidate) => candidate.occurrenceId === request.occurrenceId
   );
   if (!item || !item.disposition) throw new Error("current Inbox disposition is unavailable");
+  const restoredId = item.disposition.id;
   repository.withTransaction(() => {
     repository.appendReviewDisposition({
       id: createId(),
@@ -78,7 +79,7 @@ export function restoreInboxDisposition(
       createdAt: request.createdAt,
       untilAt: null,
       untilEvidenceChanges: false,
-      restoresDispositionId: item.disposition!.id
+      restoresDispositionId: restoredId
     });
     repository.appendIntegrityEvent({
       schemaVersion: 1,

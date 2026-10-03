@@ -141,12 +141,18 @@ Phase 34 Task 6 adds a read-only Changes Since Last Check summary and view.
 It compares the latest completed scan with a retained compatible baseline,
 excludes legacy, failed, and incompatible scans, and permits selecting an
 earlier compatible baseline. The workspace displays transition counts and
-persisted finding-family/subtype labels without reconstructing historical note
-bodies or acquiring write authority. Task 7 adds a read-only Steward Inbox
+persisted finding-family/subtype and structural-descriptor labels without
+reconstructing historical note bodies or acquiring write authority. Task 7 adds a read-only Steward Inbox
 whose review dispositions are revision-bound, reversible, and committed with
 metadata-only integrity events; filters and exact bulk selection do not hide
-the critical count or write vault files. The four-destination Timeline and
-workspace integration remain Phase 34 work.
+the critical count or write vault files. Task 8 adds four keyboard-focusable
+Health, Inbox, Changes, and Timeline destinations; Inbox-selected findings
+reuse cited Ask Why and duplicate canonical review. The Timeline reads only
+known integrity events, never diagnostic traces. Its explicit clipboard export
+revalidates events and rejects more than 500 events or 256 KiB while excluding
+all event/entity IDs, string metadata, and sensitive note content. Retained
+events remain accessible through bounded sequence-cursor paging; export copies
+only the visible page.
 
 Completed: Phase 32 prepared the `0.2.1` release for the Community Directory
 reviewer. It uses Preact compatibility rendering rather than a bundled React DOM
@@ -275,6 +281,9 @@ The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type che
 ## Next Recommended Task
 
 Phase 33 was promoted to `development` and pushed with explicit approval.
-Phase 34 runs on `feat/phase-34-maintenance-workspace`; after Task 6 (Changes
-service and view), the next planned work is Task 7 (Steward Inbox dispositions)
-in `docs/superpowers/plans/2026-09-28-maintenance-foundation.md`.
+Phase 34 Tasks 6–8 are implemented on `feat/phase-34-maintenance-workspace`.
+The completion gate passed on 2026-10-03: formatting, lint, typecheck, build,
+474 unit tests, 108 integration tests, 3 end-to-end tests, 3 acceptance tests,
+performance and operational smokes, security audit, and plugin-install smoke.
+Final whole-branch review and promotion remain pending; the owner requested a
+stop after Task 8. Do not merge or push without separate approval.

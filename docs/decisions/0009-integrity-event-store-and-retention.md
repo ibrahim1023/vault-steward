@@ -7,9 +7,10 @@ append-only event store, monotonic sequence, exact-duplicate idempotency,
 retention settings and repository operations, explicit purge, and deletion
 ledger are implemented. Operational scan events, review transition events, and
 proposal/apply audit events commit with their canonical transitions;
-interrupted scans and applies record recovery outcomes at startup. Timeline UI
-projections, disposition events, and scheduled retention wiring remain pending
-under later tasks.
+interrupted scans and applies record recovery outcomes at startup. Phase 34
+adds disposition events and a Timeline projection over known integrity events,
+with explicit bounded redacted export that excludes canonical reference IDs.
+Scheduled retention wiring remains pending under later tasks.
 
 ## Context
 

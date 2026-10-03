@@ -66,6 +66,28 @@ describe("StewardInbox", () => {
     expect(onDisposition).not.toHaveBeenCalled();
   });
 
+  it("offers Review fix for a repairable task even without suggested-fix prose", () => {
+    const task = item("task");
+    const onReviewFix = vi.fn();
+    render(
+      <StewardInbox
+        snapshot={{
+          items: [
+            {
+              ...task,
+              finding: { ...task.finding, type: "task", suggestedFixes: [] }
+            }
+          ],
+          criticalCount: 0
+        }}
+        onDisposition={vi.fn()}
+        onReviewFix={onReviewFix}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Review fix" }));
+    expect(onReviewFix).toHaveBeenCalledWith(expect.objectContaining({ type: "task" }));
+  });
+
   it("offers a dated snooze in addition to until-evidence-changes", () => {
     const onDisposition = vi.fn();
     render(

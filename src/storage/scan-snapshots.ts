@@ -73,22 +73,28 @@ export class ScanSnapshotRepository {
     }
   }
 
-  listComparableCompletedSnapshots(
-    vaultFingerprint: string,
-    identityProfileHash: string
-  ): CompletedScanSnapshot[] {
+  listComparableCompletedScanIds(vaultFingerprint: string, identityProfileHash: string): string[] {
     if (identityProfileHash === "legacy") return [];
     if (!/^[0-9a-f]{64}$/.test(identityProfileHash)) {
       throw new Error("invalid identity profile hash");
     }
-    const ids = this.database.exec(
+    const rows = this.database.exec(
       "SELECT id FROM scans WHERE vault_fingerprint = ? AND identity_profile_hash = ? AND status = 'completed' ORDER BY finished_at, started_at, id",
       [vaultFingerprint, identityProfileHash]
     )[0]?.values;
-    return (ids ?? []).flatMap((row) => {
-      const snapshot = typeof row[0] === "string" ? this.getCompletedSnapshot(row[0]) : null;
-      return snapshot ? [snapshot] : [];
-    });
+    return (rows ?? []).flatMap((row) => (typeof row[0] === "string" ? [row[0]] : []));
+  }
+
+  listComparableCompletedSnapshots(
+    vaultFingerprint: string,
+    identityProfileHash: string
+  ): CompletedScanSnapshot[] {
+    return this.listComparableCompletedScanIds(vaultFingerprint, identityProfileHash).flatMap(
+      (id) => {
+        const snapshot = this.getCompletedSnapshot(id);
+        return snapshot ? [snapshot] : [];
+      }
+    );
   }
 
   transition(scanId: string, nextStatus: Exclude<ScanStatus, "running">, finishedAt: string): void {

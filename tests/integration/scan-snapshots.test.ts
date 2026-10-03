@@ -160,6 +160,10 @@ describe("scan snapshot repository", () => {
     expect(
       repository.listComparableCompletedSnapshots("vault-1", profile).map((s) => s.id)
     ).toEqual(["scan-1", "scan-2"]);
+    expect(repository.listComparableCompletedScanIds("vault-1", profile)).toEqual([
+      "scan-1",
+      "scan-2"
+    ]);
     expect(repository.listComparableCompletedSnapshots("vault-1", "legacy")).toEqual([]);
     expect(() => repository.listComparableCompletedSnapshots("vault-1", "profile-a")).toThrow();
   });

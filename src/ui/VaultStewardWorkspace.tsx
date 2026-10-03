@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Finding } from "../contracts/index.js";
+import type { IntegrityEvent } from "../contracts/integrity-event.js";
 import {
   DISMISSAL_REASONS,
   dismissalReasonLabel,
@@ -23,6 +24,9 @@ import {
 import type { BatchApplyResult } from "../review/workflow.js";
 import type { loadStewardInbox, InboxDispositionRequest } from "../review/dispositions.js";
 import { StewardInbox } from "./StewardInbox.js";
+import { IntegrityTimeline } from "./IntegrityTimeline.js";
+import { FindingExplanation } from "./FindingExplanation.js";
+import type { FindingExplanation as FindingExplanationResult } from "../agents/finding-explanation.js";
 import type { ChangesSummary } from "../maintenance/changes.js";
 import type {
   FindingLifecycleRecord,
@@ -34,6 +38,9 @@ import { ChangesView } from "./ChangesView.js";
 import { DiagnosticsView, type DiagnosticsViewProps } from "./DiagnosticsView.js";
 import { DuplicateEntityReview } from "./DuplicateEntityReview.js";
 import { rankDashboardFindings } from "./dashboard.js";
+
+type Destination = "Health" | "Inbox" | "Changes" | "Timeline";
+const DESTINATIONS: readonly Destination[] = ["Health", "Inbox", "Changes", "Timeline"];
 
 type WorkspaceMode =
   | "ready"
@@ -71,6 +78,10 @@ export function VaultStewardWorkspace({
   loadInbox,
   reviewInbox,
   restoreInbox,
+  loadIntegrityTimeline,
+  loadOlderIntegrityEvents,
+  exportIntegrityTimeline,
+  explainFinding,
   diagnostics
 }: {
   vaultLabel: string;
@@ -101,9 +112,29 @@ export function VaultStewardWorkspace({
     snooze?: { untilAt: string } | { untilEvidenceChanges: true }
   ) => Promise<void>;
   restoreInbox?: (id: string) => Promise<void>;
+  loadIntegrityTimeline?: () => IntegrityEvent[];
+  loadOlderIntegrityEvents?: (
+    beforeSequence: number
+  ) => Promise<IntegrityEvent[]> | IntegrityEvent[];
+  exportIntegrityTimeline?: (visibleEvents: readonly IntegrityEvent[]) => Promise<void>;
+  explainFinding?: (finding: Finding) => Promise<FindingExplanationResult>;
   diagnostics?: WorkspaceDiagnostics;
 }) {
   const [mode, setMode] = useState<WorkspaceMode>("ready");
+  const [destination, setDestination] = useState<Destination>("Health");
+  const destinationRoot = useRef<HTMLDivElement>(null);
+  const focusRequested = useRef(false);
+  useEffect(() => {
+    if (!focusRequested.current) return;
+    focusRequested.current = false;
+    const heading = [...(destinationRoot.current?.querySelectorAll("h2") ?? [])].find(
+      (item) => !item.closest("[hidden]")
+    );
+    if (heading) {
+      heading.tabIndex = -1;
+      heading.focus();
+    } else destinationRoot.current?.focus();
+  }, [destination]);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [prepared, setPrepared] = useState<PreparedRepair | null>(null);
   const [selectedProposalIds, setSelectedProposalIds] = useState<string[]>([]);
@@ -199,6 +230,7 @@ export function VaultStewardWorkspace({
   };
 
   const checkVault = async () => {
+    setDestination("Health");
     setMode("scanning");
     setErrorMessage(undefined);
     setScanLimitations([]);
@@ -285,12 +317,69 @@ export function VaultStewardWorkspace({
       if (!nextPrepared) return false;
       setPrepared(nextPrepared);
       setJudgment(undefined);
+      setDestination("Health");
       setMode("recommendation");
       return true;
     } catch {
       return false;
     }
   };
+
+  const prepareInboxFix = async (finding: Finding) => {
+    setErrorMessage(undefined);
+    const showUnavailable = () => {
+      setErrorMessage("No safe fix is available for this finding. Review the cited evidence.");
+      setJudgment(finding);
+      setMode("judgment");
+    };
+    try {
+      const candidate = await prepareRepairs?.();
+      const selected = candidate
+        ? selectPreparedRepairItems(
+            candidate,
+            candidate.proposals
+              .filter((proposal) => proposal.findingId === finding.id)
+              .map((proposal) => proposal.id),
+            inbox?.items.length ?? activeFindings.length
+          )
+        : null;
+      if (selected) {
+        setPrepared(selected);
+        setSelectedProposalIds(selected.batch.proposalIds);
+        setJudgment(undefined);
+        focusRequested.current = true;
+        setDestination("Health");
+        setMode("recommendation");
+        return;
+      }
+    } catch {
+      showUnavailable();
+      return;
+    }
+    showUnavailable();
+  };
+
+  const judgmentPanel = judgment ? (
+    <JudgmentView
+      finding={judgment}
+      {...(openNote ? { openNote } : {})}
+      dismissing={dismissing}
+      onNotImportant={dismissJudgment}
+      onCheckVault={() => void checkVault()}
+      {...(loadDuplicateEntityReview
+        ? { duplicateReview: loadDuplicateEntityReview(judgment) }
+        : {})}
+      {...(recommendCanonicalEntity
+        ? { recommendCanonicalEntity: () => recommendCanonicalEntity(judgment) }
+        : {})}
+      {...(prepareEntityConsolidation
+        ? {
+            prepareConsolidation: (candidateId: string) =>
+              prepareCanonicalConsolidation(judgment, candidateId)
+          }
+        : {})}
+    />
+  ) : null;
 
   return (
     <section className="vault-steward" aria-label="Vault Steward workspace">
@@ -302,192 +391,239 @@ export function VaultStewardWorkspace({
         <span className="steward-local">Local-first review</span>
       </header>
 
-      {scanLimitations.includes("local-model-output-unavailable") ? (
-        <p className="steward-notice" role="status">
-          AI review was incomplete. Core vault checks completed; run another check to retry AI
-          analysis.
-        </p>
-      ) : null}
+      <nav className="steward-destinations" aria-label="Vault maintenance">
+        {DESTINATIONS.map((name) => (
+          <button
+            key={name}
+            type="button"
+            aria-current={destination === name ? "page" : undefined}
+            onClick={() => {
+              if (destination === name) return;
+              focusRequested.current = true;
+              setDestination(name);
+            }}
+          >
+            {name}
+          </button>
+        ))}
+      </nav>
+      <span className="steward-screen-reader" aria-live="polite">
+        {destination} view
+      </span>
 
-      {mode === "ready" ? (
-        <section className="steward-start" aria-label="Ready to check">
-          <h2>Keep your vault trustworthy</h2>
-          <p>
-            Check links, tasks, decisions, and note consistency. Vault Steward prepares the clearest
-            next action for you.
-          </p>
-          {activeFindings.length > 0 ? (
-            <p className="last-check">
-              Last check: {formatCount(activeFindings.length, "issue")} still{" "}
-              {activeFindings.length === 1 ? "needs" : "need"} attention.
+      <div ref={destinationRoot} tabIndex={-1} className="steward-destination-content">
+        <div hidden={destination !== "Health"}>
+          <h2 tabIndex={-1}>Health</h2>
+          {scanLimitations.includes("local-model-output-unavailable") ? (
+            <p className="steward-notice" role="status">
+              AI review was incomplete. Core vault checks completed; run another check to retry AI
+              analysis.
             </p>
           ) : null}
-          <button className="steward-primary" type="button" onClick={checkVault}>
-            Check vault
-          </button>
-        </section>
-      ) : null}
 
-      {mode === "scanning" ? (
-        <section className="steward-progress" aria-label="Checking vault">
-          <p role="status" aria-live="polite">
-            Checking your vault and preparing the best next action...
-          </p>
-          <button className="steward-primary steward-scan-button" type="button" disabled>
-            <span>Checking vault...</span>
-            <span className="scan-progress-track" aria-hidden="true">
-              <span className="scan-progress-indicator" />
-            </span>
-          </button>
-        </section>
-      ) : null}
-
-      {mode === "preparing" ? (
-        <section className="steward-progress" aria-label="Preparing recommendations">
-          <p role="status" aria-live="polite">
-            Preparing safe recommendations from the issues found...
-          </p>
-          <button className="steward-primary steward-scan-button" type="button" disabled>
-            <span>Preparing recommendations...</span>
-            <span className="scan-progress-track" aria-hidden="true">
-              <span className="scan-progress-indicator" />
-            </span>
-          </button>
-        </section>
-      ) : null}
-
-      {prepared && (mode === "recommendation" || mode === "applying") ? (
-        <PreparedResult
-          prepared={prepared}
-          selectedProposalIds={selectedProposalIds}
-          onSelectionChange={setSelectedProposalIds}
-          applying={mode === "applying"}
-          onApply={async () => {
-            const selected = selectPreparedRepairItems(
-              prepared,
-              selectedProposalIds,
-              activeFindings.length
-            );
-            if (!selected) {
-              setErrorMessage("Select at least one compatible fix.");
-              return;
-            }
-            if (findPreparedRepairConflicts(prepared, selectedProposalIds).length > 0) {
-              setErrorMessage("Selected fixes overlap. Remove one before applying.");
-              return;
-            }
-            await applyPrepared(selected);
-          }}
-        />
-      ) : null}
-
-      {mode === "applying" ? (
-        <p className="applying-status" role="status" aria-live="polite">
-          Applying approved fixes and checking the vault again...
-        </p>
-      ) : null}
-
-      {mode === "result" ? (
-        <ResultView
-          result={actualResult}
-          reviewingNext={reviewingNext}
-          onNext={actualResult ? reviewNext : checkVault}
-        />
-      ) : null}
-
-      {mode === "judgment" && judgment ? (
-        <JudgmentView
-          finding={judgment}
-          {...(openNote ? { openNote } : {})}
-          dismissing={dismissing}
-          onNotImportant={dismissJudgment}
-          onCheckVault={() => void checkVault()}
-          {...(loadDuplicateEntityReview
-            ? { duplicateReview: loadDuplicateEntityReview(judgment) }
-            : {})}
-          {...(recommendCanonicalEntity
-            ? { recommendCanonicalEntity: () => recommendCanonicalEntity(judgment) }
-            : {})}
-          {...(prepareEntityConsolidation
-            ? {
-                prepareConsolidation: (candidateId: string) =>
-                  prepareCanonicalConsolidation(judgment, candidateId)
-              }
-            : {})}
-        />
-      ) : null}
-
-      {mode === "error" && errorMessage ? (
-        <section className="steward-error" aria-label="Action needed">
-          <p role="alert">{errorMessage}</p>
-          {openProviderSettings && errorMessage.includes("Open Settings") ? (
-            <button type="button" onClick={openProviderSettings}>
-              Open Settings
-            </button>
+          {mode === "ready" ? (
+            <section className="steward-start" aria-label="Ready to check">
+              <h2>Keep your vault trustworthy</h2>
+              <p>
+                Check links, tasks, decisions, and note consistency. Vault Steward prepares the
+                clearest next action for you.
+              </p>
+              {activeFindings.length > 0 ? (
+                <p className="last-check">
+                  Last check: {formatCount(activeFindings.length, "issue")} still{" "}
+                  {activeFindings.length === 1 ? "needs" : "need"} attention.
+                </p>
+              ) : null}
+              <button className="steward-primary" type="button" onClick={checkVault}>
+                Check vault
+              </button>
+            </section>
           ) : null}
-          <button className="steward-primary" type="button" onClick={checkVault}>
-            Check vault again
-          </button>
-        </section>
-      ) : null}
 
-      <IssueList findings={listedFindings} />
+          {mode === "scanning" ? (
+            <section className="steward-progress" aria-label="Checking vault">
+              <p role="status" aria-live="polite">
+                Checking your vault and preparing the best next action...
+              </p>
+              <button className="steward-primary steward-scan-button" type="button" disabled>
+                <span>Checking vault...</span>
+                <span className="scan-progress-track" aria-hidden="true">
+                  <span className="scan-progress-indicator" />
+                </span>
+              </button>
+            </section>
+          ) : null}
 
-      {inbox && reviewInbox ? (
-        <StewardInbox
-          snapshot={inbox}
-          onDisposition={async (ids, kind, snooze) => {
-            await reviewInbox(ids, kind, snooze);
-            setInboxRevision((revision) => revision + 1);
-          }}
-          {...(restoreInbox
-            ? {
-                onRestore: async (id: string) => {
-                  await restoreInbox(id);
-                  setInboxRevision((revision) => revision + 1);
+          {mode === "preparing" ? (
+            <section className="steward-progress" aria-label="Preparing recommendations">
+              <p role="status" aria-live="polite">
+                Preparing safe recommendations from the issues found...
+              </p>
+              <button className="steward-primary steward-scan-button" type="button" disabled>
+                <span>Preparing recommendations...</span>
+                <span className="scan-progress-track" aria-hidden="true">
+                  <span className="scan-progress-indicator" />
+                </span>
+              </button>
+            </section>
+          ) : null}
+
+          {prepared && (mode === "recommendation" || mode === "applying") ? (
+            <PreparedResult
+              prepared={prepared}
+              selectedProposalIds={selectedProposalIds}
+              onSelectionChange={setSelectedProposalIds}
+              applying={mode === "applying"}
+              onApply={async () => {
+                const selected = selectPreparedRepairItems(
+                  prepared,
+                  selectedProposalIds,
+                  prepared.batch.outcome.expectedFindingsResolved +
+                    prepared.batch.outcome.findingsLeftUnchanged
+                );
+                if (!selected) {
+                  setErrorMessage("Select at least one compatible fix.");
+                  return;
                 }
-              }
-            : {})}
-          onReviewFix={(finding) => {
-            setJudgment(finding);
-            setMode("judgment");
-          }}
-        />
-      ) : null}
-
-      {changes ? <ChangesView summary={changes} onSelectBaseline={setBaselineScanId} /> : null}
-
-      {openProviderSettings || history ? (
-        <section className="workspace-utilities" aria-label="Workspace tools">
-          {openProviderSettings ? (
-            <button type="button" onClick={openProviderSettings}>
-              Settings
-            </button>
+                if (findPreparedRepairConflicts(prepared, selectedProposalIds).length > 0) {
+                  setErrorMessage("Selected fixes overlap. Remove one before applying.");
+                  return;
+                }
+                await applyPrepared(selected);
+              }}
+            />
           ) : null}
-          {history ? (
-            <details className="history-disclosure">
-              <summary>History</summary>
-              <div className="history-content">
-                <HistoryView scans={history.scans} lifecycle={history.lifecycle} />
-              </div>
-            </details>
-          ) : null}
-        </section>
-      ) : null}
 
-      {diagnostics ? (
-        <DiagnosticsView
-          checkConnection={diagnostics.checkConnection}
-          maintenance={diagnostics.maintenance}
-          feedbackRecords={reviewerFeedback}
-          suppressedPatterns={localSuppressionPatterns}
-          suppressPattern={async (pattern) => {
-            await diagnostics.suppressPattern(pattern);
-            setLocalSuppressionPatterns((current) => [...new Set([...current, pattern])]);
-          }}
-          deleteDiagnosticTraces={diagnostics.deleteDiagnosticTraces}
-        />
-      ) : null}
+          {mode === "applying" ? (
+            <p className="applying-status" role="status" aria-live="polite">
+              Applying approved fixes and checking the vault again...
+            </p>
+          ) : null}
+
+          {mode === "result" ? (
+            <ResultView
+              result={actualResult}
+              reviewingNext={reviewingNext}
+              onNext={actualResult ? reviewNext : checkVault}
+            />
+          ) : null}
+
+          {mode === "judgment" ? judgmentPanel : null}
+
+          {mode === "error" && errorMessage ? (
+            <section className="steward-error" aria-label="Action needed">
+              <p role="alert">{errorMessage}</p>
+              {openProviderSettings && errorMessage.includes("Open Settings") ? (
+                <button type="button" onClick={openProviderSettings}>
+                  Open Settings
+                </button>
+              ) : null}
+              <button className="steward-primary" type="button" onClick={checkVault}>
+                Check vault again
+              </button>
+            </section>
+          ) : null}
+
+          <IssueList findings={listedFindings} />
+
+          {openProviderSettings || history ? (
+            <section className="workspace-utilities" aria-label="Workspace tools">
+              {openProviderSettings ? (
+                <button type="button" onClick={openProviderSettings}>
+                  Settings
+                </button>
+              ) : null}
+              {history ? (
+                <details className="history-disclosure">
+                  <summary>History</summary>
+                  <div className="history-content">
+                    <HistoryView scans={history.scans} lifecycle={history.lifecycle} />
+                  </div>
+                </details>
+              ) : null}
+            </section>
+          ) : null}
+
+          {diagnostics ? (
+            <DiagnosticsView
+              checkConnection={diagnostics.checkConnection}
+              maintenance={diagnostics.maintenance}
+              feedbackRecords={reviewerFeedback}
+              suppressedPatterns={localSuppressionPatterns}
+              suppressPattern={async (pattern) => {
+                await diagnostics.suppressPattern(pattern);
+                setLocalSuppressionPatterns((current) => [...new Set([...current, pattern])]);
+              }}
+              deleteDiagnosticTraces={diagnostics.deleteDiagnosticTraces}
+            />
+          ) : null}
+        </div>
+        {destination === "Inbox" ? (
+          <div className="steward-destination-panel">
+            {inbox && reviewInbox ? (
+              <StewardInbox
+                snapshot={inbox}
+                onDisposition={async (ids, kind, snooze) => {
+                  await reviewInbox(ids, kind, snooze);
+                  setInboxRevision((revision) => revision + 1);
+                }}
+                {...(restoreInbox
+                  ? {
+                      onRestore: async (id: string) => {
+                        await restoreInbox(id);
+                        setInboxRevision((revision) => revision + 1);
+                      }
+                    }
+                  : {})}
+                onReviewFix={(finding) => void prepareInboxFix(finding)}
+                onInspect={(finding) => {
+                  setErrorMessage(undefined);
+                  setJudgment(finding);
+                  setMode("judgment");
+                }}
+              />
+            ) : (
+              <p>Run a check to open the Steward Inbox.</p>
+            )}
+            {mode === "judgment" && judgment ? (
+              <>
+                {errorMessage ? <p role="status">{errorMessage}</p> : null}
+                {judgmentPanel}
+                {explainFinding ? (
+                  <FindingExplanation finding={judgment} explain={explainFinding} />
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        ) : null}
+        {destination === "Changes" ? (
+          changes ? (
+            <ChangesView summary={changes} onSelectBaseline={setBaselineScanId} />
+          ) : (
+            <section aria-label="Changes since last check">
+              <h2>Changes since last check</h2>
+              <p>Run a check to see changes.</p>
+            </section>
+          )
+        ) : null}
+        {destination === "Timeline" ? (
+          <IntegrityTimeline
+            events={loadIntegrityTimeline?.() ?? []}
+            {...(loadOlderIntegrityEvents
+              ? {
+                  onLoadOlder: async (beforeSequence: number) =>
+                    loadOlderIntegrityEvents(beforeSequence)
+                }
+              : {})}
+            onExport={
+              exportIntegrityTimeline ??
+              (async () => {
+                throw new Error("Export unavailable");
+              })
+            }
+          />
+        ) : null}
+      </div>
     </section>
   );
 }

@@ -269,8 +269,10 @@ structurally safe rows whose schema version or kind is unknown to this build.
   visible regardless of queue filters. `reviewInboxOccurrences` validates
   distinct current occurrence IDs before transactionally appending disposition
   records and metadata-only review events; `restoreInboxDisposition` reverses
-  an effective decision with a matching event. Neither operation changes
-  finding status nor writes a vault file.
+  an effective decision with a matching event. Plugin database review/restore
+  methods flush before reporting success and restore the pre-action runtime on
+  disk-write failure. Neither operation changes finding status nor writes a
+  vault file.
 - `note_subjects` and `note_path_history` bind an opaque subject ID to at most
   one active path; rename and delete retire history rows transactionally, a
   retired path can later bind only to a different subject, and a deleted subject
@@ -290,7 +292,19 @@ structurally safe rows whose schema version or kind is unknown to this build.
   creation inside a caller-managed transaction, and
   `listComparableCompletedSnapshots` returns only completed same-vault scans
   whose non-legacy `identity_profile_hash` exactly matches, oldest first.
+  `listComparableCompletedScanIds` returns the same ordered IDs without
+  hydrating historical scan inputs for the read-only Changes workspace.
   Legacy scans are baseline-only and never participate in transitions.
+- `VaultStewardRepository.listIntegrityEvents({ limit, beforeSequence })` reads
+  the newest 1–500 persisted rows before a positive sequence cursor in
+  ascending order; it validates and skips structurally safe unknown event
+  kinds while filling a bounded page from older rows. Without a limit,
+  existing callers retain full ordered history. The workspace pages backward
+  100 events at a time, independently of trace spans. The explicit `exportIntegrityTimeline` boundary validates
+  only the visible page and rejects more
+  than 500 events or 256 KiB of JSON; its allowlisted projection contains
+  sequence, category, kind, occurredAt, and non-string numeric/boolean/null
+  metadata only, not entity IDs, free-text metadata, or content.
 - `VaultStewardRepository.appendIntegrityEvent` joins an already-open
   repository transaction (explicit nested `withTransaction` calls remain
   rejected), and `saveProposal(record, event)` atomically persists a proposal

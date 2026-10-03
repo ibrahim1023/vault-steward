@@ -171,6 +171,199 @@ const duplicateReview: DuplicateEntityReview = {
 describe("VaultStewardWorkspace", () => {
   afterEach(cleanup);
 
+  it("offers keyboard-focusable Health, Inbox, Changes, and Timeline destinations", async () => {
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan-2", findings: [] })}
+        loadInbox={() => ({ items: [], criticalCount: 0 })}
+        reviewInbox={async () => undefined}
+        loadChangesSummary={() => ({
+          status: "baseline",
+          currentScanId: "scan-2",
+          availableBaselineScanIds: []
+        })}
+        loadIntegrityTimeline={() => [
+          {
+            schemaVersion: 1,
+            sequence: 1,
+            id: "evt-1",
+            category: "operational",
+            kind: "scan-completed",
+            occurredAt: "2026-09-29T00:00:00.000Z",
+            safeMetadata: {}
+          }
+        ]}
+        exportIntegrityTimeline={async () => undefined}
+      />
+    );
+    const navigation = screen.getByRole("navigation", { name: "Vault maintenance" });
+    expect(
+      within(navigation)
+        .getAllByRole("button")
+        .map((button) => button.textContent)
+    ).toEqual(["Health", "Inbox", "Changes", "Timeline"]);
+    expect(within(navigation).getByRole("button", { name: "Health" })).toHaveAttribute(
+      "aria-current",
+      "page"
+    );
+    fireEvent.click(within(navigation).getByRole("button", { name: "Inbox" }));
+    expect(screen.getByRole("region", { name: "Steward Inbox" })).toBeInTheDocument();
+    await waitFor(() => expect(document.activeElement).toHaveTextContent("Steward Inbox"));
+    fireEvent.click(within(navigation).getByRole("button", { name: "Changes" }));
+    expect(screen.getByRole("region", { name: "Changes since last check" })).toBeInTheDocument();
+    fireEvent.click(within(navigation).getByRole("button", { name: "Timeline" }));
+    expect(screen.getByRole("region", { name: "Integrity Timeline" })).toHaveTextContent(
+      "scan-completed"
+    );
+    expect(screen.queryByRole("region", { name: "Steward Inbox" })).toBeNull();
+  });
+
+  it("opens a selected Inbox finding with Ask Why and duplicate canonical review", async () => {
+    const current: FindingV2 = {
+      ...duplicateFinding,
+      schemaVersion: 2,
+      identity: {
+        schemaVersion: 1,
+        identityVersion: 1,
+        stableKey: `finding:v1:${"a".repeat(64)}`,
+        family: "entity-alias",
+        subtype: "duplicate",
+        detectorId: "entity",
+        detectorVersion: "1",
+        subjectIds: ["subject-a", "subject-b"],
+        semanticKey: "pair"
+      },
+      stableKey: `finding:v1:${"a".repeat(64)}`,
+      occurrenceId: `occurrence:v1:${"b".repeat(64)}`,
+      evidenceRevisionKey: `evidence:v1:${"c".repeat(64)}`
+    };
+    const explainFinding = vi.fn(async () => ({
+      ok: true as const,
+      text: "Cited evidence only.",
+      latencyMs: 1
+    }));
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [] })}
+        loadInbox={() => ({
+          items: [{ finding: current, occurrenceId: current.occurrenceId, disposition: null }],
+          criticalCount: 0
+        })}
+        reviewInbox={async () => undefined}
+        loadDuplicateEntityReview={() => duplicateReview}
+        explainFinding={explainFinding}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Inbox" }));
+    fireEvent.click(screen.getByRole("button", { name: "Inspect finding" }));
+    expect(screen.getByRole("region", { name: "Possible duplicate review" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Evidence explanation" })).toBeInTheDocument();
+    expect(explainFinding).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Explain cited evidence" }));
+    await waitFor(() => expect(screen.getByText("Cited evidence only.")).toBeInTheDocument());
+  });
+
+  it("opens an Inbox Review fix as a preview without granting apply authority", async () => {
+    const current: FindingV2 = {
+      ...finding,
+      schemaVersion: 2,
+      suggestedFixes: [{ description: "Repair" }],
+      identity: {
+        schemaVersion: 1,
+        identityVersion: 1,
+        stableKey: `finding:v1:${"a".repeat(64)}`,
+        family: "broken-reference",
+        subtype: "missing",
+        detectorId: "reference",
+        detectorVersion: "1",
+        subjectIds: ["subject-home"],
+        semanticKey: "missing"
+      },
+      stableKey: `finding:v1:${"a".repeat(64)}`,
+      occurrenceId: `occurrence:v1:${"b".repeat(64)}`,
+      evidenceRevisionKey: `evidence:v1:${"c".repeat(64)}`
+    };
+    const prepareRepairs = vi.fn(async () => prepared);
+    const applyRepairs = vi.fn(async () => ({
+      ok: false,
+      reason: "stale" as const,
+      appliedProposalIds: [],
+      skippedProposalIds: [],
+      failedProposalIds: [],
+      notesEdited: 0,
+      reindexed: false
+    }));
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [] })}
+        loadInbox={() => ({
+          items: [{ finding: current, occurrenceId: current.occurrenceId, disposition: null }],
+          criticalCount: 0
+        })}
+        reviewInbox={async () => undefined}
+        prepareRepairs={prepareRepairs}
+        applyRepairs={applyRepairs}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Inbox" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review fix" }));
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: "Prepared result" })).toBeInTheDocument()
+    );
+    expect(screen.getByRole("button", { name: "Health" })).toHaveAttribute("aria-current", "page");
+    expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Health" }));
+    expect(prepareRepairs).toHaveBeenCalledTimes(1);
+    expect(applyRepairs).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Apply 1 fix" }));
+    await waitFor(() => expect(applyRepairs).toHaveBeenCalledTimes(1));
+  });
+
+  it("shows a safe Inbox fallback when no exact fix can be prepared", async () => {
+    const current: FindingV2 = {
+      ...finding,
+      schemaVersion: 2,
+      suggestedFixes: [{ description: "Repair" }],
+      identity: {
+        schemaVersion: 1,
+        identityVersion: 1,
+        stableKey: `finding:v1:${"a".repeat(64)}`,
+        family: "broken-reference",
+        subtype: "missing",
+        detectorId: "reference",
+        detectorVersion: "1",
+        subjectIds: ["subject-home"],
+        semanticKey: "missing"
+      },
+      stableKey: `finding:v1:${"a".repeat(64)}`,
+      occurrenceId: `occurrence:v1:${"b".repeat(64)}`,
+      evidenceRevisionKey: `evidence:v1:${"c".repeat(64)}`
+    };
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan", findings: [] })}
+        loadInbox={() => ({
+          items: [{ finding: current, occurrenceId: current.occurrenceId, disposition: null }],
+          criticalCount: 0
+        })}
+        reviewInbox={async () => undefined}
+        prepareRepairs={async () => {
+          throw new Error("PRIVATE NOTE");
+        }}
+      />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Inbox" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review fix" }));
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: "Issue to review" })).toBeInTheDocument()
+    );
+    expect(screen.getByText(/No safe fix is available/)).toHaveAttribute("role", "status");
+    expect(screen.queryByText("PRIVATE NOTE")).toBeNull();
+  });
+
   it("routes Inbox dispositions without scanning or applying vault edits", async () => {
     const scan = vi.fn(async () => ({ scanId: "scan-1", findings: [] }));
     const applyRepairs = vi.fn();
@@ -205,6 +398,7 @@ describe("VaultStewardWorkspace", () => {
         reviewInbox={reviewInbox}
       />
     );
+    fireEvent.click(screen.getByRole("button", { name: "Inbox" }));
     fireEvent.click(screen.getByRole("button", { name: "Acknowledge" }));
     await waitFor(() =>
       expect(reviewInbox).toHaveBeenCalledWith([current.occurrenceId], "acknowledged", undefined)
@@ -232,6 +426,7 @@ describe("VaultStewardWorkspace", () => {
         loadChangesSummary={loadChangesSummary}
       />
     );
+    fireEvent.click(screen.getByRole("button", { name: "Changes" }));
     expect(screen.getByRole("region", { name: "Changes since last check" })).toHaveTextContent(
       "No findings changed"
     );

@@ -18,7 +18,8 @@ const summary: ChangesSummary = {
       previousOccurrenceIds: [],
       currentOccurrenceIds: ["occurrence:v1:new"],
       family: "broken-reference",
-      subtype: "missing"
+      subtype: "missing",
+      detail: "Missing.md"
     }
   ],
   changed: [],
@@ -35,7 +36,7 @@ describe("ChangesView", () => {
       "1 new"
     );
     expect(screen.getByRole("combobox", { name: "Compare with" })).toHaveValue("scan-2");
-    expect(screen.getByText("broken-reference: missing")).toBeInTheDocument();
+    expect(screen.getByText("broken-reference: missing — Missing.md")).toBeInTheDocument();
     fireEvent.change(screen.getByRole("combobox", { name: "Compare with" }), {
       target: { value: "scan-1" }
     });

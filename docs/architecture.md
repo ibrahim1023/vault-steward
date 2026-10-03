@@ -64,22 +64,37 @@ status or approval change, so event history never diverges from canonical
 state.
 
 `maintenance/changes` reads only retained completed scans sharing the latest
-scan's vault fingerprint and non-legacy identity profile. It builds a
-read-only Changes summary from persisted occurrence keys and revisions,
+scan's vault fingerprint and non-legacy identity profile. It queries
+comparable scan IDs without hydrating every historical scan input, then builds
+a read-only Changes summary from persisted occurrence keys and revisions,
 allowing the user to select an earlier compatible baseline; failed, canceled,
 legacy, and incompatible scans cannot become baselines. The workspace renders
-new, changed, recurring, resolved, and unchanged counts without rebuilding
-historic note bodies or granting any write authority.
+new, changed, recurring, resolved, and unchanged counts with bounded
+identity-owned structural descriptors rather than rebuilding historic note
+bodies or granting any write authority.
 
 `review/dispositions` projects latest completed v2 occurrences into the
 Steward Inbox, independently of finding status and pattern suppression. It
 validates selected occurrence IDs and atomically appends each reviewer decision
-and its metadata-only integrity event. A changed evidence revision or expired
-snooze returns an occurrence to due; a restore reverses the targeted decision
+and its metadata-only integrity event. The plugin database snapshots its
+pre-action runtime and restores it if disk persistence fails. A changed
+evidence revision or expired snooze returns an occurrence to due; a restore reverses the targeted decision
 without rewriting history. Inbox actions are review-only and cannot reach the
 vault writer or apply workflow. The Inbox keeps critical counts visible under
-filters, labels repair preparation `Review fix`, and uses explicit selections
-for bulk actions.
+filters, labels supported repair-family preparation `Review fix` even when a
+finding has no suggested-fix prose, and uses explicit selections for bulk
+actions. Preparing a fix remains separate from explicit Apply approval.
+
+The maintenance workspace has four keyboard-accessible destinations: Health
+retains the existing scan and explicit-approval review flow, Inbox contains
+revision-bound dispositions and selected-finding Ask Why/duplicate review,
+Changes reads only comparable completed scans, and Timeline pages through
+known integrity events via a bounded sequence cursor. The Timeline never uses
+optional diagnostic trace spans as history authority. Export requires an
+explicit click for the visible page and strips entity IDs, note paths,
+excerpts, prompts, string metadata, and unvalidated fields before handing
+bounded JSON to the desktop clipboard;
+clipboard failures display a generic message without leaking contents.
 
 ## Main Workflow
 

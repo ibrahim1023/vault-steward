@@ -76,6 +76,13 @@ provider-specific consent migration, and bounded linear structured-JSON
 recovery. It also proves that an unchecked `status:done` task prepares the
 deterministic `- [ ]` to `- [x]` repair even when no provider is available.
 
+Phase 34's deterministic gate covers comparable completed-scan Changes,
+revision-bound dispositions, restore and snooze expiry, critical-count and
+bulk-selection visibility, and no Inbox file writes. Timeline tests verify
+that the known-event projection survives trace deletion, event export rejects
+invalid metadata and oversize payloads, and navigation announces and focuses
+the selected destination in a narrow pane.
+
 ## Marketplace Release Corpus
 
 `evals/release/northstar-v1.json` is the versioned product/project-management

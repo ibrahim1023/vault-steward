@@ -1583,9 +1583,23 @@ export class VaultStewardRepository {
   listIntegrityEvents(query?: {
     category?: IntegrityEventCategory;
     scanId?: string;
+    limit?: number;
+    beforeSequence?: number;
   }): IntegrityEvent[] {
+    if (
+      query?.limit !== undefined &&
+      (!Number.isSafeInteger(query.limit) || query.limit < 1 || query.limit > 500)
+    ) {
+      throw new Error("integrity event list limit must be 1..500");
+    }
+    if (
+      query?.beforeSequence !== undefined &&
+      (!Number.isSafeInteger(query.beforeSequence) || query.beforeSequence < 1)
+    ) {
+      throw new Error("invalid integrity event cursor");
+    }
     const clauses: string[] = [];
-    const parameters: string[] = [];
+    const parameters: Array<string | number> = [];
     if (query?.category) {
       clauses.push("category = ?");
       parameters.push(query.category);
@@ -1594,16 +1608,40 @@ export class VaultStewardRepository {
       clauses.push("scan_id = ?");
       parameters.push(query.scanId);
     }
-    const where = clauses.length ? ` WHERE ${clauses.join(" AND ")}` : "";
-    return (
-      this.database.exec(
-        `SELECT sequence, id, schema_version, category, kind, occurred_at, scan_id, stable_key, occurrence_id, proposal_id, approval_id, safe_metadata_json FROM integrity_events${where} ORDER BY sequence`,
-        parameters
-      )[0]?.values ?? []
-    ).flatMap((row) => {
-      const classified = this.classifyIntegrityEventRow(row);
-      return classified.kind === "known" ? [classified.event] : [];
-    });
+    const readRows = (cursor: number | undefined, limit: number | undefined) => {
+      const filtered = cursor === undefined ? clauses : [...clauses, "sequence < ?"];
+      const where = filtered.length ? ` WHERE ${filtered.join(" AND ")}` : "";
+      return (
+        this.database.exec(
+          `SELECT sequence, id, schema_version, category, kind, occurred_at, scan_id, stable_key, occurrence_id, proposal_id, approval_id, safe_metadata_json FROM integrity_events${where} ORDER BY sequence ${limit !== undefined ? "DESC LIMIT ?" : "ASC"}`,
+          [
+            ...parameters,
+            ...(cursor !== undefined ? [cursor] : []),
+            ...(limit !== undefined ? [limit] : [])
+          ]
+        )[0]?.values ?? []
+      );
+    };
+    if (query?.limit === undefined) {
+      return readRows(query?.beforeSequence, undefined).flatMap((row) => {
+        const classified = this.classifyIntegrityEventRow(row);
+        return classified.kind === "known" ? [classified.event] : [];
+      });
+    }
+    const events: IntegrityEvent[] = [];
+    let cursor = query.beforeSequence;
+    while (events.length < query.limit) {
+      const rows = readRows(cursor, query.limit);
+      if (rows.length === 0) break;
+      for (const row of rows) {
+        const classified = this.classifyIntegrityEventRow(row);
+        if (classified.kind === "known") events.push(classified.event);
+        if (events.length === query.limit) break;
+      }
+      if (rows.length < query.limit || events.length === query.limit) break;
+      cursor = rows[rows.length - 1]![0] as number;
+    }
+    return events.reverse();
   }
 
   private classifyIntegrityEventRow(

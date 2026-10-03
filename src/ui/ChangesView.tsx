@@ -46,7 +46,7 @@ export function ChangesView({
                   <ul>
                     {summary[kind].map((item) => (
                       <li key={item.stableKey}>
-                        {item.family}: {item.subtype}
+                        {item.family}: {item.subtype} — {item.detail}
                       </li>
                     ))}
                   </ul>
