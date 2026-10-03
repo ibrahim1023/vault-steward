@@ -24,49 +24,32 @@ export function persistReviewQueue(
   repository: VaultStewardRepository,
   findings: readonly Finding[]
 ): Finding[] {
-  const normalized = normalizeFindings(findings);
+  let persisted: Finding[] = [];
   repository.withTransaction(() => {
-    for (const finding of normalized) {
-      if (finding.schemaVersion === 2) {
-        repository.saveFindingIdentity({
-          stableKey: finding.identity.stableKey,
-          identityVersion: finding.identity.identityVersion,
-          family: finding.identity.family,
-          subtype: finding.identity.subtype,
-          detectorId: finding.identity.detectorId,
-          detectorVersion: finding.identity.detectorVersion,
-          policyId: finding.identity.policyId ?? null,
-          policyVersion: finding.identity.policyVersion ?? null,
-          subjectIds: finding.identity.subjectIds,
-          semanticKey: finding.identity.semanticKey
-        });
-        repository.saveFinding({
-          id: finding.id,
-          scanId: finding.scanId,
-          type: finding.type,
-          severity: finding.severity,
-          status: finding.status,
-          evidenceJson: JSON.stringify(finding.evidence),
-          payloadJson: JSON.stringify({
-            confidence: finding.confidence,
-            explanation: finding.explanation,
-            violatedPolicyId: finding.violatedPolicyId,
-            identity: finding.identity,
-            stableKey: finding.stableKey,
-            occurrenceId: finding.occurrenceId,
-            evidenceRevisionKey: finding.evidenceRevisionKey
-          })
-        });
-        repository.saveFindingOccurrence({
-          occurrenceId: finding.occurrenceId,
-          stableKey: finding.stableKey,
-          findingId: finding.id,
-          scanId: finding.scanId,
-          evidenceRevisionKey: finding.evidenceRevisionKey,
-          identityVersion: 1
-        });
-        continue;
-      }
+    persisted = persistReviewQueueInTransaction(repository, findings);
+  });
+  return persisted;
+}
+
+export function persistReviewQueueInTransaction(
+  repository: VaultStewardRepository,
+  findings: readonly Finding[]
+): Finding[] {
+  const normalized = normalizeFindings(findings);
+  for (const finding of normalized) {
+    if (finding.schemaVersion === 2) {
+      repository.saveFindingIdentity({
+        stableKey: finding.identity.stableKey,
+        identityVersion: finding.identity.identityVersion,
+        family: finding.identity.family,
+        subtype: finding.identity.subtype,
+        detectorId: finding.identity.detectorId,
+        detectorVersion: finding.identity.detectorVersion,
+        policyId: finding.identity.policyId ?? null,
+        policyVersion: finding.identity.policyVersion ?? null,
+        subjectIds: finding.identity.subjectIds,
+        semanticKey: finding.identity.semanticKey
+      });
       repository.saveFinding({
         id: finding.id,
         scanId: finding.scanId,
@@ -77,11 +60,37 @@ export function persistReviewQueue(
         payloadJson: JSON.stringify({
           confidence: finding.confidence,
           explanation: finding.explanation,
-          violatedPolicyId: finding.violatedPolicyId
+          violatedPolicyId: finding.violatedPolicyId,
+          identity: finding.identity,
+          stableKey: finding.stableKey,
+          occurrenceId: finding.occurrenceId,
+          evidenceRevisionKey: finding.evidenceRevisionKey
         })
       });
+      repository.saveFindingOccurrence({
+        occurrenceId: finding.occurrenceId,
+        stableKey: finding.stableKey,
+        findingId: finding.id,
+        scanId: finding.scanId,
+        evidenceRevisionKey: finding.evidenceRevisionKey,
+        identityVersion: 1
+      });
+      continue;
     }
-  });
+    repository.saveFinding({
+      id: finding.id,
+      scanId: finding.scanId,
+      type: finding.type,
+      severity: finding.severity,
+      status: finding.status,
+      evidenceJson: JSON.stringify(finding.evidence),
+      payloadJson: JSON.stringify({
+        confidence: finding.confidence,
+        explanation: finding.explanation,
+        violatedPolicyId: finding.violatedPolicyId
+      })
+    });
+  }
   return normalized;
 }
 

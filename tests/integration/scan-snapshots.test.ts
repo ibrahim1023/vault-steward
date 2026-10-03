@@ -120,4 +120,82 @@ describe("scan snapshot repository", () => {
     );
     expect(repository.findReusableCompletedSnapshot("vault-1", "input-2", "parser-1")).toBeNull();
   });
+
+  it("lists only completed snapshots with a matching non-legacy profile, oldest first", async () => {
+    const sql = await initSqlJs({
+      locateFile: (file) => `node_modules/sql.js/dist/${file}`
+    });
+    const database = new sql.Database();
+    applyMigrations(database);
+    const repository = new ScanSnapshotRepository(database);
+    const profile = "a".repeat(64);
+    const other = "b".repeat(64);
+
+    const scan = (id: string, vault: string, hash: string, startedAt: string) => ({
+      id,
+      vaultFingerprint: vault,
+      startedAt,
+      configHash: "config",
+      inputHash: id,
+      parserVersion: "parser",
+      identityProfileHash: hash,
+      files: []
+    });
+    repository.createSnapshot(scan("scan-2", "vault-1", profile, "2026-07-13T00:02:00.000Z"));
+    repository.createSnapshot(scan("scan-1", "vault-1", profile, "2026-07-13T00:01:00.000Z"));
+    repository.createSnapshot(
+      scan("scan-other-profile", "vault-1", other, "2026-07-13T00:03:00.000Z")
+    );
+    repository.createSnapshot(
+      scan("scan-other-vault", "vault-2", profile, "2026-07-13T00:04:00.000Z")
+    );
+    repository.createSnapshot(scan("scan-failed", "vault-1", profile, "2026-07-13T00:05:00.000Z"));
+    repository.createSnapshot(scan("scan-running", "vault-1", profile, "2026-07-13T00:06:00.000Z"));
+    repository.transition("scan-2", "completed", "2026-07-13T00:02:30.000Z");
+    repository.transition("scan-1", "completed", "2026-07-13T00:01:30.000Z");
+    repository.transition("scan-other-profile", "completed", "2026-07-13T00:03:30.000Z");
+    repository.transition("scan-other-vault", "completed", "2026-07-13T00:04:30.000Z");
+    repository.transition("scan-failed", "failed", "2026-07-13T00:05:30.000Z");
+
+    expect(
+      repository.listComparableCompletedSnapshots("vault-1", profile).map((s) => s.id)
+    ).toEqual(["scan-1", "scan-2"]);
+    expect(repository.listComparableCompletedSnapshots("vault-1", "legacy")).toEqual([]);
+    expect(() => repository.listComparableCompletedSnapshots("vault-1", "profile-a")).toThrow();
+  });
+
+  it("composes createSnapshotInTransaction inside a caller-managed transaction", async () => {
+    const sql = await initSqlJs({
+      locateFile: (file) => `node_modules/sql.js/dist/${file}`
+    });
+    const database = new sql.Database();
+    applyMigrations(database);
+    const repository = new ScanSnapshotRepository(database);
+
+    database.run("BEGIN");
+    repository.createSnapshotInTransaction({
+      id: "scan-tx",
+      vaultFingerprint: "vault-1",
+      startedAt: "2026-07-13T00:00:00.000Z",
+      configHash: "config",
+      inputHash: "input",
+      parserVersion: "parser",
+      files: [{ path: "Home.md", revisionHash: "r" }]
+    });
+    database.run("ROLLBACK");
+    expect(database.exec("SELECT id FROM scans WHERE id = 'scan-tx'")[0]?.values ?? []).toEqual([]);
+
+    repository.createSnapshot({
+      id: "scan-plain",
+      vaultFingerprint: "vault-1",
+      startedAt: "2026-07-13T00:00:00.000Z",
+      configHash: "config",
+      inputHash: "input",
+      parserVersion: "parser",
+      files: []
+    });
+    expect(database.exec("SELECT id FROM scans WHERE id = 'scan-plain'")[0]?.values).toEqual([
+      ["scan-plain"]
+    ]);
+  });
 });

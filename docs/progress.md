@@ -122,6 +122,21 @@ plan). `synchronizeNoteSubjects` reconciles listed paths each scan and aborts
 on failure so v2 findings never carry unpersisted identity. File revisions now
 hash content only, so a path-only rename keeps `evidenceRevisionKey`.
 
+Implemented: Phase 33 Task 5 added completed-scan comparison and
+transactional integrity events. `compareFindingOccurrences` classifies
+`unchanged`/`changed`/`resolved`/`recurring`/`new` between the current scan
+and completed scans sharing an identical non-legacy `identity_profile_hash`;
+historical scans are validated per scan so an unchanged finding spanning
+multiple baselines is not contradictory. `saveCompletedScan` commits snapshot
+plus `scan-started`, then all domain persistence, review events, and
+`scan-completed` in one transaction, with failure truthfully recorded as
+`failed` plus `scan-failed`. Interrupted `running` scans record `scan-failed`
+at the next open, and `ReviewWorkflow` appends one audit event per canonical
+transition atomically with each status/approval change; interrupted applies
+recover to `recovery-required` at plugin startup. Proposal persistence
+composes with `proposal-prepared` audit events, and a 10,000-event fixture
+enforces an 8 MiB SQLite budget as a performance gate, not a retention cap.
+
 Completed: Phase 32 prepared the `0.2.1` release for the Community Directory
 reviewer. It uses Preact compatibility rendering rather than a bundled React DOM
 runtime, registers settings through Obsidian's declarative settings API, and
@@ -248,5 +263,6 @@ The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type che
 
 ## Next Recommended Task
 
-Continue Phase 33 on `feat/phase-33-identity-events` with Task 5, completed-scan
-comparison, finding transitions, and transactional integrity events, test-first.
+Continue Phase 33 on `feat/phase-33-identity-events`: Task 5 passed review,
+its fixes, and the phase completion gate; commit and then proceed to the next
+task in `docs/superpowers/plans/2026-09-28-maintenance-foundation.md`.

@@ -51,6 +51,18 @@ contract reads and writes, keep multi-statement mutations transactional, and
 run the idempotent legacy-occurrence backfill when the plugin database opens,
 before scan recovery and trace pruning.
 
+Completed-scan persistence is staged in transactions: the snapshot row and
+its `scan-started` event commit first; trace, parse, finding identity/
+occurrence, lineage, comparison, review-event, and `scan-completed` writes
+commit together in a second transaction; any failure marks the scan `failed`
+with a `scan-failed` event instead of completing it. The pure
+`compareFindingOccurrences` module classifies transitions only between the
+current scan and completed scans carrying an identical non-legacy
+`identity_profile_hash`; legacy scans are baseline-only. Review and apply
+actions append their audit events inside the same transaction as the domain
+status or approval change, so event history never diverges from canonical
+state.
+
 ## Main Workflow
 
 ```mermaid

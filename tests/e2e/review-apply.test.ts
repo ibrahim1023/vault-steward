@@ -63,10 +63,14 @@ describe("review to apply workflow", () => {
         content = next;
       }
     });
-    await expect(workflow.apply(proposal, "t")).rejects.toThrow("Only approved");
+    await expect(workflow.apply(proposal, "2026-09-29T00:00:00.000Z")).rejects.toThrow(
+      "Only approved"
+    );
     expect(writes).toBe(0);
-    workflow.act(proposal, "approved", "t");
-    await expect(workflow.apply(proposal, "t2")).resolves.toEqual({ ok: true });
+    workflow.act(proposal, "approved", "2026-09-29T00:00:00.000Z");
+    await expect(workflow.apply(proposal, "2026-09-29T00:00:01.000Z")).resolves.toEqual({
+      ok: true
+    });
     expect(content).toBe("See [[Target]]");
     expect(repository.getRecordCounts().approvals).toBe(2);
   });

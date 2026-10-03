@@ -18,6 +18,8 @@ Local correctness takes precedence over scan throughput. All externally visible 
   source revision before apply. Any stale, altered, missing, conflicting, or
   unauthorized member aborts the whole batch before writes.
 - Construct all non-overlapping operations for a file from one preflight snapshot and apply them in descending offset order. If a later file write fails, restore each earlier successful write from its preflight content before marking the proposal `apply-failed`.
+- Persist each completed scan transactionally: snapshot plus `scan-started` commit first, then findings, identities, occurrences, lineage, comparison results, review events, the completed transition, and `scan-completed` commit together. A failure anywhere in the second transaction leaves only the truthful `scan-started`/`scan-failed` markers and a `failed` scan; failed, canceled, or incomplete scans are never comparison baselines and can never resolve findings.
+- Treat apply audit events as truthful markers rather than proof: `apply-started` commits before any filesystem write, `apply-succeeded` only after canonical status/approval persistence succeeds, and `apply-rolled-back`/`apply-recovery-required` distinguish successful from failed compensation.
 
 ## Health and Diagnostics
 

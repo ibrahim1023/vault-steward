@@ -154,9 +154,11 @@ describe("MVP acceptance vault", () => {
     await expect(workflow.apply(proposed.proposal, "before-approval")).rejects.toThrow(
       "Only approved"
     );
-    workflow.act(proposed.proposal, "approved", "approved-at");
+    workflow.act(proposed.proposal, "approved", "2026-09-29T00:00:00.000Z");
     await expect(
-      workflow.apply(proposed.proposal, "applied-at", { onReindex: () => reindexes++ })
+      workflow.apply(proposed.proposal, "2026-09-29T00:00:01.000Z", {
+        onReindex: () => reindexes++
+      })
     ).resolves.toEqual({ ok: true });
     expect(content).toBe("See [[Target]]");
     expect(reindexes).toBe(1);

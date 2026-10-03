@@ -89,7 +89,7 @@ describe("prepared repair batch workflow", () => {
     });
 
     await expect(
-      workflow.approveAndApplyBatch(proposals, "acted-at", {
+      workflow.approveAndApplyBatch(proposals, "2026-09-29T00:00:00.000Z", {
         onReindex: async () => {
           reindexes += 1;
         }
@@ -127,7 +127,9 @@ describe("prepared repair batch workflow", () => {
       }
     });
 
-    await expect(workflow.approveAndApplyBatch(proposals, "acted-at")).resolves.toEqual({
+    await expect(
+      workflow.approveAndApplyBatch(proposals, "2026-09-29T00:00:00.000Z")
+    ).resolves.toEqual({
       ok: false,
       reason: "stale",
       appliedProposalIds: [],
@@ -156,17 +158,17 @@ describe("prepared repair batch workflow", () => {
     await expect(
       workflow.approveAndApplyBatch(
         [{ ...first, operations: [{ ...first.operations[0]!, replacement: "tampered" }] }, second],
-        "acted-at"
+        "2026-09-29T00:00:00.000Z"
       )
     ).resolves.toMatchObject({ ok: false, reason: "invalid" });
     expect(repository.getRecordCounts().approvals).toBe(0);
 
-    await expect(workflow.approveAndApplyBatch([first, second], "acted-at")).resolves.toMatchObject(
-      {
-        ok: false,
-        reason: "invalid"
-      }
-    );
+    await expect(
+      workflow.approveAndApplyBatch([first, second], "2026-09-29T00:00:00.000Z")
+    ).resolves.toMatchObject({
+      ok: false,
+      reason: "invalid"
+    });
     expect(writes).toBe(0);
     expect(repository.getRecordCounts().approvals).toBe(0);
   });
@@ -197,7 +199,9 @@ describe("prepared repair batch workflow", () => {
       }
     });
 
-    await expect(workflow.approveAndApplyBatch(proposals, "acted-at")).resolves.toEqual({
+    await expect(
+      workflow.approveAndApplyBatch(proposals, "2026-09-29T00:00:00.000Z")
+    ).resolves.toEqual({
       ok: false,
       reason: "recovery-required",
       appliedProposalIds: [],
@@ -236,11 +240,42 @@ describe("prepared repair batch workflow", () => {
       }
     });
 
-    await expect(workflow.approveAndApplyBatch(proposals, "acted-at")).resolves.toMatchObject({
+    await expect(
+      workflow.approveAndApplyBatch(proposals, "2026-09-29T00:00:00.000Z")
+    ).resolves.toMatchObject({
       ok: false,
       reason: "recovery-required"
     });
     expect(contents.get("A.md")).toBe("concurrent edit");
     expect(repository.getProposalStatus("proposal-1")).toBe("recovery-required");
+  });
+
+  it("emits one truthful audit event per proposal per transition", async () => {
+    const proposals = [
+      proposal("proposal-1", "finding-1", "Home.md", 0, "a", "A"),
+      proposal("proposal-2", "finding-2", "Home.md", 2, "b", "B")
+    ];
+    const repository = await fixture(proposals);
+    const workflow = new ReviewWorkflow(repository, {
+      read: async () => ({ content: "a b", revision: "revision" }),
+      write: async () => undefined
+    });
+
+    await expect(
+      workflow.approveAndApplyBatch(proposals, "2026-09-29T00:00:00.000Z")
+    ).resolves.toMatchObject({ ok: true });
+
+    const events = repository.listIntegrityEvents({ category: "audit" });
+    expect(events.map((event) => [event.kind, event.proposalId])).toEqual([
+      ["proposal-approved", "proposal-1"],
+      ["proposal-approved", "proposal-2"],
+      ["apply-started", "proposal-1"],
+      ["apply-started", "proposal-2"],
+      ["apply-succeeded", "proposal-1"],
+      ["apply-succeeded", "proposal-2"]
+    ]);
+    for (const event of events) {
+      expect(event.occurredAt).toBe("2026-09-29T00:00:00.000Z");
+    }
   });
 });

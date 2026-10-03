@@ -145,8 +145,8 @@ describe("plugin database lifecycle", () => {
         configHash: "config",
         inputHash: "input",
         parserVersion: "parser",
-        startedAt: "2026-07-15T12:00:00Z",
-        finishedAt: "2026-07-15T12:00:01Z",
+        startedAt: "2026-07-15T12:00:00.000Z",
+        finishedAt: "2026-07-15T12:00:01.000Z",
         files: [],
         parseProducts: [],
         findings: [
@@ -194,8 +194,8 @@ describe("plugin database lifecycle", () => {
       configHash: "config",
       inputHash: "input",
       parserVersion: "parser",
-      startedAt: "2026-08-03T12:00:00Z",
-      finishedAt: "2026-08-03T12:00:01Z",
+      startedAt: "2026-08-03T12:00:00.000Z",
+      finishedAt: "2026-08-03T12:00:01.000Z",
       files: [],
       parseProducts: [],
       findings: [
@@ -242,7 +242,7 @@ describe("plugin database lifecycle", () => {
         configHash: "config",
         inputHash: id,
         parserVersion: "parser",
-        startedAt: "2026-07-15T12:00:00Z",
+        startedAt: "2026-07-15T12:00:00.000Z",
         finishedAt,
         files: [],
         parseProducts: [],
@@ -250,8 +250,8 @@ describe("plugin database lifecycle", () => {
         modelTraces: []
       });
 
-    saveScan("scan-older", "2026-07-15T12:00:01Z");
-    saveScan("scan-latest", "2026-07-15T12:00:02Z");
+    saveScan("scan-older", "2026-07-15T12:00:01.000Z");
+    saveScan("scan-latest", "2026-07-15T12:00:02.000Z");
 
     expect(database.loadFindings()).toMatchObject([
       { id: "finding-scan-latest", scanId: "scan-latest" }

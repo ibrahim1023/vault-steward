@@ -272,3 +272,31 @@ structurally safe rows whose schema version or kind is unknown to this build.
   and for any scan referenced by a retained audit or review event. Explicit
   purge removes only audit or review projections. Every deletion appends one
   aggregate `retention_deletions` ledger row.
+- `compareFindingOccurrences` (`src/findings/compare.ts`) is the pure
+  completed-scan comparison from ADR 0008: it groups sorted
+  evidence-revision-key sets per `stableKey` and classifies each key as
+  `unchanged`, `changed`, `resolved`, `recurring` (present historically and
+  absent from the immediate baseline), or `new`. Duplicate occurrence IDs or
+  contradictory duplicate entries fail closed.
+- `ScanSnapshotRepository.createSnapshotInTransaction` composes snapshot
+  creation inside a caller-managed transaction, and
+  `listComparableCompletedSnapshots` returns only completed same-vault scans
+  whose non-legacy `identity_profile_hash` exactly matches, oldest first.
+  Legacy scans are baseline-only and never participate in transitions.
+- `VaultStewardRepository.appendIntegrityEvent` joins an already-open
+  repository transaction (explicit nested `withTransaction` calls remain
+  rejected), and `saveProposal(record, event)` atomically persists a proposal
+  with its `proposal-prepared` audit event.
+- `PluginDatabase.saveCompletedScan` commits a snapshot plus `scan-started`
+  event first, then performs trace/product/finding/occurrence persistence,
+  completed-scan comparison, review events (`finding-opened`/`changed`/
+  `recurred`/`resolved`), the completed transition, and `scan-completed` in a
+  second transaction. Any failure rolls that transaction back and truthfully
+  records `failed` plus `scan-failed`; incomplete, failed, or canceled scans
+  never resolve findings.
+- `ReviewWorkflow` emits one audit event per canonical transition inside the
+  same transaction as the status/approval change: `proposal-approved`,
+  `proposal-dismissed`, `proposal-deferred`, `proposal-stale`,
+  `apply-started`, `apply-succeeded`, `apply-failed`, `apply-rolled-back`, and
+  `apply-recovery-required`. Events are truthful markers only and never prove
+  a filesystem write succeeded.

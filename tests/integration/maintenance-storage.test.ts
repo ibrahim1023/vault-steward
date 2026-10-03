@@ -1259,3 +1259,173 @@ describe("legacy finding backfill", () => {
     expect(repository.getApprovedProposalDigest("proposal-1")).toBe(proposalDigest);
   });
 });
+
+describe("transactional event composition", () => {
+  const patch = (id: string, findingId: string, scanId: string) =>
+    JSON.stringify({
+      schemaVersion: 1,
+      id,
+      findingId,
+      scanId,
+      explanation: "Repair.",
+      operations: [
+        {
+          kind: "replace-range",
+          path: "Home.md",
+          sourceRevision: "revision-1",
+          start: 0,
+          end: 1,
+          expected: "x",
+          replacement: "y"
+        }
+      ]
+    });
+
+  it("rejects nested withTransaction calls", async () => {
+    const { repository } = await createRepository();
+    expect(() =>
+      repository.withTransaction(() => repository.withTransaction(() => undefined))
+    ).toThrow();
+  });
+
+  it("does not poison later transactions when BEGIN fails", async () => {
+    const { database, repository } = await createRepository();
+    const originalRun = database.run.bind(database);
+    let failOnce = true;
+    database.run = ((sql: string, params?: unknown) => {
+      if (failOnce && sql === "BEGIN IMMEDIATE") {
+        failOnce = false;
+        throw new Error("disk locked");
+      }
+      return originalRun(sql, params as never);
+    }) as typeof database.run;
+
+    expect(() => repository.withTransaction(() => undefined)).toThrow("disk locked");
+
+    repository.withTransaction(() => {
+      seedScan(repository, "scan-after-failure");
+    });
+    expect(repository.getRecordCounts().scans).toBe(1);
+  });
+
+  it("lets appendIntegrityEvent join an open transaction and rolls back together", async () => {
+    const { repository } = await createRepository();
+    expect(() =>
+      repository.withTransaction(() => {
+        seedScan(repository, "scan-tx", "running", TIMESTAMP, null);
+        repository.appendIntegrityEvent(
+          newEvent({
+            id: "event-tx",
+            kind: "scan-started",
+            scanId: "scan-tx",
+            proposalId: "missing-proposal",
+            safeMetadata: { count: 1 }
+          })
+        );
+      })
+    ).toThrow("unknown proposal");
+    expect(repository.getRecordCounts().scans).toBe(0);
+    expect(repository.listIntegrityEvents()).toEqual([]);
+
+    repository.withTransaction(() => {
+      seedScan(repository, "scan-ok", "running", TIMESTAMP, null);
+      repository.appendIntegrityEvent(
+        newEvent({
+          id: "event-ok",
+          kind: "scan-started",
+          scanId: "scan-ok",
+          safeMetadata: { count: 1 }
+        })
+      );
+    });
+    expect(repository.listIntegrityEvents({ scanId: "scan-ok" })).toEqual([
+      expect.objectContaining({ kind: "scan-started" })
+    ]);
+  });
+
+  it("commits a proposal and its audit event atomically, and rolls back on event conflict", async () => {
+    const { repository } = await createRepository();
+    seedScan(repository, "scan-1");
+    seedFinding(repository, "finding-1", "scan-1");
+
+    repository.saveProposal(
+      {
+        id: "proposal-1",
+        findingId: "finding-1",
+        patchJson: patch("proposal-1", "finding-1", "scan-1"),
+        sourceRevisionsJson: "{}",
+        status: "pending"
+      },
+      newEvent({
+        id: "audit-prepared",
+        category: "audit",
+        kind: "proposal-prepared",
+        scanId: "scan-1",
+        proposalId: "proposal-1",
+        safeMetadata: {}
+      })
+    );
+    expect(repository.findProposal("proposal-1")).not.toBeNull();
+    expect(repository.listIntegrityEvents({ category: "audit" })).toEqual([
+      expect.objectContaining({ kind: "proposal-prepared", proposalId: "proposal-1" })
+    ]);
+
+    repository.appendIntegrityEvent(
+      newEvent({ id: "audit-conflict", kind: "scan-completed", safeMetadata: {} })
+    );
+    expect(() =>
+      repository.saveProposal(
+        {
+          id: "proposal-2",
+          findingId: "finding-1",
+          patchJson: patch("proposal-2", "finding-1", "scan-1"),
+          sourceRevisionsJson: "{}",
+          status: "pending"
+        },
+        newEvent({
+          id: "audit-conflict",
+          category: "audit",
+          kind: "proposal-prepared",
+          proposalId: "proposal-2",
+          safeMetadata: {}
+        })
+      )
+    ).toThrow("conflict");
+    expect(repository.findProposal("proposal-2")).toBeNull();
+  });
+
+  it("rejects an audit event bound to a different proposal id", async () => {
+    const { repository } = await createRepository();
+    seedScan(repository, "scan-1");
+    seedFinding(repository, "finding-1", "scan-1");
+    seedScan(repository, "scan-2");
+    seedFinding(repository, "finding-2", "scan-2");
+    repository.saveProposal({
+      id: "proposal-other",
+      findingId: "finding-2",
+      patchJson: patch("proposal-other", "finding-2", "scan-2"),
+      sourceRevisionsJson: "{}",
+      status: "pending"
+    });
+
+    expect(() =>
+      repository.saveProposal(
+        {
+          id: "proposal-1",
+          findingId: "finding-1",
+          patchJson: patch("proposal-1", "finding-1", "scan-1"),
+          sourceRevisionsJson: "{}",
+          status: "pending"
+        },
+        newEvent({
+          id: "audit-mismatched",
+          category: "audit",
+          kind: "proposal-prepared",
+          proposalId: "proposal-other",
+          safeMetadata: {}
+        })
+      )
+    ).toThrow("does not match");
+    expect(repository.findProposal("proposal-1")).toBeNull();
+  });
+});

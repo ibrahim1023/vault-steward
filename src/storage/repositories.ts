@@ -625,21 +625,34 @@ export class VaultStewardRepository {
     );
   }
 
-  saveProposal(record: NewProposalRecord): void {
+  saveProposal(record: NewProposalRecord, event?: NewIntegrityEvent): void {
     const parsed = parseProposal(JSON.parse(record.patchJson));
     if (!parsed.ok) throw new Error("Proposal record is invalid.");
+    if (event?.proposalId !== undefined && event.proposalId !== record.id) {
+      throw new Error("audit event proposalId does not match the proposal record");
+    }
     const digest = proposalDigest(parsed.value);
-    this.database.run(
-      "INSERT INTO proposals (id, finding_id, patch_json, source_revisions_json, status, proposal_digest) VALUES (?, ?, ?, ?, ?, ?)",
-      [
-        record.id,
-        record.findingId,
-        record.patchJson,
-        record.sourceRevisionsJson,
-        record.status,
-        digest
-      ]
-    );
+    const insert = () => {
+      this.database.run(
+        "INSERT INTO proposals (id, finding_id, patch_json, source_revisions_json, status, proposal_digest) VALUES (?, ?, ?, ?, ?, ?)",
+        [
+          record.id,
+          record.findingId,
+          record.patchJson,
+          record.sourceRevisionsJson,
+          record.status,
+          digest
+        ]
+      );
+    };
+    if (!event) {
+      insert();
+      return;
+    }
+    this.withTransaction(() => {
+      insert();
+      this.appendIntegrityEvent(event);
+    });
   }
 
   findProposal(id: string): ProposalRecord | null {
@@ -683,6 +696,13 @@ export class VaultStewardRepository {
       "UPDATE proposals SET status = 'recovery-required' WHERE status IN ('applying', 'apply-failed')"
     );
     return this.database.getRowsModified();
+  }
+
+  listRecoverableApplyProposalIds(): string[] {
+    const rows = this.database.exec(
+      "SELECT id FROM proposals WHERE status IN ('applying', 'apply-failed') ORDER BY id"
+    )[0]?.values;
+    return (rows ?? []).flatMap((row) => (typeof row[0] === "string" ? [row[0]] : []));
   }
 
   recordApproval(record: ApprovalRecord): void {
@@ -1132,15 +1152,27 @@ export class VaultStewardRepository {
     );
   }
 
+  private transactionDepth = 0;
+
   withTransaction<T>(operation: () => T): T {
+    if (this.transactionDepth > 0) {
+      throw new Error("nested transactions are not supported");
+    }
     this.database.run("BEGIN IMMEDIATE");
+    this.transactionDepth += 1;
     try {
       const result = operation();
       this.database.run("COMMIT");
       return result;
     } catch (error) {
-      this.database.run("ROLLBACK");
+      try {
+        this.database.run("ROLLBACK");
+      } catch {
+        // transaction already ended; surface the original error
+      }
       throw error;
+    } finally {
+      this.transactionDepth -= 1;
     }
   }
 
@@ -1509,39 +1541,43 @@ export class VaultStewardRepository {
       throw new Error(`invalid integrity event: ${parsed.diagnostics.join("; ")}`);
     }
     const incoming = parsed.value;
-    return this.withTransaction(() => {
-      const existingRow = this.database.exec(
-        "SELECT sequence, id, schema_version, category, kind, occurred_at, scan_id, stable_key, occurrence_id, proposal_id, approval_id, safe_metadata_json FROM integrity_events WHERE id = ?",
-        [incoming.id]
-      )[0]?.values[0];
-      if (existingRow) {
-        const persisted = this.hydrateIntegrityEvent(existingRow);
-        if (!sameIntegrityEventContent(persisted, incoming)) {
-          throw new Error("integrity event id conflict");
-        }
-        return persisted;
+    return this.transactionDepth > 0
+      ? this.insertIntegrityEvent(incoming)
+      : this.withTransaction(() => this.insertIntegrityEvent(incoming));
+  }
+
+  private insertIntegrityEvent(incoming: NewIntegrityEvent): IntegrityEvent {
+    const existingRow = this.database.exec(
+      "SELECT sequence, id, schema_version, category, kind, occurred_at, scan_id, stable_key, occurrence_id, proposal_id, approval_id, safe_metadata_json FROM integrity_events WHERE id = ?",
+      [incoming.id]
+    )[0]?.values[0];
+    if (existingRow) {
+      const persisted = this.hydrateIntegrityEvent(existingRow);
+      if (!sameIntegrityEventContent(persisted, incoming)) {
+        throw new Error("integrity event id conflict");
       }
-      this.assertIntegrityEventReferences(incoming);
-      this.database.run(
-        "INSERT INTO integrity_events (id, schema_version, category, kind, occurred_at, scan_id, stable_key, occurrence_id, proposal_id, approval_id, safe_metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        [
-          incoming.id,
-          incoming.schemaVersion,
-          incoming.category,
-          incoming.kind,
-          incoming.occurredAt,
-          incoming.scanId ?? null,
-          incoming.stableKey ?? null,
-          incoming.occurrenceId ?? null,
-          incoming.proposalId ?? null,
-          incoming.approvalId ?? null,
-          canonicalMetadataJson(incoming.safeMetadata)
-        ]
-      );
-      const sequence = this.database.exec("SELECT last_insert_rowid()")[0]?.values[0]?.[0];
-      if (typeof sequence !== "number") throw new Error("integrity event sequence is missing");
-      return { sequence, ...incoming };
-    });
+      return persisted;
+    }
+    this.assertIntegrityEventReferences(incoming);
+    this.database.run(
+      "INSERT INTO integrity_events (id, schema_version, category, kind, occurred_at, scan_id, stable_key, occurrence_id, proposal_id, approval_id, safe_metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        incoming.id,
+        incoming.schemaVersion,
+        incoming.category,
+        incoming.kind,
+        incoming.occurredAt,
+        incoming.scanId ?? null,
+        incoming.stableKey ?? null,
+        incoming.occurrenceId ?? null,
+        incoming.proposalId ?? null,
+        incoming.approvalId ?? null,
+        canonicalMetadataJson(incoming.safeMetadata)
+      ]
+    );
+    const sequence = this.database.exec("SELECT last_insert_rowid()")[0]?.values[0]?.[0];
+    if (typeof sequence !== "number") throw new Error("integrity event sequence is missing");
+    return { sequence, ...incoming };
   }
 
   listIntegrityEvents(query?: {

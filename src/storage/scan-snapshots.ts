@@ -40,27 +40,9 @@ export class ScanSnapshotRepository {
   constructor(private readonly database: Database) {}
 
   createSnapshot(snapshot: CreateScanSnapshot): void {
-    assertUniquePaths(snapshot.files);
     this.database.run("BEGIN IMMEDIATE");
     try {
-      this.database.run(
-        "INSERT INTO scans (id, vault_fingerprint, started_at, finished_at, status, config_hash, input_hash, parser_version, identity_profile_hash) VALUES (?, ?, ?, NULL, 'running', ?, ?, ?, ?)",
-        [
-          snapshot.id,
-          snapshot.vaultFingerprint,
-          snapshot.startedAt,
-          snapshot.configHash,
-          snapshot.inputHash,
-          snapshot.parserVersion,
-          snapshot.identityProfileHash ?? "legacy"
-        ]
-      );
-      for (const file of snapshot.files) {
-        this.database.run(
-          "INSERT INTO scan_inputs (scan_id, path, revision_hash) VALUES (?, ?, ?)",
-          [snapshot.id, file.path, file.revisionHash]
-        );
-      }
+      this.createSnapshotInTransaction(snapshot);
       this.database.run("COMMIT");
     } catch (error) {
       this.database.run("ROLLBACK");
@@ -68,8 +50,49 @@ export class ScanSnapshotRepository {
     }
   }
 
+  createSnapshotInTransaction(snapshot: CreateScanSnapshot): void {
+    assertUniquePaths(snapshot.files);
+    this.database.run(
+      "INSERT INTO scans (id, vault_fingerprint, started_at, finished_at, status, config_hash, input_hash, parser_version, identity_profile_hash) VALUES (?, ?, ?, NULL, 'running', ?, ?, ?, ?)",
+      [
+        snapshot.id,
+        snapshot.vaultFingerprint,
+        snapshot.startedAt,
+        snapshot.configHash,
+        snapshot.inputHash,
+        snapshot.parserVersion,
+        snapshot.identityProfileHash ?? "legacy"
+      ]
+    );
+    for (const file of snapshot.files) {
+      this.database.run("INSERT INTO scan_inputs (scan_id, path, revision_hash) VALUES (?, ?, ?)", [
+        snapshot.id,
+        file.path,
+        file.revisionHash
+      ]);
+    }
+  }
+
+  listComparableCompletedSnapshots(
+    vaultFingerprint: string,
+    identityProfileHash: string
+  ): CompletedScanSnapshot[] {
+    if (identityProfileHash === "legacy") return [];
+    if (!/^[0-9a-f]{64}$/.test(identityProfileHash)) {
+      throw new Error("invalid identity profile hash");
+    }
+    const ids = this.database.exec(
+      "SELECT id FROM scans WHERE vault_fingerprint = ? AND identity_profile_hash = ? AND status = 'completed' ORDER BY finished_at, started_at, id",
+      [vaultFingerprint, identityProfileHash]
+    )[0]?.values;
+    return (ids ?? []).flatMap((row) => {
+      const snapshot = typeof row[0] === "string" ? this.getCompletedSnapshot(row[0]) : null;
+      return snapshot ? [snapshot] : [];
+    });
+  }
+
   transition(scanId: string, nextStatus: Exclude<ScanStatus, "running">, finishedAt: string): void {
-    const currentStatus = this.getStatus(scanId);
+    const currentStatus = this.getScanStatus(scanId);
     if (!TRANSITIONS[currentStatus].includes(nextStatus)) {
       throw new Error(`cannot transition scan ${scanId} from ${currentStatus} to ${nextStatus}`);
     }
@@ -79,6 +102,12 @@ export class ScanSnapshotRepository {
       finishedAt,
       scanId
     ]);
+  }
+
+  listInterruptedScanIds(): string[] {
+    const rows = this.database.exec("SELECT id FROM scans WHERE status = 'running' ORDER BY id")[0]
+      ?.values;
+    return (rows ?? []).flatMap((row) => (typeof row[0] === "string" ? [row[0]] : []));
   }
 
   recoverInterruptedScans(finishedAt: string): number {
@@ -108,7 +137,7 @@ export class ScanSnapshotRepository {
     );
   }
 
-  private getStatus(scanId: string): ScanStatus {
+  getScanStatus(scanId: string): ScanStatus {
     const status = this.database.exec("SELECT status FROM scans WHERE id = ?", [scanId])[0]
       ?.values[0]?.[0];
     if (!isScanStatus(status)) {

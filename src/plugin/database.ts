@@ -6,7 +6,8 @@ import type {
   VaultEvent,
   VerifiedRename
 } from "../contracts/incremental.js";
-import { persistReviewQueue } from "../coordinator/normalize.js";
+import { persistReviewQueueInTransaction } from "../coordinator/normalize.js";
+import { compareFindingOccurrences, type FindingTransition } from "../findings/compare.js";
 import { ScanSnapshotRepository } from "../storage/scan-snapshots.js";
 import { applyMigrations } from "../storage/migrations.js";
 import {
@@ -42,6 +43,7 @@ export type PluginDatabase = {
     startedAt: string;
     finishedAt: string;
     files: readonly VaultFile[];
+    identityProfileHash?: string;
     parseProducts: readonly ParseProduct[];
     findings: readonly Finding[];
     modelTraces: readonly ModelTrace[];
@@ -74,6 +76,7 @@ export async function openPluginDatabase(input: {
   locateFile?: (file: string) => string;
   wasmBinary?: ArrayBuffer;
   createSubjectId?: () => string;
+  createEventId?: () => string;
 }): Promise<PluginDatabase> {
   const runtimeOptions: SqliteRuntimeOptions = {
     ...(input.locateFile ? { locateFile: input.locateFile } : {}),
@@ -83,6 +86,7 @@ export async function openPluginDatabase(input: {
     ? new Uint8Array(await input.adapter.readBinary(input.databasePath))
     : undefined;
   const createSubjectId = input.createSubjectId ?? randomUUID;
+  const createEventId = input.createEventId ?? randomUUID;
   let runtime = await createSqliteRuntime({
     ...runtimeOptions,
     ...(databaseBytes ? { databaseBytes } : {})
@@ -91,7 +95,21 @@ export async function openPluginDatabase(input: {
   let repository = new VaultStewardRepository(runtime.database);
   repository.backfillLegacyFindingOccurrences();
   let snapshots = new ScanSnapshotRepository(runtime.database);
-  snapshots.recoverInterruptedScans(new Date().toISOString());
+  const recoveredAt = new Date().toISOString();
+  for (const interruptedId of snapshots.listInterruptedScanIds()) {
+    repository.withTransaction(() => {
+      snapshots.transition(interruptedId, "failed", recoveredAt);
+      repository.appendIntegrityEvent({
+        schemaVersion: 1,
+        id: createEventId(),
+        category: "operational",
+        kind: "scan-failed",
+        occurredAt: recoveredAt,
+        scanId: interruptedId,
+        safeMetadata: { reason: "interrupted" }
+      });
+    });
+  }
   repository.pruneExpiredTraceData(new Date().toISOString());
   await writeRuntime(input.adapter, input.databasePath, runtime);
 
@@ -212,40 +230,108 @@ export async function openPluginDatabase(input: {
       return repository;
     },
     saveCompletedScan(scan) {
-      snapshots.createSnapshot({
-        id: scan.id,
-        vaultFingerprint: scan.vaultFingerprint,
-        startedAt: scan.startedAt,
-        configHash: scan.configHash,
-        inputHash: scan.inputHash,
-        parserVersion: scan.parserVersion,
-        files: scan.files.map((file) => ({ path: file.path, revisionHash: file.revision ?? "" }))
+      const correlationId = `scan-${scan.id}`;
+      repository.withTransaction(() => {
+        snapshots.createSnapshotInTransaction({
+          id: scan.id,
+          vaultFingerprint: scan.vaultFingerprint,
+          startedAt: scan.startedAt,
+          configHash: scan.configHash,
+          inputHash: scan.inputHash,
+          parserVersion: scan.parserVersion,
+          ...(scan.identityProfileHash !== undefined
+            ? { identityProfileHash: scan.identityProfileHash }
+            : {}),
+          files: scan.files.map((file) => ({
+            path: file.path,
+            revisionHash: file.revision ?? ""
+          }))
+        });
+        repository.appendIntegrityEvent({
+          schemaVersion: 1,
+          id: createEventId(),
+          category: "operational",
+          kind: "scan-started",
+          occurredAt: scan.startedAt,
+          scanId: scan.id,
+          safeMetadata: { count: scan.files.length }
+        });
       });
       try {
-        const correlationId = `scan-${scan.id}`;
-        repository.saveTraceSpan({
-          schemaVersion: 1,
-          id: `${scan.id}:root`,
-          scanId: scan.id,
-          kind: "governed-scan",
-          startedAt: scan.startedAt,
-          completedAt: scan.finishedAt,
-          outcome: "success",
-          correlationId,
-          attributes: { fileCount: scan.files.length }
-        });
-        recordStageSpans(repository, scan, correlationId);
-        if (scan.traceConfiguration)
-          repository.saveTraceConfiguration({
+        repository.withTransaction(() => {
+          for (const finding of scan.findings) {
+            if (finding.scanId !== scan.id) {
+              throw new Error("finding scanId does not match the completed scan");
+            }
+          }
+          repository.saveTraceSpan({
+            schemaVersion: 1,
+            id: `${scan.id}:root`,
             scanId: scan.id,
-            fingerprint: scan.traceConfiguration.fingerprint,
-            values: scan.traceConfiguration.values
+            kind: "governed-scan",
+            startedAt: scan.startedAt,
+            completedAt: scan.finishedAt,
+            outcome: "success",
+            correlationId,
+            attributes: { fileCount: scan.files.length }
           });
-        repository.saveParseProducts(scan.id, scan.parserVersion, scan.parseProducts);
-        const findings = persistReviewQueue(
-          repository,
-          scan.findings.filter((finding) =>
-            validateFindingLineage({
+          recordStageSpans(repository, scan, correlationId);
+          if (scan.traceConfiguration)
+            repository.saveTraceConfiguration({
+              scanId: scan.id,
+              fingerprint: scan.traceConfiguration.fingerprint,
+              values: scan.traceConfiguration.values
+            });
+          repository.saveParseProducts(scan.id, scan.parserVersion, scan.parseProducts);
+          const findings = persistReviewQueueInTransaction(
+            repository,
+            scan.findings.filter((finding) =>
+              validateFindingLineage({
+                schemaVersion: 1,
+                findingId: finding.id,
+                scanId: scan.id,
+                evidenceLocators: finding.evidence.map((item) => item.locator),
+                parsedArtifactIds: finding.evidence.map((item) => `parse:${item.notePath}`),
+                validatorId: "finding-normalization",
+                coordinatorDecisionId: `coordinator:${scan.id}`,
+                retrievalMetadata: ["not-run"],
+                policyEvaluationId: finding.violatedPolicyId ?? "not-run",
+                proposalSourceId:
+                  finding.suggestedFixes.length > 0 ? "deterministic-proposal" : "not-applicable",
+                correlationId
+              })
+            )
+          );
+          for (const [index, trace] of scan.modelTraces.entries()) {
+            repository.saveModelTrace({
+              id: `${scan.id}:trace:${index}`,
+              scanId: scan.id,
+              requestMetadataJson: JSON.stringify({
+                provider: trace.provider,
+                model: trace.model,
+                retries: trace.retries
+              }),
+              schemaVersion: 1,
+              durationMs: trace.latencyMs,
+              inputTokens: 0,
+              outputTokens: 0,
+              outcome: trace.outcome
+            });
+            repository.saveAgentExecution({
+              schemaVersion: 1,
+              id: `${scan.id}:agent:${index}`,
+              scanId: scan.id,
+              spanId: `${scan.id}:root`,
+              agent: "local-coordinator",
+              model: trace.model,
+              durationMs: trace.latencyMs,
+              retryCount: trace.retries,
+              validation: trace.outcome === "success" ? "passed" : "failed",
+              correlationId
+            });
+          }
+          for (const finding of findings) {
+            repository.saveFindingLineage({
               schemaVersion: 1,
               findingId: finding.id,
               scanId: scan.id,
@@ -258,59 +344,72 @@ export async function openPluginDatabase(input: {
               proposalSourceId:
                 finding.suggestedFixes.length > 0 ? "deterministic-proposal" : "not-applicable",
               correlationId
-            })
-          )
-        );
-        for (const [index, trace] of scan.modelTraces.entries()) {
-          repository.saveModelTrace({
-            id: `${scan.id}:trace:${index}`,
-            scanId: scan.id,
-            requestMetadataJson: JSON.stringify({
-              provider: trace.provider,
-              model: trace.model,
-              retries: trace.retries
-            }),
+            });
+          }
+          const comparable = snapshots.listComparableCompletedSnapshots(
+            scan.vaultFingerprint,
+            scan.identityProfileHash ?? "legacy"
+          );
+          if (comparable.length > 0) {
+            const baseline = comparable[comparable.length - 1]!;
+            const transitions = compareFindingOccurrences({
+              previous: repository.listFindingOccurrences({ scanId: baseline.id }),
+              current: repository.listFindingOccurrences({ scanId: scan.id }),
+              historical: comparable
+                .slice(0, -1)
+                .map((snapshot) => repository.listFindingOccurrences({ scanId: snapshot.id }))
+            });
+            for (const transition of transitions) {
+              if (transition.kind === "unchanged") continue;
+              const kind = REVIEW_EVENT_KINDS[transition.kind];
+              repository.appendIntegrityEvent({
+                schemaVersion: 1,
+                id: createEventId(),
+                category: "review",
+                kind,
+                occurredAt: scan.finishedAt,
+                scanId: scan.id,
+                stableKey: transition.stableKey,
+                occurrenceId:
+                  transition.currentOccurrenceIds[0] ?? transition.previousOccurrenceIds[0]!,
+                safeMetadata: {
+                  count: Math.max(
+                    transition.previousOccurrenceIds.length,
+                    transition.currentOccurrenceIds.length
+                  )
+                }
+              });
+            }
+          }
+          snapshots.transition(scan.id, "completed", scan.finishedAt);
+          repository.appendIntegrityEvent({
             schemaVersion: 1,
-            durationMs: trace.latencyMs,
-            inputTokens: 0,
-            outputTokens: 0,
-            outcome: trace.outcome
-          });
-          repository.saveAgentExecution({
-            schemaVersion: 1,
-            id: `${scan.id}:agent:${index}`,
+            id: createEventId(),
+            category: "operational",
+            kind: "scan-completed",
+            occurredAt: scan.finishedAt,
             scanId: scan.id,
-            spanId: `${scan.id}:root`,
-            agent: "local-coordinator",
-            model: trace.model,
-            durationMs: trace.latencyMs,
-            retryCount: trace.retries,
-            validation: trace.outcome === "success" ? "passed" : "failed",
-            correlationId
+            safeMetadata: { count: findings.length }
           });
-        }
-        for (const finding of findings) {
-          repository.saveFindingLineage({
-            schemaVersion: 1,
-            findingId: finding.id,
-            scanId: scan.id,
-            evidenceLocators: finding.evidence.map((item) => item.locator),
-            parsedArtifactIds: finding.evidence.map((item) => `parse:${item.notePath}`),
-            validatorId: "finding-normalization",
-            coordinatorDecisionId: `coordinator:${scan.id}`,
-            retrievalMetadata: ["not-run"],
-            policyEvaluationId: finding.violatedPolicyId ?? "not-run",
-            proposalSourceId:
-              finding.suggestedFixes.length > 0 ? "deterministic-proposal" : "not-applicable",
-            correlationId
-          });
-        }
-        snapshots.transition(scan.id, "completed", scan.finishedAt);
-        repository.pruneExpiredTraceData(scan.finishedAt);
+        });
       } catch (error) {
-        snapshots.transition(scan.id, "failed", scan.finishedAt);
+        if (snapshots.getScanStatus(scan.id) === "running") {
+          repository.withTransaction(() => {
+            snapshots.transition(scan.id, "failed", scan.finishedAt);
+            repository.appendIntegrityEvent({
+              schemaVersion: 1,
+              id: createEventId(),
+              category: "operational",
+              kind: "scan-failed",
+              occurredAt: new Date().toISOString(),
+              scanId: scan.id,
+              safeMetadata: { reason: "persistence" }
+            });
+          });
+        }
         throw error;
       }
+      repository.pruneExpiredTraceData(scan.finishedAt);
     },
     loadFindings: () => {
       const scanId = repository.latestCompletedScanId();
@@ -331,6 +430,16 @@ export async function openPluginDatabase(input: {
     close: () => runtime.close()
   };
 }
+
+const REVIEW_EVENT_KINDS: Record<
+  Exclude<FindingTransition["kind"], "unchanged">,
+  "finding-opened" | "finding-changed" | "finding-recurred" | "finding-resolved"
+> = {
+  new: "finding-opened",
+  changed: "finding-changed",
+  recurring: "finding-recurred",
+  resolved: "finding-resolved"
+};
 
 function isSafeSubjectPath(path: string): boolean {
   return (

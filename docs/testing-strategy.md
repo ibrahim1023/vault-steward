@@ -122,6 +122,10 @@ provider corpus runs execute locally or on a protected release runner.
 Snapshot tests are restricted to stable structured output, never free-form
 model text.
 
+Integrity-event storage has a bounded performance fixture: 10,000 retained
+integrity events must remain within an 8 MiB SQLite fixture budget; this is a
+performance regression gate, not a retention cap.
+
 ## Policy Templates
 
 Policy-template coverage includes registry and YAML validation, explicit-kind precedence, folder/heading classification, ambiguity and unrelated-note abstention, activated-template schema findings, draft-only rule creation, malformed intents, snapshot-derived candidate validation, proposal integrity, and exact-preview application. Tests must prove that a missing template field remains review-only when zero or multiple candidate values exist.

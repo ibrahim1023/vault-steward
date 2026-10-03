@@ -5,8 +5,11 @@
 Accepted on 2026-09-28. Storage foundation implemented: the append-only event
 store with monotonic sequence and exact-duplicate idempotency, retention
 settings, operational pruning, explicit purge, and the deletion ledger. Runtime
-event emission, UI projections, and scheduled retention remain pending; the
-rest of this ADR's behavior is not yet shipped.
+event emission implemented: operational scan events, review transition events,
+and proposal/apply audit events commit transactionally with their canonical
+transitions, and interrupted scans and applies record truthful recovery
+outcomes at startup. UI projections, disposition events, and scheduled
+retention remain pending under later tasks.
 
 ## Context
 

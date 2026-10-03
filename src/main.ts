@@ -43,6 +43,7 @@ import { MAX_POLICY_BYTES, parsePolicy } from "./policy/parse.js";
 import { explainFinding, type FindingExplanation } from "./agents/finding-explanation.js";
 import { checkModelReadiness } from "./model-provider/readiness.js";
 import type { Finding } from "./contracts/index.js";
+import type { NewIntegrityEvent } from "./contracts/integrity-event.js";
 import {
   dismissalReasonVerdict,
   validateReviewerFeedback,
@@ -68,6 +69,7 @@ import {
 import { prepareEntityConsolidation } from "./review/entity-consolidation.js";
 import { buildChangeAwareFindings } from "./maintenance/change-aware.js";
 import { planIncrementalScan } from "./indexing/plan.js";
+import { FINDING_IDENTITY_PROFILE_HASH } from "./findings/identity.js";
 
 const STATUS_VIEW_TYPE = "vault-steward-status";
 declare const __SQLITE_WASM_BASE64__: string;
@@ -96,6 +98,12 @@ export default class VaultStewardPlugin extends Plugin {
             locateFile: (file: string) =>
               this.app.vault.adapter.getResourcePath(`${this.pluginDirectory()}/${file}`)
           })
+    });
+    new ReviewWorkflow(
+      this.database.repository,
+      new ObsidianVaultWriter(this.app.vault)
+    ).recoverInterruptedApplies(() => {
+      void this.scanVault().catch(() => undefined);
     });
     this.register(this.vaultReader.watchInvalidations());
     this.registerEvent(this.app.vault.on("create", () => this.recordMaintenanceEvent()));
@@ -227,6 +235,7 @@ export default class VaultStewardPlugin extends Plugin {
       startedAt,
       finishedAt: new Date().toISOString(),
       files: subjectFiles,
+      identityProfileHash: FINDING_IDENTITY_PROFILE_HASH,
       parseProducts: snapshot.notes.map((note) => ({
         path: note.path,
         revisionHash: note.revision,
@@ -337,14 +346,17 @@ export default class VaultStewardPlugin extends Plugin {
             return;
           throw new Error("A previous proposal for this finding must be reviewed first.");
         }
-        this.database!.repository.saveProposal({
-          id: proposal.id,
-          findingId: proposal.findingId,
-          patchJson: JSON.stringify(proposal),
-          sourceRevisionsJson: "{}",
-          status: "pending",
-          proposalDigest: proposalDigest(proposal)
-        });
+        this.database!.repository.saveProposal(
+          {
+            id: proposal.id,
+            findingId: proposal.findingId,
+            patchJson: JSON.stringify(proposal),
+            sourceRevisionsJson: "{}",
+            status: "pending",
+            proposalDigest: proposalDigest(proposal)
+          },
+          this.proposalPreparedEvent(proposal.id)
+        );
       }
     });
     await this.database.flush();
@@ -443,18 +455,34 @@ export default class VaultStewardPlugin extends Plugin {
     if (!result.applicable) throw new Error(result.reason);
     const parsed = parseProposal(result.proposal);
     if (!parsed.ok) throw new Error("Generated proposal is invalid.");
-    this.database.repository.saveProposal({
-      id: result.proposal.id,
-      findingId: result.proposal.findingId,
-      patchJson: JSON.stringify(result.proposal),
-      sourceRevisionsJson: "{}",
-      status: "pending",
-      proposalDigest: proposalDigest(parsed.value)
-    });
+    this.database.repository.saveProposal(
+      {
+        id: result.proposal.id,
+        findingId: result.proposal.findingId,
+        patchJson: JSON.stringify(result.proposal),
+        sourceRevisionsJson: "{}",
+        status: "pending",
+        proposalDigest: proposalDigest(parsed.value)
+      },
+      this.proposalPreparedEvent(result.proposal.id)
+    );
     await this.database.flush();
     return {
       proposal: result.proposal,
       sources: { [sourcePath(result.proposal)]: source.content }
+    };
+  }
+
+  private proposalPreparedEvent(proposalId: string): NewIntegrityEvent {
+    return {
+      schemaVersion: 1,
+      id: crypto.randomUUID(),
+      category: "audit",
+      kind: "proposal-prepared",
+      occurredAt: new Date().toISOString(),
+      ...(this.activeSnapshot?.id !== undefined ? { scanId: this.activeSnapshot.id } : {}),
+      proposalId,
+      safeMetadata: {}
     };
   }
 
@@ -482,14 +510,17 @@ export default class VaultStewardPlugin extends Plugin {
             return;
           throw new Error("A previous proposal for this finding must be reviewed first.");
         }
-        this.database!.repository.saveProposal({
-          id: proposal.id,
-          findingId: proposal.findingId,
-          patchJson: JSON.stringify(proposal),
-          sourceRevisionsJson: "{}",
-          status: "pending",
-          proposalDigest: proposalDigest(proposal)
-        });
+        this.database!.repository.saveProposal(
+          {
+            id: proposal.id,
+            findingId: proposal.findingId,
+            patchJson: JSON.stringify(proposal),
+            sourceRevisionsJson: "{}",
+            status: "pending",
+            proposalDigest: proposalDigest(proposal)
+          },
+          this.proposalPreparedEvent(proposal.id)
+        );
       }
     });
     const taskDecisionPrepared = await prepareTaskDecisionRepairBatch({
@@ -508,14 +539,17 @@ export default class VaultStewardPlugin extends Plugin {
             return;
           throw new Error("A previous proposal for this finding must be reviewed first.");
         }
-        this.database!.repository.saveProposal({
-          id: proposal.id,
-          findingId: proposal.findingId,
-          patchJson: JSON.stringify(proposal),
-          sourceRevisionsJson: "{}",
-          status: "pending",
-          proposalDigest: proposalDigest(proposal)
-        });
+        this.database!.repository.saveProposal(
+          {
+            id: proposal.id,
+            findingId: proposal.findingId,
+            patchJson: JSON.stringify(proposal),
+            sourceRevisionsJson: "{}",
+            status: "pending",
+            proposalDigest: proposalDigest(proposal)
+          },
+          this.proposalPreparedEvent(proposal.id)
+        );
       }
     });
     const templatePrepared = await prepareTemplateRepairBatch({
@@ -525,14 +559,17 @@ export default class VaultStewardPlugin extends Plugin {
       persistProposal: (proposal) => {
         const existing = this.database!.repository.findProposal(proposal.id);
         if (existing) return;
-        this.database!.repository.saveProposal({
-          id: proposal.id,
-          findingId: proposal.findingId,
-          patchJson: JSON.stringify(proposal),
-          sourceRevisionsJson: "{}",
-          status: "pending",
-          proposalDigest: proposalDigest(proposal)
-        });
+        this.database!.repository.saveProposal(
+          {
+            id: proposal.id,
+            findingId: proposal.findingId,
+            patchJson: JSON.stringify(proposal),
+            sourceRevisionsJson: "{}",
+            status: "pending",
+            proposalDigest: proposalDigest(proposal)
+          },
+          this.proposalPreparedEvent(proposal.id)
+        );
       }
     });
     const prepared = combinePreparedRepairs(

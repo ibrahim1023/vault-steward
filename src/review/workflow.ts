@@ -1,5 +1,8 @@
+import { randomUUID } from "node:crypto";
+
 import { proposalDigest, type Proposal } from "../contracts/proposal.js";
-import type { VaultStewardRepository } from "../storage/repositories.js";
+import type { NewIntegrityEvent } from "../contracts/integrity-event.js";
+import type { ApprovalRecord, VaultStewardRepository } from "../storage/repositories.js";
 
 export type WritableVault = {
   read(path: string): Promise<{ content: string; revision: string }>;
@@ -22,21 +25,30 @@ export type BatchApplyResult = {
 export class ReviewWorkflow {
   constructor(
     private readonly repository: VaultStewardRepository,
-    private readonly vault: WritableVault
+    private readonly vault: WritableVault,
+    private readonly createEventId: () => string = randomUUID
   ) {}
   act(proposal: Proposal, action: ReviewAction, actedAt: string): void {
     const digest = this.requireCurrentDigest(proposal);
     const status = this.repository.getProposalStatus(proposal.id);
     if (status !== "pending") throw new Error("Only pending proposals can be reviewed.");
-    this.repository.updateProposalStatus(proposal.id, action);
-    this.repository.recordApproval({
-      id: `${proposal.id}:${action}:${actedAt}`,
-      proposalId: proposal.id,
+    const approvalId = `${proposal.id}:${action}:${actedAt}`;
+    this.transitionWithApproval(
+      proposal.id,
       action,
-      actedAt,
-      appliedRevision: null,
-      proposalDigest: digest
-    });
+      {
+        id: approvalId,
+        proposalId: proposal.id,
+        action,
+        actedAt,
+        appliedRevision: null,
+        proposalDigest: digest
+      },
+      this.auditEvent(`proposal-${action}`, actedAt, {
+        proposalId: proposal.id,
+        approvalId
+      })
+    );
   }
   async apply(
     proposal: Proposal,
@@ -46,12 +58,21 @@ export class ReviewWorkflow {
     if (this.repository.getProposalStatus(proposal.id) !== "approved")
       throw new Error("Only approved proposals can be applied.");
     if (options.signal?.aborted) return { ok: false, reason: "canceled" };
+    assertValidActedAt(actedAt);
     const digest = this.requireCurrentDigest(proposal);
     if (this.repository.getApprovedProposalDigest(proposal.id) !== digest) {
-      this.repository.updateProposalStatus(proposal.id, "stale");
+      this.transitionStatus(
+        proposal.id,
+        "stale",
+        this.auditEvent("proposal-stale", actedAt, { proposalId: proposal.id })
+      );
       return { ok: false, reason: "stale" };
     }
-    this.repository.updateProposalStatus(proposal.id, "applying");
+    this.transitionStatus(
+      proposal.id,
+      "applying",
+      this.auditEvent("apply-started", actedAt, { proposalId: proposal.id })
+    );
     let current: Array<{
       operation: Proposal["operations"][number];
       file: { content: string; revision: string };
@@ -64,7 +85,11 @@ export class ReviewWorkflow {
         }))
       );
     } catch {
-      this.repository.updateProposalStatus(proposal.id, "apply-failed");
+      this.transitionStatus(
+        proposal.id,
+        "apply-failed",
+        this.auditEvent("apply-failed", actedAt, { proposalId: proposal.id })
+      );
       return { ok: false, reason: "write-failed" };
     }
     if (
@@ -74,14 +99,22 @@ export class ReviewWorkflow {
           file.content.slice(operation.start, operation.end) !== operation.expected
       )
     ) {
-      this.repository.updateProposalStatus(proposal.id, "stale");
-      this.repository.recordApproval({
-        id: `${proposal.id}:stale:${actedAt}`,
-        proposalId: proposal.id,
-        action: "stale",
-        actedAt,
-        appliedRevision: null
-      });
+      const approvalId = `${proposal.id}:stale:${actedAt}`;
+      this.transitionWithApproval(
+        proposal.id,
+        "stale",
+        {
+          id: approvalId,
+          proposalId: proposal.id,
+          action: "stale",
+          actedAt,
+          appliedRevision: null
+        },
+        this.auditEvent("proposal-stale", actedAt, {
+          proposalId: proposal.id,
+          approvalId
+        })
+      );
       return { ok: false, reason: "stale" };
     }
     if (options.signal?.aborted) {
@@ -92,7 +125,11 @@ export class ReviewWorkflow {
     try {
       writes = createWrites(current);
     } catch {
-      this.repository.updateProposalStatus(proposal.id, "apply-failed");
+      this.transitionStatus(
+        proposal.id,
+        "apply-failed",
+        this.auditEvent("apply-failed", actedAt, { proposalId: proposal.id })
+      );
       return { ok: false, reason: "write-failed" };
     }
     const written: Array<{ path: string; before: string; after: string }> = [];
@@ -103,20 +140,37 @@ export class ReviewWorkflow {
       }
     } catch {
       const rollbackFailed = await this.rollbackWrites(written);
-      this.repository.updateProposalStatus(
-        proposal.id,
-        rollbackFailed ? "recovery-required" : "apply-failed"
-      );
+      if (rollbackFailed) {
+        this.transitionStatus(
+          proposal.id,
+          "recovery-required",
+          this.auditEvent("apply-recovery-required", actedAt, { proposalId: proposal.id })
+        );
+      } else {
+        this.transitionStatus(
+          proposal.id,
+          "apply-failed",
+          this.auditEvent("apply-rolled-back", actedAt, { proposalId: proposal.id })
+        );
+      }
       return { ok: false, reason: "write-failed" };
     }
-    this.repository.updateProposalStatus(proposal.id, "applied");
-    this.repository.recordApproval({
-      id: `${proposal.id}:applied:${actedAt}`,
-      proposalId: proposal.id,
-      action: "applied",
-      actedAt,
-      appliedRevision: null
-    });
+    const approvalId = `${proposal.id}:applied:${actedAt}`;
+    this.transitionWithApproval(
+      proposal.id,
+      "applied",
+      {
+        id: approvalId,
+        proposalId: proposal.id,
+        action: "applied",
+        actedAt,
+        appliedRevision: null
+      },
+      this.auditEvent("apply-succeeded", actedAt, {
+        proposalId: proposal.id,
+        approvalId
+      })
+    );
     options.onReindex?.();
     return { ok: true };
   }
@@ -152,18 +206,27 @@ export class ReviewWorkflow {
       digests.set(proposal.id, digest);
     }
     if (options.signal?.aborted) return batchFailure("canceled", [], proposalIds, []);
+    assertValidActedAt(actedAt);
 
     for (const proposal of proposals) {
       const digest = digests.get(proposal.id)!;
-      this.repository.updateProposalStatus(proposal.id, "approved");
-      this.repository.recordApproval({
-        id: `${proposal.id}:approved:${actedAt}`,
-        proposalId: proposal.id,
-        action: "approved",
-        actedAt,
-        appliedRevision: null,
-        proposalDigest: digest
-      });
+      const approvalId = `${proposal.id}:approved:${actedAt}`;
+      this.transitionWithApproval(
+        proposal.id,
+        "approved",
+        {
+          id: approvalId,
+          proposalId: proposal.id,
+          action: "approved",
+          actedAt,
+          appliedRevision: null,
+          proposalDigest: digest
+        },
+        this.auditEvent("proposal-approved", actedAt, {
+          proposalId: proposal.id,
+          approvalId
+        })
+      );
     }
 
     const paths = [
@@ -179,7 +242,7 @@ export class ReviewWorkflow {
         })
       );
     } catch {
-      this.updateBatchStatus(proposals, "apply-failed");
+      this.transitionBatch(proposals, "apply-failed", "apply-failed", actedAt);
       return batchFailure("write-failed", [], [], proposalIds);
     }
 
@@ -196,15 +259,23 @@ export class ReviewWorkflow {
           file.content.slice(operation.start, operation.end) !== operation.expected
       )
     ) {
-      this.updateBatchStatus(proposals, "stale");
       for (const proposal of proposals) {
-        this.repository.recordApproval({
-          id: `${proposal.id}:stale:${actedAt}`,
-          proposalId: proposal.id,
-          action: "stale",
-          actedAt,
-          appliedRevision: null
-        });
+        const approvalId = `${proposal.id}:stale:${actedAt}`;
+        this.transitionWithApproval(
+          proposal.id,
+          "stale",
+          {
+            id: approvalId,
+            proposalId: proposal.id,
+            action: "stale",
+            actedAt,
+            appliedRevision: null
+          },
+          this.auditEvent("proposal-stale", actedAt, {
+            proposalId: proposal.id,
+            approvalId
+          })
+        );
       }
       return batchFailure("stale", [], proposalIds, []);
     }
@@ -217,10 +288,10 @@ export class ReviewWorkflow {
     try {
       writes = createWrites(current);
     } catch {
-      this.updateBatchStatus(proposals, "stale");
+      this.transitionBatch(proposals, "stale", "proposal-stale", actedAt);
       return batchFailure("invalid", [], proposalIds, []);
     }
-    this.updateBatchStatus(proposals, "applying");
+    this.transitionBatch(proposals, "applying", "apply-started", actedAt);
 
     const written: Array<{ path: string; before: string; after: string }> = [];
     try {
@@ -230,7 +301,11 @@ export class ReviewWorkflow {
       }
     } catch {
       const rollbackFailed = await this.rollbackWrites(written);
-      this.updateBatchStatus(proposals, rollbackFailed ? "recovery-required" : "apply-failed");
+      if (rollbackFailed) {
+        this.transitionBatch(proposals, "recovery-required", "apply-recovery-required", actedAt);
+      } else {
+        this.transitionBatch(proposals, "apply-failed", "apply-rolled-back", actedAt);
+      }
       return batchFailure(
         rollbackFailed ? "recovery-required" : "write-failed",
         [],
@@ -239,15 +314,23 @@ export class ReviewWorkflow {
       );
     }
 
-    this.updateBatchStatus(proposals, "applied");
     for (const proposal of proposals) {
-      this.repository.recordApproval({
-        id: `${proposal.id}:applied:${actedAt}`,
-        proposalId: proposal.id,
-        action: "applied",
-        actedAt,
-        appliedRevision: null
-      });
+      const approvalId = `${proposal.id}:applied:${actedAt}`;
+      this.transitionWithApproval(
+        proposal.id,
+        "applied",
+        {
+          id: approvalId,
+          proposalId: proposal.id,
+          action: "applied",
+          actedAt,
+          appliedRevision: null
+        },
+        this.auditEvent("apply-succeeded", actedAt, {
+          proposalId: proposal.id,
+          approvalId
+        })
+      );
     }
     let reindexed = false;
     try {
@@ -267,9 +350,18 @@ export class ReviewWorkflow {
   }
 
   recoverInterruptedApplies(onReindex: () => void): number {
-    const recovered = this.repository.recoverInterruptedApplies();
-    if (recovered > 0) onReindex();
-    return recovered;
+    const proposalIds = this.repository.listRecoverableApplyProposalIds();
+    const occurredAt = new Date().toISOString();
+    for (const proposalId of proposalIds) {
+      this.repository.withTransaction(() => {
+        this.repository.updateProposalStatus(proposalId, "recovery-required");
+        this.repository.appendIntegrityEvent(
+          this.auditEvent("apply-recovery-required", occurredAt, { proposalId })
+        );
+      });
+    }
+    if (proposalIds.length > 0) onReindex();
+    return proposalIds.length;
   }
 
   private requireCurrentDigest(proposal: Proposal): string {
@@ -282,6 +374,74 @@ export class ReviewWorkflow {
 
   private updateBatchStatus(proposals: readonly Proposal[], status: string): void {
     for (const proposal of proposals) this.repository.updateProposalStatus(proposal.id, status);
+  }
+
+  private transitionBatch(
+    proposals: readonly Proposal[],
+    status: string,
+    kind:
+      | "apply-started"
+      | "apply-succeeded"
+      | "apply-failed"
+      | "apply-rolled-back"
+      | "apply-recovery-required"
+      | "proposal-stale",
+    actedAt: string
+  ): void {
+    for (const proposal of proposals) {
+      this.transitionStatus(
+        proposal.id,
+        status,
+        this.auditEvent(kind, actedAt, { proposalId: proposal.id })
+      );
+    }
+  }
+
+  private transitionStatus(proposalId: string, status: string, event: NewIntegrityEvent): void {
+    this.repository.withTransaction(() => {
+      this.repository.updateProposalStatus(proposalId, status);
+      this.repository.appendIntegrityEvent(event);
+    });
+  }
+
+  private transitionWithApproval(
+    proposalId: string,
+    status: string,
+    approval: ApprovalRecord,
+    event: NewIntegrityEvent
+  ): void {
+    this.repository.withTransaction(() => {
+      this.repository.updateProposalStatus(proposalId, status);
+      this.repository.recordApproval(approval);
+      this.repository.appendIntegrityEvent(event);
+    });
+  }
+
+  private auditEvent(
+    kind:
+      | "proposal-approved"
+      | "proposal-dismissed"
+      | "proposal-deferred"
+      | "proposal-stale"
+      | "apply-started"
+      | "apply-succeeded"
+      | "apply-failed"
+      | "apply-rolled-back"
+      | "apply-recovery-required",
+    occurredAt: string,
+    references: { proposalId: string; approvalId?: string }
+  ): NewIntegrityEvent {
+    assertValidActedAt(occurredAt);
+    return {
+      schemaVersion: 1,
+      id: this.createEventId(),
+      category: "audit",
+      kind,
+      occurredAt,
+      proposalId: references.proposalId,
+      ...(references.approvalId !== undefined ? { approvalId: references.approvalId } : {}),
+      safeMetadata: {}
+    };
   }
 
   private async writeIfCurrent(write: {
@@ -327,6 +487,18 @@ function batchFailure(
     notesEdited: 0,
     reindexed: false
   };
+}
+
+function assertValidActedAt(actedAt: string): void {
+  let roundTripped: string;
+  try {
+    roundTripped = new Date(actedAt).toISOString();
+  } catch {
+    throw new Error("actedAt must be a round-trippable ISO timestamp");
+  }
+  if (roundTripped !== actedAt) {
+    throw new Error("actedAt must be a round-trippable ISO timestamp");
+  }
 }
 
 function hasOverlappingOperations(operations: readonly Proposal["operations"][number][]): boolean {
