@@ -367,6 +367,15 @@ export default class VaultStewardPlugin extends Plugin {
     return this.database?.loadHistory() ?? { scans: [], lifecycle: [] };
   }
 
+  loadChangesSummary(baselineScanId?: string) {
+    return (
+      this.database?.loadChangesSummary(baselineScanId) ?? {
+        status: "no-scan" as const,
+        currentScanId: null
+      }
+    );
+  }
+
   loadObservability(scanId?: string) {
     return (
       this.database?.loadObservability(scanId) ?? {
@@ -789,6 +798,7 @@ class VaultStewardStatusItemView extends ItemView {
           scan: () => this.plugin.scanVault(),
           loadFindings: () => this.plugin.loadFindings(),
           loadHistory: () => this.plugin.loadHistory(),
+          loadChangesSummary: (baselineScanId) => this.plugin.loadChangesSummary(baselineScanId),
           prepareRepairs: () => this.plugin.prepareRecommendedRepairBatch(),
           applyRepairs: (batch) => this.plugin.applyPreparedRepairBatch(batch),
           openNote: (path) => this.plugin.openVaultNote(path),

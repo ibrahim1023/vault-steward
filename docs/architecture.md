@@ -63,6 +63,14 @@ actions append their audit events inside the same transaction as the domain
 status or approval change, so event history never diverges from canonical
 state.
 
+`maintenance/changes` reads only retained completed scans sharing the latest
+scan's vault fingerprint and non-legacy identity profile. It builds a
+read-only Changes summary from persisted occurrence keys and revisions,
+allowing the user to select an earlier compatible baseline; failed, canceled,
+legacy, and incompatible scans cannot become baselines. The workspace renders
+new, changed, recurring, resolved, and unchanged counts without rebuilding
+historic note bodies or granting any write authority.
+
 ## Main Workflow
 
 ```mermaid

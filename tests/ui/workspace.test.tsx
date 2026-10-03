@@ -171,6 +171,34 @@ const duplicateReview: DuplicateEntityReview = {
 describe("VaultStewardWorkspace", () => {
   afterEach(cleanup);
 
+  it("shows Changes and recomputes the summary when a baseline is selected", () => {
+    const loadChangesSummary = vi.fn((selected?: string) => ({
+      status: "compared" as const,
+      currentScanId: "scan-3",
+      baselineScanId: selected ?? "scan-2",
+      availableBaselineScanIds: ["scan-1", "scan-2"],
+      new: [],
+      changed: [],
+      recurring: [],
+      resolved: [],
+      unchanged: []
+    }));
+    render(
+      <VaultStewardWorkspace
+        vaultLabel="Test vault"
+        scan={async () => ({ scanId: "scan-3", findings: [] })}
+        loadChangesSummary={loadChangesSummary}
+      />
+    );
+    expect(screen.getByRole("region", { name: "Changes since last check" })).toHaveTextContent(
+      "No findings changed"
+    );
+    fireEvent.change(screen.getByRole("combobox", { name: "Compare with" }), {
+      target: { value: "scan-1" }
+    });
+    expect(loadChangesSummary).toHaveBeenCalledWith("scan-1");
+  });
+
   it("starts with one dominant action and separates utilities from Diagnostics", () => {
     const openProviderSettings = vi.fn();
     render(

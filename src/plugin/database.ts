@@ -8,6 +8,7 @@ import type {
 } from "../contracts/incremental.js";
 import { persistReviewQueueInTransaction } from "../coordinator/normalize.js";
 import { compareFindingOccurrences, type FindingTransition } from "../findings/compare.js";
+import { buildChangesSummary, type ChangesSummary } from "../maintenance/changes.js";
 import { ScanSnapshotRepository } from "../storage/scan-snapshots.js";
 import { applyMigrations } from "../storage/migrations.js";
 import {
@@ -53,6 +54,7 @@ export type PluginDatabase = {
     };
   }): void;
   loadFindings(): Finding[];
+  loadChangesSummary(baselineScanId?: string): ChangesSummary;
   loadHistory(): {
     scans: ReturnType<VaultStewardRepository["listScanHistory"]>;
     lifecycle: ReturnType<VaultStewardRepository["listFindingLifecycle"]>;
@@ -419,6 +421,8 @@ export async function openPluginDatabase(input: {
         return finding ? [finding] : [];
       });
     },
+    loadChangesSummary: (baselineScanId) =>
+      buildChangesSummary(repository, snapshots, baselineScanId),
     loadHistory: () => ({
       scans: repository.listScanHistory(20),
       lifecycle: repository.listFindingLifecycle()

@@ -21,12 +21,14 @@ import {
   type EntityCanonicalRecommendation
 } from "../review/entity-canonical-recommendation.js";
 import type { BatchApplyResult } from "../review/workflow.js";
+import type { ChangesSummary } from "../maintenance/changes.js";
 import type {
   FindingLifecycleRecord,
   ReviewerFeedbackRecord,
   ScanHistoryRecord
 } from "../storage/repositories.js";
 import { HistoryView } from "./HistoryView.js";
+import { ChangesView } from "./ChangesView.js";
 import { DiagnosticsView, type DiagnosticsViewProps } from "./DiagnosticsView.js";
 import { DuplicateEntityReview } from "./DuplicateEntityReview.js";
 import { rankDashboardFindings } from "./dashboard.js";
@@ -63,6 +65,7 @@ export function VaultStewardWorkspace({
   prepareEntityConsolidation,
   openProviderSettings,
   loadHistory,
+  loadChangesSummary,
   diagnostics
 }: {
   vaultLabel: string;
@@ -85,6 +88,7 @@ export function VaultStewardWorkspace({
   ) => Promise<PreparedRepair | null>;
   openProviderSettings?: () => void;
   loadHistory?: () => { scans: ScanHistoryRecord[]; lifecycle: FindingLifecycleRecord[] };
+  loadChangesSummary?: (baselineScanId?: string) => ChangesSummary;
   diagnostics?: WorkspaceDiagnostics;
 }) {
   const [mode, setMode] = useState<WorkspaceMode>("ready");
@@ -101,7 +105,9 @@ export function VaultStewardWorkspace({
   const [localSuppressionPatterns, setLocalSuppressionPatterns] = useState<string[]>([
     ...(diagnostics?.suppressedPatterns ?? [])
   ]);
+  const [baselineScanId, setBaselineScanId] = useState<string>();
   const history = loadHistory?.();
+  const changes = loadChangesSummary?.(baselineScanId);
   const reviewerFeedback = diagnostics?.loadFeedback() ?? [];
   const activeFindings = rankDashboardFindings(
     findings.filter(
@@ -184,6 +190,7 @@ export function VaultStewardWorkspace({
     setScanLimitations([]);
     try {
       const result = await scan();
+      setBaselineScanId(undefined);
       const nextFindings = loadFindings ? await loadFindings() : result.findings;
       setFindings(nextFindings);
       setScanLimitations(result.limitations ?? []);
@@ -411,6 +418,8 @@ export function VaultStewardWorkspace({
       ) : null}
 
       <IssueList findings={listedFindings} />
+
+      {changes ? <ChangesView summary={changes} onSelectBaseline={setBaselineScanId} /> : null}
 
       {openProviderSettings || history ? (
         <section className="workspace-utilities" aria-label="Workspace tools">

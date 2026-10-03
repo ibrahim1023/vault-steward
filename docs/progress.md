@@ -137,6 +137,14 @@ recover to `recovery-required` at plugin startup. Proposal persistence
 composes with `proposal-prepared` audit events, and a 10,000-event fixture
 enforces an 8 MiB SQLite budget as a performance gate, not a retention cap.
 
+Phase 34 Task 6 adds a read-only Changes Since Last Check summary and view.
+It compares the latest completed scan with a retained compatible baseline,
+excludes legacy, failed, and incompatible scans, and permits selecting an
+earlier compatible baseline. The workspace displays transition counts and
+persisted finding-family/subtype labels without reconstructing historical note
+bodies or acquiring write authority. Inbox dispositions and the Timeline
+remain Phase 34 work.
+
 Completed: Phase 32 prepared the `0.2.1` release for the Community Directory
 reviewer. It uses Preact compatibility rendering rather than a bundled React DOM
 runtime, registers settings through Obsidian's declarative settings API, and
@@ -263,8 +271,7 @@ The Phase 14 completion gate passed on 2026-07-16: formatting, linting, type che
 
 ## Next Recommended Task
 
-Phase 33 is committed on `feat/phase-33-identity-events` and passed its
-completion gate. Promotion to `development` and the subsequent push require
-explicit approval before Phase 34 starts on `feat/phase-34-maintenance-workspace`.
-The next planned work is Task 6 (Changes service and view) in
-`docs/superpowers/plans/2026-09-28-maintenance-foundation.md`.
+Phase 33 was promoted to `development` and pushed with explicit approval.
+Phase 34 runs on `feat/phase-34-maintenance-workspace`; after Task 6 (Changes
+service and view), the next planned work is Task 7 (Steward Inbox dispositions)
+in `docs/superpowers/plans/2026-09-28-maintenance-foundation.md`.
